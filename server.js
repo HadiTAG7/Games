@@ -8,7 +8,10 @@ const QRCode = require('qrcode');
 const { Server } = require('socket.io');
 const { RoomManager } = require('./src/rooms');
 const { GameError } = require('./src/games/herd');
-const questionBank = require('./data/questions.json');
+const questionBanks = {
+  same: require('./data/questions.json'),
+  different: require('./data/questions-different.json'),
+};
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0']);
@@ -19,7 +22,7 @@ app.get('/healthz', (req, res) => res.send('ok'));
 
 const server = http.createServer(app);
 const io = new Server(server);
-const rooms = new RoomManager({ questionBank });
+const rooms = new RoomManager({ questionBanks });
 
 const hostChannel = (code) => `${code}:host`;
 const playerChannel = (code, playerId) => `${code}:player:${playerId}`;
@@ -140,7 +143,8 @@ io.on('connection', (socket) => {
   hostAction('host:start', (room) => room.game.start());
   hostAction('host:reveal', (room) => room.game.reveal());
   hostAction('host:merge', (room, { from, to }) => room.game.merge(from, to));
-  hostAction('host:undo', (room) => room.game.undoMerge());
+  hostAction('host:reject', (room, { groupId }) => room.game.toggleReject(groupId));
+  hostAction('host:undo', (room) => room.game.undo());
   hostAction('host:confirm', (room) => room.game.confirm());
   hostAction('host:next', (room) => room.game.next());
   hostAction('host:end', (room) => room.game.finish());

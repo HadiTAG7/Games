@@ -13,12 +13,12 @@ function cleanName(name) {
 }
 
 class Room {
-  constructor({ code, questionBank, random }) {
+  constructor({ code, questionBanks, random }) {
     this.code = code;
     this.hostToken = crypto.randomBytes(16).toString('hex');
     this.players = new Map(); // id → { id, name, sockets: Set<socketId>, joinedAt }
     this.onChange = () => {};
-    this.game = new HerdGame({ questionBank, random, onTimeout: () => this.onChange() });
+    this.game = new HerdGame({ questionBanks, random, onTimeout: () => this.onChange() });
     this.touch();
   }
 
@@ -72,7 +72,7 @@ class Room {
   }
 
   standings() {
-    return this.game.standings({ cowLast: this.game.phase === 'final' }).map((row) => {
+    return this.game.standings().map((row) => {
       const state = this.game.players.get(row.id);
       return { ...row, name: this.players.get(row.id).name, gained: state.last?.gained ?? 0 };
     });
@@ -81,18 +81,18 @@ class Room {
   groupsView() {
     const { round } = this.game;
     if (!round) return [];
-    const winners = winningGroupIds(round.groups);
+    const winners = winningGroupIds(round.groups, this.game.settings.mode);
     return round.groups.map((g) => ({
       id: g.id,
       text: g.text,
       size: g.members.length,
       winner: winners.has(g.id),
+      rejected: g.rejected,
       members: g.members.map((m) => ({
         id: m.playerId,
         name: this.players.get(m.playerId)?.name ?? '؟',
         text: m.text,
         value: m.value,
-        pinkCow: m.playerId === round.pinkCowTaker,
       })),
     }));
   }
@@ -106,6 +106,7 @@ class Room {
     const { phase, round } = game;
     const view = {
       code: this.code,
+      mode: game.settings.mode,
       phase: game.phase,
       roundNumber: game.roundIndex + 1,
       totalRounds: game.questions.length || game.settings.rounds,
@@ -116,9 +117,6 @@ class Room {
       answeredCount: round ? round.answers.size : 0,
       playerCount: this.players.size,
       maxBet: MAX_BET,
-      pinkCow: game.settings.pinkCow,
-      pinkCowHolder: this.nameOf(game.pinkCowHolder),
-      pinkCowTaker: phase === 'results' ? this.nameOf(round.pinkCowTaker) : null,
     };
     if (phase === 'final') view.winners = game.gameWinners().map((id) => this.nameOf(id));
     return view;
@@ -131,7 +129,7 @@ class Room {
       ...this.baseView(),
       role: 'host',
       settings: game.settings,
-      bankSize: game.questionBank.length,
+      bankSizes: { same: game.questionBanks.same.length, different: game.questionBanks.different.length },
       players: [...this.players.values()]
         .sort((a, b) => a.joinedAt - b.joinedAt)
         .map((p) => ({
@@ -140,7 +138,6 @@ class Room {
           connected: p.sockets.size > 0,
           score: game.players.get(p.id).score,
           answered: Boolean(round && round.answers.has(p.id)),
-          pinkCow: game.pinkCowHolder === p.id,
         })),
     };
     if (phase === 'reveal' || phase === 'results') {
@@ -170,7 +167,6 @@ class Room {
         name: player.name,
         score: state.score,
         used: [...state.used].sort((a, b) => a - b),
-        pinkCow: game.pinkCowHolder === playerId,
       },
       myAnswer: answer && (phase === 'question' || phase === 'reveal')
         ? { text: answer.text, value: answer.value }
@@ -193,8 +189,8 @@ class Room {
 }
 
 class RoomManager {
-  constructor({ questionBank = [], random = Math.random } = {}) {
-    this.questionBank = questionBank;
+  constructor({ questionBanks = {}, random = Math.random } = {}) {
+    this.questionBanks = questionBanks;
     this.random = random;
     this.rooms = new Map();
   }
@@ -208,7 +204,7 @@ class RoomManager {
   }
 
   create() {
-    const room = new Room({ code: this.newCode(), questionBank: this.questionBank, random: this.random });
+    const room = new Room({ code: this.newCode(), questionBanks: this.questionBanks, random: this.random });
     this.rooms.set(room.code, room);
     return room;
   }

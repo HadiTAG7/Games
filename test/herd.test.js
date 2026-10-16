@@ -3,13 +3,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  HerdGame, GameError, groupAnswers, mergeGroups, winningGroupIds, loneAnswerer, parseCustomQuestions,
+  HerdGame, GameError, groupAnswers, mergeGroups, winningGroupIds, toggleRejected, parseCustomQuestions,
 } = require('../src/games/herd');
 
 const BANK = Array.from({ length: 30 }, (_, i) => `سؤال ${i + 1}`);
+const DIFFERENT_BANK = Array.from({ length: 20 }, (_, i) => `سؤال مختلف ${i + 1}`);
+const BANKS = { same: BANK, different: DIFFERENT_BANK };
 
 function newGame(players = ['a', 'b', 'c', 'd']) {
-  const game = new HerdGame({ questionBank: BANK, random: () => 0.5 });
+  const game = new HerdGame({ questionBanks: BANKS, random: () => 0.5 });
   players.forEach((id) => game.addPlayer(id));
   return game;
 }
@@ -90,7 +92,7 @@ test('a full round: winners gain their bet, every bet is burned', () => {
   assert.deepEqual([...p('a').used], [5]);
   assert.deepEqual([...p('c').used], [15], 'losing burns the bet too');
   assert.deepEqual([...p('d').used], [1], 'no answer burns the lowest number');
-  assert.deepEqual(p('c').last, { answered: true, won: false, value: 15, gained: 0, text: 'أزرق', pinkCow: true });
+  assert.deepEqual(p('c').last, { answered: true, won: false, value: 15, gained: 0, text: 'أزرق', groupSize: 1, rejected: false });
   assert.deepEqual(p('d').last, { answered: false, won: false, value: 1, gained: 0 });
   assert.deepEqual(game.round.missed, [{ playerId: 'd', value: 1 }]);
 });
@@ -136,9 +138,9 @@ test('merging changes the winners and can be undone', () => {
   const beach = game.round.groups.find((g) => g.text === 'شاطئ');
   game.merge(sea.id, beach.id);
   assert.equal(game.winners().size, 2, 'بحر+شاطئ ties رمل');
-  game.undoMerge();
+  game.undo();
   assert.equal(game.round.groups.length, 3);
-  assert.throws(() => game.undoMerge(), GameError);
+  assert.throws(() => game.undo(), GameError);
   game.merge(sea.id, beach.id);
   game.confirm();
   assert.deepEqual(['a', 'b', 'c', 'd'].map((id) => game.players.get(id).score), [4, 6, 1, 2]);
@@ -234,7 +236,7 @@ test('removing a player mid-reveal drops them from the groups', () => {
 
 test('the timer reveals automatically', async () => {
   let now = 1_000;
-  const game = new HerdGame({ questionBank: BANK, now: () => now });
+  const game = new HerdGame({ questionBanks: BANKS, now: () => now });
   ['a', 'b'].forEach((id) => game.addPlayer(id));
   let notified = false;
   game.onTimeout = () => { notified = true; };
@@ -246,74 +248,6 @@ test('the timer reveals automatically', async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(game.phase, 'reveal');
   assert.ok(notified);
-});
-
-test('the pink cow goes only to a single odd one out', () => {
-  const lone = groupAnswers([
-    { playerId: 'a', text: 'أحمر', value: 1 },
-    { playerId: 'b', text: 'أحمر', value: 1 },
-    { playerId: 'c', text: 'أزرق', value: 1 },
-  ]);
-  assert.equal(loneAnswerer(lone), 'c');
-  const twoLoners = groupAnswers([
-    { playerId: 'a', text: 'أحمر', value: 1 },
-    { playerId: 'b', text: 'أحمر', value: 1 },
-    { playerId: 'c', text: 'أزرق', value: 1 },
-    { playerId: 'd', text: 'أخضر', value: 1 },
-  ]);
-  assert.equal(loneAnswerer(twoLoners), null);
-  assert.equal(loneAnswerer(groupAnswers([{ playerId: 'a', text: 'x', value: 1 }])), null, 'a lone answer in an empty round');
-});
-
-test('the pink cow moves to the next lone answerer and blocks the win', () => {
-  const game = newGame(['a', 'b', 'c']);
-  game.updateSettings({ rounds: 2 });
-  game.start();
-  play(game, [['a', 'x', 15], ['b', 'x', 14], ['c', 'y', 1]]);
-  game.confirm();
-  assert.equal(game.pinkCowHolder, 'c');
-  assert.equal(game.round.pinkCowTaker, 'c');
-  game.next();
-  play(game, [['a', 'z', 1], ['b', 'w', 2], ['c', 'w', 3]]);
-  game.confirm();
-  assert.equal(game.pinkCowHolder, 'a', 'a was the only one alone this time');
-  game.next();
-  assert.equal(game.phase, 'final');
-  // a has the most points (15+0) but holds the cow, so b (14+2) wins.
-  assert.deepEqual(game.gameWinners(), ['b']);
-  const final = game.standings({ cowLast: true });
-  assert.deepEqual(final.map((r) => r.id), ['b', 'c', 'a']);
-  assert.equal(final[2].pinkCow, true);
-});
-
-test('a round without a single loner keeps the pink cow where it is', () => {
-  const game = newGame(['a', 'b', 'c', 'd']);
-  game.start();
-  play(game, [['a', 'x', 1], ['b', 'x', 1], ['c', 'x', 1], ['d', 'y', 1]]);
-  game.confirm();
-  game.next();
-  play(game, [['a', 'x', 2], ['b', 'x', 2], ['c', 'y', 2], ['d', 'y', 2]]);
-  game.confirm();
-  assert.equal(game.pinkCowHolder, 'd');
-  assert.equal(game.round.pinkCowTaker, null);
-});
-
-test('the pink cow can be switched off, and leaves with its holder', () => {
-  const off = newGame(['a', 'b', 'c']);
-  off.updateSettings({ pinkCow: false });
-  off.start();
-  play(off, [['a', 'x', 1], ['b', 'x', 1], ['c', 'y', 1]]);
-  off.confirm();
-  assert.equal(off.pinkCowHolder, null);
-
-  const game = newGame(['a', 'b', 'c']);
-  game.start();
-  play(game, [['a', 'x', 1], ['b', 'x', 1], ['c', 'y', 1]]);
-  game.confirm();
-  game.removePlayer('c');
-  assert.equal(game.pinkCowHolder, null);
-  game.restart();
-  assert.equal(game.pinkCowHolder, null);
 });
 
 test('skipping a question burns the lowest number still unused', () => {
@@ -340,4 +274,76 @@ test('joining after the question closed does not burn a number', () => {
   assert.deepEqual([...game.players.get('late-during-question').used], [1]);
   assert.deepEqual([...game.players.get('late-during-reveal').used], []);
   assert.equal(game.players.get('late-during-reveal').last.value, null);
+});
+
+test('different mode: answers nobody else gave win, shared answers lose', () => {
+  const groups = groupAnswers([
+    { playerId: 'a', text: 'أحمر', value: 1 },
+    { playerId: 'b', text: 'الأحمر', value: 1 },
+    { playerId: 'c', text: 'أزرق', value: 1 },
+    { playerId: 'd', text: 'أخضر', value: 1 },
+  ]);
+  const winners = winningGroupIds(groups, 'different');
+  assert.deepEqual([...winners].map((id) => groups.find((g) => g.id === id).text).sort(), ['أخضر', 'أزرق']);
+  assert.equal(winningGroupIds(groupAnswers([{ playerId: 'a', text: 'x', value: 1 }]), 'different').size, 0,
+    'a lone answer with nobody to differ from does not win');
+});
+
+test('different mode: a full round scores the unique answers', () => {
+  const game = newGame(['a', 'b', 'c']);
+  game.updateSettings({ mode: 'different' });
+  game.start();
+  assert.ok(DIFFERENT_BANK.includes(game.round.question), 'uses the different-mode bank');
+  play(game, [['a', 'أحمر', 5], ['b', 'أحمر', 6], ['c', 'أزرق', 7]]);
+  game.confirm();
+  assert.deepEqual(['a', 'b', 'c'].map((id) => game.players.get(id).score), [0, 0, 7]);
+  assert.equal(game.players.get('a').last.groupSize, 2);
+  assert.deepEqual([...game.players.get('a').used], [5], 'losing still burns the bet');
+});
+
+test('different mode: merging synonyms makes them shared', () => {
+  const game = newGame(['a', 'b', 'c']);
+  game.updateSettings({ mode: 'different' });
+  game.start();
+  play(game, [['a', 'بحر', 1], ['b', 'شاطئ', 2], ['c', 'رمل', 3]]);
+  assert.equal(game.winners().size, 3);
+  const sea = game.round.groups.find((g) => g.text === 'بحر');
+  const beach = game.round.groups.find((g) => g.text === 'شاطئ');
+  game.merge(sea.id, beach.id);
+  game.confirm();
+  assert.deepEqual(['a', 'b', 'c'].map((id) => game.players.get(id).score), [0, 0, 3]);
+});
+
+test('rejected answers never win, in either mode, and rejecting can be undone', () => {
+  const different = newGame(['a', 'b', 'c']);
+  different.updateSettings({ mode: 'different' });
+  different.start();
+  play(different, [['a', 'زرافة', 4], ['b', 'أخضر', 3], ['c', 'أصفر', 2]]);
+  const giraffe = different.round.groups.find((g) => g.text === 'زرافة');
+  different.toggleReject(giraffe.id);
+  assert.equal(different.round.groups.at(-1).id, giraffe.id, 'rejected groups sort last');
+  assert.equal(different.winners().size, 2);
+  different.undo();
+  assert.equal(different.winners().size, 3);
+  different.toggleReject(giraffe.id);
+  different.confirm();
+  assert.deepEqual(['a', 'b', 'c'].map((id) => different.players.get(id).score), [0, 3, 2]);
+  assert.equal(different.players.get('a').last.rejected, true);
+
+  const same = newGame(['a', 'b', 'c', 'd']);
+  same.start();
+  play(same, [['a', 'غلط', 1], ['b', 'غلط', 1], ['c', 'صح', 1], ['d', 'أزرق', 1]]);
+  same.toggleReject(same.round.groups.find((g) => g.text === 'غلط').id);
+  assert.equal(same.winners().size, 0, 'the biggest group was rejected and the rest are singles');
+  assert.throws(() => toggleRejected(same.round.groups, 'nope'), GameError);
+});
+
+test('the mode is part of the settings and locked mid-game', () => {
+  const game = newGame();
+  game.updateSettings({ mode: 'other' });
+  assert.equal(game.settings.mode, 'same');
+  game.updateSettings({ mode: 'different' });
+  assert.equal(game.settings.mode, 'different');
+  game.start();
+  assert.throws(() => game.updateSettings({ mode: 'same' }), GameError);
 });

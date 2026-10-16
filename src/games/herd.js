@@ -1,12 +1,15 @@
 'use strict';
 
-// «عقلية القطيع» (Herd Mentality) — everyone answers the same prompt and
-// tries to match the majority. Before answering, each player bets one of their
-// numbers 1..15; every number can be bet once per game. Players in the biggest
-// group (ties all win, groups need 2+ people) gain their bet; everyone else
-// gets nothing. Skipping a question burns your lowest unused number.
-// Whoever is the single odd one out takes the pink cow, and can't win the
-// game while holding it.
+// «عقلية القطيع» (Herd Mentality) — everyone answers the same prompt.
+// Before answering, each player bets one of their numbers 1..15; every number
+// can be bet once per game, and skipping a question burns your lowest unused
+// number. Winners gain their bet; everyone else gets nothing.
+//
+// Two modes decide who wins:
+//   same       «مع القطيع»: the biggest group of matching answers (ties all
+//              win, a group needs 2+ people).
+//   different  «عكس القطيع»: every answer nobody else gave.
+// In both, the host can reject invalid answers so they can't win.
 
 const { normalizeAnswer } = require('../normalize');
 
@@ -18,6 +21,7 @@ const MAX_CUSTOM_QUESTIONS = 50;
 const MAX_QUESTION_LENGTH = 140;
 const TIMER_OPTIONS = [0, 20, 30, 45, 60, 90];
 const SOURCES = ['bank', 'custom', 'mix'];
+const MODES = ['same', 'different'];
 // Answers sent right as the clock hits zero still count.
 const TIMER_GRACE_MS = 750;
 
@@ -60,7 +64,9 @@ function displayText(members) {
 
 function sortGroups(groups) {
   return [...groups].sort(
-    (a, b) => b.members.length - a.members.length || a.text.localeCompare(b.text, 'ar'),
+    (a, b) => Number(a.rejected) - Number(b.rejected)
+      || b.members.length - a.members.length
+      || a.text.localeCompare(b.text, 'ar'),
   );
 }
 
@@ -74,7 +80,7 @@ function groupAnswers(answers) {
   }
   let n = 0;
   return sortGroups(
-    [...byKey.values()].map((members) => ({ id: `g${++n}`, text: displayText(members), members })),
+    [...byKey.values()].map((members) => ({ id: `g${++n}`, text: displayText(members), members, rejected: false })),
   );
 }
 
@@ -84,7 +90,7 @@ function mergeGroups(groups, fromId, toId) {
   const to = groups.find((g) => g.id === toId);
   if (!from || !to) throw new GameError('المجموعة غير موجودة');
   const members = [...to.members, ...from.members];
-  const merged = { id: to.id, text: displayText(members), members };
+  const merged = { id: to.id, text: displayText(members), members, rejected: to.rejected };
   return sortGroups(groups.filter((g) => g !== from && g !== to).concat(merged));
 }
 
@@ -97,18 +103,26 @@ function withoutPlayer(groups, playerId) {
   );
 }
 
-/** Biggest group wins; ties all win; a lone answer never wins. */
-function winningGroupIds(groups) {
-  const top = Math.max(0, ...groups.map((g) => g.members.length));
-  if (top < 2) return new Set();
-  return new Set(groups.filter((g) => g.members.length === top).map((g) => g.id));
+function toggleRejected(groups, groupId) {
+  if (!groups.some((g) => g.id === groupId)) throw new GameError('المجموعة غير موجودة');
+  return sortGroups(groups.map((g) => (g.id === groupId ? { ...g, rejected: !g.rejected } : g)));
 }
 
-/** The one player whose answer nobody shared, if there is exactly one. */
-function loneAnswerer(groups) {
-  if (groups.length < 2) return null;
-  const singles = groups.filter((g) => g.members.length === 1);
-  return singles.length === 1 ? singles[0].members[0].playerId : null;
+/**
+ * same: the biggest valid group wins, ties all win, a lone answer never wins.
+ * different: every valid answer given by exactly one player wins, as long as
+ * at least two players answered.
+ */
+function winningGroupIds(groups, mode = 'same') {
+  const valid = groups.filter((g) => !g.rejected);
+  if (mode === 'different') {
+    const answered = groups.reduce((n, g) => n + g.members.length, 0);
+    if (answered < 2) return new Set();
+    return new Set(valid.filter((g) => g.members.length === 1).map((g) => g.id));
+  }
+  const top = Math.max(0, ...valid.map((g) => g.members.length));
+  if (top < 2) return new Set();
+  return new Set(valid.filter((g) => g.members.length === top).map((g) => g.id));
 }
 
 function lowestUnused(used) {
@@ -121,14 +135,13 @@ function freshPlayerState() {
 }
 
 class HerdGame {
-  constructor({ questionBank = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
-    this.questionBank = questionBank;
+  constructor({ questionBanks = {}, random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+    this.questionBanks = { same: [], different: [], ...questionBanks };
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
-    this.settings = { rounds: MAX_ROUNDS, timer: 0, source: 'bank', customQuestions: [], pinkCow: true };
+    this.settings = { mode: 'same', rounds: MAX_ROUNDS, timer: 0, source: 'bank', customQuestions: [] };
     this.players = new Map();
-    this.pinkCowHolder = null;
     this.phase = 'lobby';
     this.questions = [];
     this.roundIndex = -1;
@@ -145,7 +158,6 @@ class HerdGame {
 
   removePlayer(id) {
     this.players.delete(id);
-    if (this.pinkCowHolder === id) this.pinkCowHolder = null;
     if (!this.round) return;
     this.round.answers.delete(id);
     if (this.phase === 'reveal') {
@@ -167,15 +179,20 @@ class HerdGame {
     if (patch.customQuestions !== undefined) {
       s.customQuestions = parseCustomQuestions(patch.customQuestions);
     }
-    if (patch.pinkCow !== undefined) s.pinkCow = Boolean(patch.pinkCow);
+    if (patch.mode !== undefined && MODES.includes(patch.mode)) s.mode = patch.mode;
     this.settings = s;
   }
 
+  get questionBank() {
+    return this.questionBanks[this.settings.mode];
+  }
+
   pickFromBank(count) {
-    let pool = this.questionBank.filter((q) => !this.seenQuestions.has(q));
+    const bank = this.questionBank;
+    let pool = bank.filter((q) => !this.seenQuestions.has(q));
     if (pool.length < count) {
-      this.seenQuestions.clear();
-      pool = [...this.questionBank];
+      for (const q of bank) this.seenQuestions.delete(q);
+      pool = [...bank];
     }
     const picks = shuffle(pool, this.random).slice(0, count);
     for (const q of picks) this.seenQuestions.add(q);
@@ -200,7 +217,6 @@ class HerdGame {
     if (!questions.length) throw new GameError('ما فيه أسئلة');
     this.questions = questions;
     for (const id of this.players.keys()) this.players.set(id, freshPlayerState());
-    this.pinkCowHolder = null;
     this.roundIndex = -1;
     this.startNextRound();
   }
@@ -214,7 +230,6 @@ class HerdGame {
       endsAt: timer ? this.now() + timer * 1000 : null,
       groups: [],
       history: [],
-      pinkCowTaker: null,
       askedIds: new Set(this.players.keys()),
       missed: [],
     };
@@ -263,30 +278,36 @@ class HerdGame {
     this.phase = 'reveal';
   }
 
-  merge(fromId, toId) {
-    if (this.phase !== 'reveal') throw new GameError('الدمج بس وقت مراجعة الأجوبة');
-    const merged = mergeGroups(this.round.groups, fromId, toId);
+  /** Host edits while reviewing answers; each one can be undone. */
+  editGroups(change) {
+    if (this.phase !== 'reveal') throw new GameError('التعديل بس وقت مراجعة الأجوبة');
+    const next = change(this.round.groups);
     this.round.history.push(this.round.groups);
-    this.round.groups = merged;
+    this.round.groups = next;
   }
 
-  undoMerge() {
+  merge(fromId, toId) {
+    this.editGroups((groups) => mergeGroups(groups, fromId, toId));
+  }
+
+  toggleReject(groupId) {
+    this.editGroups((groups) => toggleRejected(groups, groupId));
+  }
+
+  undo() {
     if (this.phase !== 'reveal' || !this.round.history.length) {
-      throw new GameError('ما فيه دمج تتراجع عنه');
+      throw new GameError('ما فيه شي تتراجع عنه');
     }
     this.round.groups = this.round.history.pop();
   }
 
   winners() {
-    return winningGroupIds(this.round ? this.round.groups : []);
+    return winningGroupIds(this.round ? this.round.groups : [], this.settings.mode);
   }
 
   confirm() {
     if (this.phase !== 'reveal') throw new GameError('مو وقت اعتماد النتيجة');
     const winners = this.winners();
-    const cowTaker = this.settings.pinkCow ? loneAnswerer(this.round.groups) : null;
-    if (cowTaker) this.pinkCowHolder = cowTaker;
-    this.round.pinkCowTaker = cowTaker;
     const groupOf = new Map();
     for (const g of this.round.groups) for (const m of g.members) groupOf.set(m.playerId, g);
     for (const [id, player] of this.players) {
@@ -306,7 +327,15 @@ class HerdGame {
       const gained = won ? answer.value : 0;
       player.used.add(answer.value);
       player.score += gained;
-      player.last = { answered: true, won, value: answer.value, gained, text: answer.text, pinkCow: id === cowTaker };
+      player.last = {
+        answered: true,
+        won,
+        value: answer.value,
+        gained,
+        text: answer.text,
+        groupSize: group.members.length,
+        rejected: group.rejected,
+      };
     }
     this.phase = 'results';
   }
@@ -333,29 +362,21 @@ class HerdGame {
     this.questions = [];
     this.roundIndex = -1;
     this.round = null;
-    this.pinkCowHolder = null;
     for (const id of this.players.keys()) this.players.set(id, freshPlayerState());
   }
 
-  /**
-   * [{ id, score, rank, pinkCow }] best first; equal scores share a rank.
-   * With cowLast the pink cow holder drops to the bottom, since they can't win.
-   */
-  standings({ cowLast = false } = {}) {
-    const rows = [...this.players].map(([id, p]) => ({ id, score: p.score, pinkCow: id === this.pinkCowHolder }));
-    const key = (row) => (cowLast && row.pinkCow ? -1 : row.score);
-    rows.sort((a, b) => key(b) - key(a));
+  /** [{ id, score, rank }] best first; equal scores share a rank. */
+  standings() {
+    const rows = [...this.players].map(([id, p]) => ({ id, score: p.score }));
+    rows.sort((a, b) => b.score - a.score);
     rows.forEach((row, i) => {
-      row.rank = i > 0 && key(rows[i - 1]) === key(row) ? rows[i - 1].rank : i + 1;
+      row.rank = i > 0 && rows[i - 1].score === row.score ? rows[i - 1].rank : i + 1;
     });
     return rows;
   }
 
-  /** Top scorers, never the pink cow holder. */
   gameWinners() {
-    return this.standings({ cowLast: true })
-      .filter((row) => row.rank === 1 && !row.pinkCow)
-      .map((row) => row.id);
+    return this.standings().filter((row) => row.rank === 1).map((row) => row.id);
   }
 
   dispose() {
@@ -369,8 +390,9 @@ module.exports = {
   groupAnswers,
   mergeGroups,
   winningGroupIds,
-  loneAnswerer,
+  toggleRejected,
   parseCustomQuestions,
+  MODES,
   MIN_BET,
   MAX_BET,
   MAX_ROUNDS,

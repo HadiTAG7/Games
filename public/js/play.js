@@ -1,4 +1,4 @@
-/* global io, $, h, range, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti */
+/* global io, $, h, range, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES */
 'use strict';
 
 const socket = io();
@@ -124,12 +124,17 @@ function render() {
 
 function topbar() {
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, `${GAME_NAME} 🐄`),
+    h('div', { class: 'brand' }, `${GAME_NAME} ${MODES[state.mode].emoji}`),
     state.phase === 'question' || state.phase === 'reveal'
       ? h('div', { class: 'pill' }, `${state.roundNumber}/${state.totalRounds}`)
       : null,
-    h('div', { class: 'pill' }, state.me.pinkCow ? cowBadge() : null, state.me.name, ' · ', h('b', {}, state.me.score)),
+    h('div', { class: 'pill' }, state.me.name, ' · ', h('b', {}, state.me.score)),
   );
+}
+
+function modePill() {
+  const mode = MODES[state.mode];
+  return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
 }
 
 function answeredText() {
@@ -142,7 +147,8 @@ function renderLobby() {
     h('h1', { class: 'center' }, `أهلاً ${state.me.name}`),
     h('p', { class: 'muted center' }, 'انتظر المضيف يبدأ اللعبة…'),
     h('p', { class: 'center' }, `عدد اللاعبين: ${state.playerCount}`),
-    h('div', { class: 'card' }, h('h2', {}, 'طريقة اللعب'), rulesList({ pinkCow: state.pinkCow })),
+    modePill(),
+    h('div', { class: 'card' }, h('h2', {}, 'طريقة اللعب'), rulesList(state.mode)),
   );
 }
 
@@ -196,12 +202,13 @@ function renderAnswerForm() {
   refresh();
   return h('main', { class: 'stage narrow' },
     h('form', { class: 'answer-form', onsubmit: submit },
+      modePill(),
       timerEl(state.endsAt),
       h('h1', { class: 'question' }, state.question),
       h('div', { class: 'step' }, h('span', { class: 'step-num' }, '1'), 'اختر رقم تراهن فيه'),
       bets,
       h('p', { class: 'hint' }, `كل رقم تستخدمه مرة وحدة · باقي لك ${state.maxBet - used.size} رقم`),
-      h('div', { class: 'step' }, h('span', { class: 'step-num' }, '2'), 'اكتب الجواب اللي تتوقع الأغلبية تكتبه'),
+      h('div', { class: 'step' }, h('span', { class: 'step-num' }, '2'), MODES[state.mode].prompt),
       input,
       send,
       editing ? h('button', { type: 'button', class: 'btn ghost', onclick: () => { editing = false; render(); } }, 'إلغاء التعديل') : null,
@@ -212,6 +219,7 @@ function renderAnswerForm() {
 
 function renderSent() {
   return h('main', { class: 'stage narrow' },
+    modePill(),
     timerEl(state.endsAt),
     h('h1', { class: 'question' }, state.question),
     h('div', { class: 'card sent' },
@@ -251,31 +259,27 @@ function verdict(last) {
   }
   if (last.won) {
     return h('div', { class: 'verdict good' },
-      h('div', { class: 'big-emoji' }, '🎉'), 'فزت!', h('div', { class: 'points' }, `+${last.gained}`));
+      h('div', { class: 'big-emoji' }, state.mode === 'different' ? '🦄' : '🎉'),
+      state.mode === 'different' ? 'ما أحد قال جوابك!' : 'فزت!',
+      h('div', { class: 'points' }, `+${last.gained}`));
   }
-  return h('div', { class: 'verdict bad' }, h('div', { class: 'big-emoji' }, '😬'), `راحت عليك الـ ${last.value}`);
-}
-
-function cowNotice() {
-  const { last, me } = state;
-  if (last?.pinkCow) {
-    return h('div', { class: 'banner pink' }, h('div', { class: 'big-emoji' }, '🐮'),
-      h('b', {}, 'أخذت البقرة الوردية!'), h('br'),
-      'كنت الوحيد اللي جوابه مختلف. وهي معك ما تقدر تفوز، لين ياخذها منك أحد ثاني.');
+  let reason = null;
+  if (last.rejected) reason = 'المضيف رفض جوابك 🚫';
+  else if (state.mode === 'different' && last.groupSize > 1) {
+    reason = last.groupSize === 2 ? 'فيه واحد ثاني قال نفس جوابك' : `فيه ${last.groupSize - 1} غيرك قالوا نفس جوابك`;
   }
-  if (me.pinkCow) return h('p', { class: 'center' }, cowBadge(), ' البقرة الوردية لسا معك');
-  if (state.pinkCowTaker) return h('p', { class: 'center muted' }, cowBadge(), ` البقرة الوردية راحت لـ ${state.pinkCowTaker}`);
-  return null;
+  return h('div', { class: 'verdict bad' }, h('div', { class: 'big-emoji' }, '😬'), `راحت عليك الـ ${last.value}`,
+    reason ? h('div', { class: 'verdict-note' }, reason) : null);
 }
 
 function renderResults() {
+  const mode = MODES[state.mode];
   const winners = state.groups.filter((g) => g.winner).map((g) => g.text);
   return h('main', { class: 'stage narrow' },
     verdict(state.last),
-    cowNotice(),
     h('p', { class: 'center' }, winners.length
-      ? ['جواب الأغلبية: ', h('b', {}, winners.join(' / '))]
-      : 'ما فيه أغلبية هالمرة'),
+      ? [`${mode.winnersTitle}: `, h('b', {}, winners.join(' / '))]
+      : mode.noWinners),
     state.last?.answered ? h('p', { class: 'muted center' }, `جوابك: ${state.last.text}`) : null,
     h('div', { class: 'card score-card' },
       h('div', {}, h('small', {}, 'مجموعك'), h('b', {}, state.me.score)),
@@ -290,10 +294,9 @@ function renderFinal() {
   const { me, isWinner, winners } = state;
   return h('main', { class: 'stage narrow final' },
     isWinner ? confetti() : null,
-    h('div', { class: 'trophy' }, isWinner ? '🏆' : me.pinkCow ? '🐮' : '🎮'),
+    h('div', { class: 'trophy' }, isWinner ? '🏆' : '🎮'),
     h('h1', { class: 'center' }, isWinner ? 'أنت الفائز!' : 'انتهت اللعبة'),
     !isWinner && winners.length ? h('p', { class: 'center' }, 'الفائز: ', h('b', {}, winners.join(' و '))) : null,
-    me.pinkCow && !isWinner ? h('div', { class: 'banner pink' }, 'خلصت اللعبة والبقرة الوردية معك، فما تقدر تفوز 😅') : null,
     h('div', { class: 'card score-card' },
       h('div', {}, h('small', {}, 'مجموعك'), h('b', {}, me.score)),
       h('div', {}, h('small', {}, 'ترتيبك'), h('b', {}, `#${me.rank}`)),

@@ -5,10 +5,13 @@ const assert = require('node:assert/strict');
 const { RoomManager, ROOM_TTL_MS } = require('../src/rooms');
 const { GameError } = require('../src/games/herd');
 
-const BANK = Array.from({ length: 20 }, (_, i) => `سؤال ${i + 1}`);
+const BANKS = {
+  same: Array.from({ length: 20 }, (_, i) => `سؤال ${i + 1}`),
+  different: Array.from({ length: 10 }, (_, i) => `سؤال مختلف ${i + 1}`),
+};
 
 function setup(names = ['أحمد', 'سارة', 'فهد']) {
-  const manager = new RoomManager({ questionBank: BANK });
+  const manager = new RoomManager({ questionBanks: BANKS });
   const room = manager.create();
   const players = names.map((name, i) => {
     const p = room.join({ name });
@@ -19,7 +22,7 @@ function setup(names = ['أحمد', 'سارة', 'فهد']) {
 }
 
 test('rooms get unique 4-digit codes and can be looked up', () => {
-  const manager = new RoomManager({ questionBank: BANK });
+  const manager = new RoomManager({ questionBanks: BANKS });
   const codes = new Set(Array.from({ length: 50 }, () => manager.create().code));
   assert.equal(codes.size, 50);
   for (const code of codes) {
@@ -101,23 +104,26 @@ test('idle rooms are cleaned up', () => {
   assert.equal(manager.get(room.code), undefined);
 });
 
-test('views show who holds the pink cow and the final winners', () => {
+test('views carry the mode, rejected groups and the final winners', () => {
   const { room, players: [a, b, c] } = setup();
-  room.game.updateSettings({ rounds: 1 });
+  room.game.updateSettings({ rounds: 1, mode: 'different' });
+  assert.equal(room.hostView().mode, 'different');
+  assert.deepEqual(room.hostView().bankSizes, { same: 20, different: 10 });
   room.game.start();
   room.submitAnswer(a.id, { text: 'أحمر', value: 2 });
-  room.submitAnswer(b.id, { text: 'أحمر', value: 3 });
-  room.submitAnswer(c.id, { text: 'أزرق', value: 15 });
+  room.submitAnswer(b.id, { text: 'أزرق', value: 3 });
+  room.submitAnswer(c.id, { text: 'زرافة', value: 15 });
+  const giraffe = room.hostView().groups.find((g) => g.text === 'زرافة');
+  room.game.toggleReject(giraffe.id);
+  assert.equal(room.hostView().groups.find((g) => g.id === giraffe.id).rejected, true);
+  assert.equal(room.hostView().canUndo, true);
   room.game.confirm();
-  assert.equal(room.hostView().pinkCowTaker, 'فهد');
-  assert.equal(room.hostView().players.find((p) => p.id === c.id).pinkCow, true);
-  assert.equal(room.playerView(c.id).me.pinkCow, true);
-  assert.equal(room.playerView(c.id).last.pinkCow, true);
+  assert.equal(room.playerView(c.id).last.rejected, true);
+  assert.equal(room.playerView(c.id).mode, 'different');
   room.game.next();
   assert.deepEqual(room.hostView().winners, ['سارة']);
   assert.equal(room.playerView(b.id).isWinner, true);
-  assert.equal(room.playerView(c.id).isWinner, false);
-  assert.equal(room.hostView().pinkCowTaker, null);
+  assert.equal(room.playerView(a.id).isWinner, false);
 });
 
 test('the host sees who skipped and which number burned', () => {

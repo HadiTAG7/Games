@@ -1,4 +1,4 @@
-/* global io, $, h, range, emit, storage, toast, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti */
+/* global io, $, h, range, emit, storage, toast, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES */
 'use strict';
 
 const socket = io();
@@ -58,10 +58,15 @@ function render() {
 function topbar() {
   const playing = state.phase !== 'lobby' && state.phase !== 'final';
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, `${GAME_NAME} 🐄`),
+    h('div', { class: 'brand' }, `${GAME_NAME} ${MODES[state.mode].emoji}`),
     playing ? h('div', { class: 'pill' }, `سؤال ${state.roundNumber} من ${state.totalRounds}`) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
+}
+
+function modePill() {
+  const mode = MODES[state.mode];
+  return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
 }
 
 /* ---------- Lobby ---------- */
@@ -72,6 +77,14 @@ function field(label, control) {
 
 function renderLobby() {
   const s = state.settings;
+  const modePicker = h('div', { class: 'mode-picker', role: 'radiogroup', 'aria-label': 'طور اللعبة' },
+    Object.entries(MODES).map(([key, mode]) => h('button', {
+      type: 'button',
+      class: 'mode-option',
+      'data-mode': key,
+      role: 'radio',
+      onclick: () => act('host:settings', { mode: key }),
+    }, h('span', { class: 'mode-emoji' }, mode.emoji), h('b', {}, mode.name), h('small', {}, mode.goal))));
   const rounds = h('select', { id: 'rounds', onchange: (e) => act('host:settings', { rounds: Number(e.target.value) }) },
     range(3, 15).map((n) => h('option', { value: n, selected: n === s.rounds }, `${n} ${n <= 10 ? 'أسئلة' : 'سؤال'}`)));
   const timer = h('select', { id: 'timer', onchange: (e) => act('host:settings', { timer: Number(e.target.value) }) },
@@ -82,11 +95,8 @@ function renderLobby() {
       $('#custom-wrap').hidden = e.target.value === 'bank';
       act('host:settings', { source: e.target.value });
     },
-  }, [['bank', `بنك الأسئلة (${state.bankSize} سؤال)`], ['custom', 'أسئلتي أنا'], ['mix', 'أسئلتي + بنك الأسئلة']]
+  }, [['bank', 'بنك الأسئلة'], ['custom', 'أسئلتي أنا'], ['mix', 'أسئلتي + بنك الأسئلة']]
     .map(([value, label]) => h('option', { value, selected: value === s.source }, label)));
-  const pinkCow = h('select', { id: 'pink-cow', onchange: (e) => act('host:settings', { pinkCow: e.target.value === 'on' }) },
-    h('option', { value: 'on', selected: s.pinkCow }, 'مفعّلة 🐮'),
-    h('option', { value: 'off', selected: !s.pinkCow }, 'بدونها'));
   const custom = h('textarea', {
     id: 'custom',
     rows: 5,
@@ -105,15 +115,16 @@ function renderLobby() {
     h('section', { class: 'card' },
       h('h2', {}, 'اللاعبين ', h('span', { id: 'player-count', class: 'count' })),
       h('ul', { id: 'players', class: 'chips' }),
+      h('h2', {}, 'طور اللعبة'),
+      modePicker,
       h('h2', {}, 'الإعدادات'),
       h('div', { class: 'settings' },
         field('عدد الأسئلة', rounds),
         field('المؤقت', timer),
-        field('البقرة الوردية', pinkCow),
         h('label', { class: 'field wide' }, h('span', {}, 'الأسئلة'), source),
         h('label', { class: 'field wide', id: 'custom-wrap', hidden: s.source === 'bank' }, h('span', {}, 'أسئلتك'), custom),
       ),
-      h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), rulesList()),
+      h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: startGame }, 'ابدأ اللعبة 🎉'),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
@@ -128,6 +139,16 @@ function updateLobby() {
   )));
   if (!state.players.length) list.append(h('li', { class: 'empty' }, 'لسا ما أحد دخل… امسحوا الباركود'));
   $('#player-count').textContent = state.players.length;
+
+  const { mode } = state.settings;
+  document.querySelectorAll('.mode-option').forEach((el) => {
+    const picked = el.dataset.mode === mode;
+    el.classList.toggle('picked', picked);
+    el.setAttribute('aria-checked', String(picked));
+  });
+  $('#source option[value="bank"]').textContent = `بنك أسئلة «${MODES[mode].name}» (${state.bankSizes[mode]} سؤال)`;
+  $('#rules-body').replaceChildren(rulesList(mode));
+
   const enough = state.players.length >= 2;
   $('#start').disabled = !enough;
   $('#start-hint').textContent = enough ? '' : 'تحتاجون لاعبين اثنين على الأقل';
@@ -140,7 +161,6 @@ async function startGame() {
     timer: Number($('#timer').value),
     source: $('#source').value,
     customQuestions: $('#custom').value,
-    pinkCow: $('#pink-cow').value === 'on',
   });
   if (res.ok) act('host:start');
 }
@@ -166,12 +186,13 @@ function endGame() {
 
 function renderQuestion() {
   return h('main', { class: 'stage' },
+    modePill(),
     timerEl(state.endsAt),
     h('h1', { class: 'question' }, state.question),
     h('p', { class: 'muted center' }, `جاوب ${state.answeredCount} من ${state.playerCount}`),
     h('ul', { class: 'chips center' }, state.players.map((p) => h('li', {
       class: `chip${p.answered ? ' done' : ''}${p.connected ? '' : ' away'}`,
-    }, p.answered ? '✓ ' : '… ', p.name, p.pinkCow ? cowBadge() : null))),
+    }, p.answered ? '✓ ' : '… ', p.name))),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary', onclick: () => act('host:reveal') }, 'اكشف الأجوبة 👀'),
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
@@ -181,26 +202,42 @@ function renderQuestion() {
 
 /* ---------- Reveal & results ---------- */
 
-function groupCard(group, { selectable = false, settled = false } = {}) {
+function groupCard(group, { editable = false, settled = false } = {}) {
   const classes = ['group'];
   if (group.winner) classes.push('winner');
+  if (group.rejected) classes.push('rejected');
+  if (editable) classes.push('editable');
   if (group.id === selectedGroup) classes.push('selected');
-  return h(selectable ? 'button' : 'div', {
+  const select = () => onGroupClick(group.id);
+  return h('div', {
     class: classes.join(' '),
-    type: selectable ? 'button' : null,
-    onclick: selectable ? () => onGroupClick(group.id) : null,
+    role: editable ? 'button' : null,
+    tabindex: editable ? 0 : null,
+    onclick: editable ? select : null,
+    onkeydown: editable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } } : null,
   },
     h('div', { class: 'group-head' },
       h('span', { class: 'group-text' }, group.text),
       h('span', { class: 'size', title: 'عدد اللي جاوبوا' }, group.size),
     ),
     h('ul', { class: 'members' }, group.members.map((m) => h('li', {},
-      h('span', { class: 'member-name' }, m.name, m.pinkCow ? cowBadge() : null),
+      h('span', { class: 'member-name' }, m.name),
       m.text !== group.text ? h('em', { class: 'member-text' }, m.text) : null,
       h('span', { class: `bet${settled ? (group.winner ? ' won' : ' lost') : ''}` },
         settled && group.winner ? `+${m.value}` : m.value),
     ))),
-    group.winner ? h('div', { class: 'crown' }, '👑 الأغلبية') : null,
+    group.winner ? h('div', { class: 'crown' }, MODES[state.mode].winLabel) : null,
+    group.rejected ? h('div', { class: 'rejected-label' }, '🚫 مرفوض') : null,
+    editable
+      ? h('button', {
+        type: 'button',
+        class: 'reject-btn',
+        onclick: (e) => {
+          e.stopPropagation();
+          act('host:reject', { groupId: group.id });
+        },
+      }, group.rejected ? '↺ اقبله' : '🚫 رفض')
+      : null,
   );
 }
 
@@ -217,32 +254,31 @@ function onGroupClick(id) {
 
 function renderReveal() {
   if (!state.groups.some((g) => g.id === selectedGroup)) selectedGroup = null;
+  const hint = selectedGroup
+    ? 'الحين اضغط على المجموعة الثانية عشان تندمج معها (أو اضغط نفسها للإلغاء)'
+    : 'جوابين بنفس المعنى؟ اضغط على وحدة ثم الثانية عشان تدمجهم. وأي جواب غلط اضغط «رفض».';
   return h('main', { class: 'stage' },
+    modePill(),
     h('h2', { class: 'question small' }, state.question),
-    h('p', { class: 'hint center' }, selectedGroup
-      ? 'الحين اضغط على المجموعة الثانية عشان تندمج معها (أو اضغط نفسها للإلغاء)'
-      : 'لو فيه جوابين بنفس المعنى، اضغط على وحدة ثم الثانية عشان تدمجهم'),
+    h('p', { class: 'hint center' }, hint),
     state.groups.length
-      ? h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { selectable: true })))
+      ? h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { editable: true })))
       : h('p', { class: 'empty center' }, 'ما أحد جاوب هالسؤال'),
     h('div', { class: 'actions' },
-      state.canUndo ? h('button', { class: 'btn ghost', onclick: () => act('host:undo') }, '↩︎ تراجع عن الدمج') : null,
+      state.canUndo ? h('button', { class: 'btn ghost', onclick: () => act('host:undo') }, '↩︎ تراجع') : null,
       h('button', { class: 'btn primary', onclick: () => act('host:confirm') }, 'اعتمد النتيجة ✅'),
     ),
   );
 }
 
 function renderResults() {
+  const mode = MODES[state.mode];
   const winners = state.groups.filter((g) => g.winner);
   return h('main', { class: 'stage' },
     h('h2', { class: 'question small' }, state.question),
     winners.length
-      ? h('div', { class: 'banner good' }, 'جواب الأغلبية: ', h('b', {}, winners.map((g) => g.text).join(' / ')))
-      : h('div', { class: 'banner bad' }, 'ما فيه أغلبية هالمرة 😅'),
-    state.pinkCowTaker
-      ? h('div', { class: 'banner pink' }, cowBadge(), ' البقرة الوردية راحت لـ ', h('b', {}, state.pinkCowTaker),
-        ' — واللي معه البقرة ما يفوز لين تنتقل لغيره')
-      : null,
+      ? h('div', { class: 'banner good' }, `${mode.winnersTitle}: `, h('b', {}, winners.map((g) => g.text).join(' / ')))
+      : h('div', { class: 'banner bad' }, mode.noWinners),
     h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { settled: true }))),
     state.missed.length
       ? h('p', { class: 'muted center missed' }, '⌛ ما جاوبوا: ',
@@ -262,17 +298,11 @@ function renderResults() {
 
 function renderFinal() {
   const { winners } = state;
-  const best = state.standings.find((row) => !row.pinkCow);
-  const cowRow = state.standings.find((row) => row.pinkCow);
-  const cowBlocked = cowRow && best && cowRow.score > best.score;
   return h('main', { class: 'stage final' },
     confetti(),
     h('div', { class: 'trophy' }, '🏆'),
     winners.length ? h('h1', { class: 'winner-name' }, winners.join(' و ')) : null,
-    winners.length ? h('p', { class: 'muted center' }, `بـ ${best.score} نقطة`) : null,
-    cowBlocked
-      ? h('div', { class: 'banner pink' }, cowBadge(), ' أعلى نقاط كانت عند ', h('b', {}, cowRow.name), ` (${cowRow.score})، بس البقرة الوردية منعت الفوز!`)
-      : null,
+    winners.length ? h('p', { class: 'muted center' }, `بـ ${state.standings[0].score} نقطة`) : null,
     standingsList(state.standings, { showGain: false }),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁'),
