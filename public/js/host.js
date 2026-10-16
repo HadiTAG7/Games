@@ -244,6 +244,10 @@ function renderResults() {
         ' — واللي معه البقرة ما يفوز لين تنتقل لغيره')
       : null,
     h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { settled: true }))),
+    state.missed.length
+      ? h('p', { class: 'muted center missed' }, '⌛ ما جاوبوا: ',
+        state.missed.map((m) => `${m.name} (انحرق ${m.value})`).join('، '))
+      : null,
     h('h2', { class: 'center' }, 'الترتيب'),
     standingsList(state.standings),
     h('div', { class: 'actions' },

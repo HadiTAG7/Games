@@ -4,8 +4,9 @@
 // tries to match the majority. Before answering, each player bets one of their
 // numbers 1..15; every number can be bet once per game. Players in the biggest
 // group (ties all win, groups need 2+ people) gain their bet; everyone else
-// gets nothing. Whoever is the single odd one out takes the pink cow, and
-// can't win the game while holding it.
+// gets nothing. Skipping a question burns your lowest unused number.
+// Whoever is the single odd one out takes the pink cow, and can't win the
+// game while holding it.
 
 const { normalizeAnswer } = require('../normalize');
 
@@ -110,6 +111,11 @@ function loneAnswerer(groups) {
   return singles.length === 1 ? singles[0].members[0].playerId : null;
 }
 
+function lowestUnused(used) {
+  for (let n = MIN_BET; n <= MAX_BET; n++) if (!used.has(n)) return n;
+  return null;
+}
+
 function freshPlayerState() {
   return { score: 0, used: new Set(), last: null };
 }
@@ -133,6 +139,8 @@ class HerdGame {
 
   addPlayer(id) {
     if (!this.players.has(id)) this.players.set(id, freshPlayerState());
+    // Joining while a question is open still counts as being asked it.
+    if (this.phase === 'question') this.round.askedIds.add(id);
   }
 
   removePlayer(id) {
@@ -207,6 +215,8 @@ class HerdGame {
       groups: [],
       history: [],
       pinkCowTaker: null,
+      askedIds: new Set(this.players.keys()),
+      missed: [],
     };
     for (const p of this.players.values()) p.last = null;
     this.phase = 'question';
@@ -282,7 +292,13 @@ class HerdGame {
     for (const [id, player] of this.players) {
       const answer = this.round.answers.get(id);
       if (!answer) {
-        player.last = { answered: false, won: false, value: null, gained: 0 };
+        // Only players who saw the question lose a number for skipping it.
+        const burned = this.round.askedIds.has(id) ? lowestUnused(player.used) : null;
+        if (burned !== null) {
+          player.used.add(burned);
+          this.round.missed.push({ playerId: id, value: burned });
+        }
+        player.last = { answered: false, won: false, value: burned, gained: 0 };
         continue;
       }
       const group = groupOf.get(id);

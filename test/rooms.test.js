@@ -119,3 +119,14 @@ test('views show who holds the pink cow and the final winners', () => {
   assert.equal(room.playerView(c.id).isWinner, false);
   assert.equal(room.hostView().pinkCowTaker, null);
 });
+
+test('the host sees who skipped and which number burned', () => {
+  const { room, players: [a, b, c] } = setup();
+  room.game.start();
+  room.submitAnswer(a.id, { text: 'أحمر', value: 4 });
+  room.submitAnswer(b.id, { text: 'أحمر', value: 5 });
+  room.game.reveal();
+  room.game.confirm();
+  assert.deepEqual(room.hostView().missed, [{ name: 'فهد', value: 1 }]);
+  assert.deepEqual(room.playerView(c.id).me.used, [1]);
+});

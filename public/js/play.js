@@ -245,7 +245,10 @@ function renderReveal() {
 
 function verdict(last) {
   if (!last) return h('div', { class: 'verdict' }, h('div', { class: 'big-emoji' }, '👋'), 'دخلت جديد، انتظر السؤال الجاي');
-  if (!last.answered) return h('div', { class: 'verdict neutral' }, h('div', { class: 'big-emoji' }, '⌛'), 'ما جاوبت هالمرة');
+  if (!last.answered) {
+    return h('div', { class: 'verdict bad' }, h('div', { class: 'big-emoji' }, '⌛'), 'ما جاوبت هالمرة',
+      last.value ? h('div', { class: 'verdict-note' }, `انحرق أقل رقم عندك: ${last.value}`) : null);
+  }
   if (last.won) {
     return h('div', { class: 'verdict good' },
       h('div', { class: 'big-emoji' }, '🎉'), 'فزت!', h('div', { class: 'points' }, `+${last.gained}`));

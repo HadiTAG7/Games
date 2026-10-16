@@ -384,6 +384,8 @@ button.group:hover { background: var(--card-strong); }
 .verdict.good { background: var(--good-soft); border: 2px solid var(--good); }
 .verdict.bad { background: var(--bad-soft); border: 2px solid var(--bad); }
 .points { font-size: 56px; color: var(--good); line-height: 1.1; }
+.verdict-note { font-size: 18px; font-weight: 500; color: var(--muted); margin-top: 6px; }
+.missed { margin-top: 16px; }
 
 .score-card { display: flex; justify-content: space-around; gap: 16px; text-align: center; margin-bottom: 16px; width: 100%; }
 .score-card small { display: block; color: var(--muted); }

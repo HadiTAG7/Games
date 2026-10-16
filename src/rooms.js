@@ -147,6 +147,11 @@ class Room {
       view.groups = this.groupsView();
       view.canUndo = phase === 'reveal' && round.history.length > 0;
     }
+    if (phase === 'results') {
+      view.missed = round.missed
+        .filter((m) => this.players.has(m.playerId))
+        .map((m) => ({ name: this.nameOf(m.playerId), value: m.value }));
+    }
     if (phase === 'results' || phase === 'final') view.standings = this.standings();
     return view;
   }

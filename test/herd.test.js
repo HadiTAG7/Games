@@ -89,9 +89,10 @@ test('a full round: winners gain their bet, every bet is burned', () => {
   assert.equal(p('d').score, 0);
   assert.deepEqual([...p('a').used], [5]);
   assert.deepEqual([...p('c').used], [15], 'losing burns the bet too');
-  assert.deepEqual([...p('d').used], [], 'no answer, nothing burned');
+  assert.deepEqual([...p('d').used], [1], 'no answer burns the lowest number');
   assert.deepEqual(p('c').last, { answered: true, won: false, value: 15, gained: 0, text: 'أزرق', pinkCow: true });
-  assert.equal(p('d').last.answered, false);
+  assert.deepEqual(p('d').last, { answered: false, won: false, value: 1, gained: 0 });
+  assert.deepEqual(game.round.missed, [{ playerId: 'd', value: 1 }]);
 });
 
 test('a bet cannot be used twice in the same game', () => {
@@ -313,4 +314,30 @@ test('the pink cow can be switched off, and leaves with its holder', () => {
   assert.equal(game.pinkCowHolder, null);
   game.restart();
   assert.equal(game.pinkCowHolder, null);
+});
+
+test('skipping a question burns the lowest number still unused', () => {
+  const game = newGame(['a', 'b', 'c']);
+  game.start();
+  play(game, [['a', 'x', 2], ['b', 'x', 3], ['c', 'y', 1]]);
+  game.confirm();
+  game.next();
+  play(game, [['a', 'x', 4], ['b', 'x', 5]]);
+  game.confirm();
+  assert.deepEqual([...game.players.get('c').used].sort((x, y) => x - y), [1, 2], 'c already used 1, so 2 burns');
+  assert.equal(game.players.get('c').last.value, 2);
+  game.next();
+  assert.throws(() => game.submitAnswer('c', { text: 'x', value: 2 }), /استخدمته/);
+});
+
+test('joining after the question closed does not burn a number', () => {
+  const game = newGame(['a', 'b']);
+  game.start();
+  game.addPlayer('late-during-question');
+  play(game, [['a', 'x', 1], ['b', 'x', 1]]);
+  game.addPlayer('late-during-reveal');
+  game.confirm();
+  assert.deepEqual([...game.players.get('late-during-question').used], [1]);
+  assert.deepEqual([...game.players.get('late-during-reveal').used], []);
+  assert.equal(game.players.get('late-during-reveal').last.value, null);
 });
