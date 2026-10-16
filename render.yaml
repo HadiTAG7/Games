@@ -2,7 +2,8 @@ services:
   - type: web
     name: herd-game
     runtime: node
-    plan: free
+    # The paid $7 plan: 0.5 CPU, 512 MB, always on (Render's name for what used to be "starter").
+    plan: 0.5c-512mb
     # The closest Render region to Saudi Arabia.
     region: frankfurt
     buildCommand: npm ci
