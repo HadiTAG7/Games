@@ -95,3 +95,22 @@ test('«سين جيم» categories have enough questions of each value, with ans
     }
   }
 });
+
+test('«برا السالفة» words: every category has 30+ distinct words', () => {
+  const { categories: cats } = require('../data/outsider.json');
+  assert.ok(cats.length >= 15);
+  const ids = new Set();
+  const all = new Set();
+  for (const c of cats) {
+    assert.match(c.id, /^[a-z-]+$/);
+    assert.ok(!ids.has(c.id), c.id);
+    ids.add(c.id);
+    assert.ok(c.name && c.emoji, c.id);
+    assert.ok(c.words.length >= 30, `${c.id} has ${c.words.length} words`);
+    for (const w of c.words) {
+      assert.ok(typeof w === 'string' && w.trim() === w && w.length > 0, `${c.id}: "${w}"`);
+      assert.ok(!all.has(w), `"${w}" is listed twice`);
+      all.add(w);
+    }
+  }
+});

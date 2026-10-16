@@ -6,10 +6,12 @@ const { HerdGame } = require('./games/herd');
 const { TimeGame } = require('./games/time');
 const { SeenGame } = require('./games/seen');
 const { LettersGame } = require('./games/letters');
+const { OutsiderGame } = require('./games/outsider');
 const herdViews = require('./games/herd-views');
 const timeViews = require('./games/time-views');
 const seenViews = require('./games/seen-views');
 const lettersViews = require('./games/letters-views');
+const outsiderViews = require('./games/outsider-views');
 const { normalizeAnswer } = require('./normalize');
 const { NightBoard } = require('./night');
 
@@ -22,6 +24,7 @@ const GAMES = {
   time: { Game: TimeGame, views: timeViews, name: 'تحدي الوقت', emoji: '⏱️' },
   seen: { Game: SeenGame, views: seenViews, name: 'سين جيم', emoji: '❓' },
   letters: { Game: LettersGame, views: lettersViews, name: 'حروف', emoji: '🔤' },
+  outsider: { Game: OutsiderGame, views: outsiderViews, name: 'برا السالفة', emoji: '🤫' },
 };
 
 function cleanName(name) {
@@ -99,6 +102,7 @@ class Room {
     this.game.removePlayer(playerId);
     this.maybeAutoReveal();
     this.maybeFinishVote();
+    this.maybeCloseOutsiderVote();
   }
 
   connect(playerId, socketId) {
@@ -108,6 +112,7 @@ class Room {
   disconnect(playerId, socketId) {
     this.players.get(playerId)?.sockets.delete(socketId);
     this.maybeFinishVote();
+    this.maybeCloseOutsiderVote();
   }
 
   isConnected(playerId) {
@@ -163,6 +168,20 @@ class Room {
     if (!waiting) game.reveal();
   }
 
+  /* ---------- «برا السالفة» room rules ---------- */
+
+  outsiderVote(playerId, target) {
+    this.gameOf('outsider').vote(playerId, target);
+    this.maybeCloseOutsiderVote();
+  }
+
+  /** Count the votes once everyone still connected has voted. */
+  maybeCloseOutsiderVote() {
+    if (this.gameType !== 'outsider' || this.game.phase !== 'vote') return;
+    const connected = [...this.players.keys()].filter((id) => this.isConnected(id));
+    if (this.game.allVoted(connected)) this.game.closeVote();
+  }
+
   /** Adds a finished game to «بطل السهرة»; called on every change. */
   settleNight() {
     return this.night.settle(this.game);
@@ -196,9 +215,14 @@ class Room {
 }
 
 class RoomManager {
-  /** categories: «عقلية القطيع»; timeCategories: «تحدي الوقت»; seenCategories: «سين جيم»; letters: «حروف». */
-  constructor({ categories = [], timeCategories = [], seenCategories = [], letters = [], random = Math.random } = {}) {
-    this.content = { herd: categories, time: timeCategories, seen: seenCategories, letters };
+  /**
+   * categories: «عقلية القطيع»; timeCategories: «تحدي الوقت»; seenCategories: «سين جيم»; letters: «حروف»;
+   * outsiderCategories: «برا السالفة».
+   */
+  constructor({
+    categories = [], timeCategories = [], seenCategories = [], letters = [], outsiderCategories = [], random = Math.random,
+  } = {}) {
+    this.content = { herd: categories, time: timeCategories, seen: seenCategories, letters, outsider: outsiderCategories };
     this.random = random;
     this.rooms = new Map();
   }

@@ -187,7 +187,7 @@ const sfx = (() => {
   let dockMusic = false;
   function renderDock() {
     if (!dockEl) return;
-    dockEl.replaceChildren(
+    dockEl.replaceChildren(...[
       dockMusic ? h('button', {
         type: 'button',
         class: `dock-btn${prefs.music && prefs.on ? ' on' : ''}`,
@@ -204,7 +204,7 @@ const sfx = (() => {
         'aria-pressed': String(prefs.on),
         onclick: () => save({ on: !prefs.on }),
       }, prefs.on ? '🔊' : '🔇'),
-    );
+    ].filter(Boolean));
   }
 
   /** The little sound switches in the corner of the page. */

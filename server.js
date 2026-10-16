@@ -15,6 +15,7 @@ const seenCategories = require('./data/seen-jeem.json').categories;
 // A game whose question file isn't there yet stays hidden from the game picker.
 const optional = (file, key) => (fs.existsSync(path.join(__dirname, file)) ? require(`./${file}`)[key] : []);
 const letters = optional('data/letters.json', 'letters');
+const outsiderCategories = optional('data/outsider.json', 'categories');
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0']);
@@ -29,7 +30,7 @@ app.get('/healthz', (req, res) => res.send('ok'));
 
 const server = http.createServer(app);
 const io = new Server(server);
-const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters });
+const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters, outsiderCategories });
 
 const hostChannel = (code) => `${code}:host`;
 const playerChannel = (code, playerId) => `${code}:player:${playerId}`;
@@ -152,7 +153,7 @@ io.on('connection', (socket) => {
   hostAction('host:game-type', (room, { gameType }) => room.setGameType(gameType));
   hostAction('host:settings', (room, settings) => room.game.updateSettings(settings));
   hostAction('host:start', (room, options) => room.game.start(options));
-  hostAction('host:next', (room) => room.game.next());
+  hostAction('host:next', (room, { step }) => room.game.next(step));
   hostAction('host:end', (room) => room.game.finish());
   hostAction('host:restart', (room) => room.game.restart());
   // «بطل السهرة»
@@ -215,6 +216,14 @@ io.on('connection', (socket) => {
   hostAction('host:hr-undo', (room, { step }) => hr(room).undo(step));
   hostAction('host:hr-next', (room, { step }) => hr(room).next(step));
 
+  // «برا السالفة»
+  const os = (room) => room.gameOf('outsider');
+  hostAction('host:os-begin', (room, { step }) => os(room).begin(step));
+  hostAction('host:os-next', (room, { step }) => os(room).nextAsker(step));
+  hostAction('host:os-vote', (room, { step }) => os(room).openVote(step));
+  hostAction('host:os-close', (room, { step }) => os(room).closeVote(step));
+  hostAction('host:os-skip-guess', (room, { step }) => os(room).skipGuess(step));
+
   on('player:join', ({ code, name, playerId }) => {
     const room = rooms.get(code);
     if (!room) throw new GameError('ما لقينا الغرفة، تأكد من الرقم');
@@ -239,6 +248,18 @@ io.on('connection', (socket) => {
     const first = room.gameOf('letters').buzz(socket.data.playerId);
     if (first) broadcast(room);
     return { first };
+  });
+
+  on('player:os-vote', ({ target }) => {
+    const room = currentRoom('player');
+    room.outsiderVote(socket.data.playerId, target);
+    broadcast(room);
+  });
+
+  on('player:os-guess', ({ word }) => {
+    const room = currentRoom('player');
+    room.gameOf('outsider').guess(socket.data.playerId, word);
+    broadcast(room);
   });
 
   on('player:vote', ({ choice }) => {
