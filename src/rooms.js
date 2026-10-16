@@ -13,12 +13,12 @@ function cleanName(name) {
 }
 
 class Room {
-  constructor({ code, questionBanks, random }) {
+  constructor({ code, categories, random }) {
     this.code = code;
     this.hostToken = crypto.randomBytes(16).toString('hex');
     this.players = new Map(); // id → { id, name, sockets: Set<socketId>, joinedAt }
     this.onChange = () => {};
-    this.game = new HerdGame({ questionBanks, random, onTimeout: () => this.onChange() });
+    this.game = new HerdGame({ categories, random, onTimeout: () => this.onChange() });
     this.touch();
   }
 
@@ -101,6 +101,11 @@ class Room {
     return playerId ? this.players.get(playerId)?.name ?? null : null;
   }
 
+  categoryOf(id) {
+    const category = id && this.game.categories.find((c) => c.id === id);
+    return category ? { name: category.name, emoji: category.emoji } : null;
+  }
+
   baseView() {
     const { game } = this;
     const { phase, round } = game;
@@ -112,6 +117,7 @@ class Room {
       totalRounds: game.questions.length || game.settings.rounds,
       isLastRound: game.phase !== 'lobby' && game.isLastRound(),
       question: round?.question ?? null,
+      category: this.categoryOf(round?.category),
       endsAt: round?.endsAt ?? null,
       serverTime: Date.now(),
       answeredCount: round ? round.answers.size : 0,
@@ -129,7 +135,13 @@ class Room {
       ...this.baseView(),
       role: 'host',
       settings: game.settings,
-      bankSizes: { same: game.questionBanks.same.length, different: game.questionBanks.different.length },
+      bankSize: game.bankSize(),
+      categories: game.categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        emoji: c.emoji,
+        counts: { same: c.same.length, different: c.different.length },
+      })),
       players: [...this.players.values()]
         .sort((a, b) => a.joinedAt - b.joinedAt)
         .map((p) => ({
@@ -189,8 +201,8 @@ class Room {
 }
 
 class RoomManager {
-  constructor({ questionBanks = {}, random = Math.random } = {}) {
-    this.questionBanks = questionBanks;
+  constructor({ categories = [], random = Math.random } = {}) {
+    this.categories = categories;
     this.random = random;
     this.rooms = new Map();
   }
@@ -204,7 +216,7 @@ class RoomManager {
   }
 
   create() {
-    const room = new Room({ code: this.newCode(), questionBanks: this.questionBanks, random: this.random });
+    const room = new Room({ code: this.newCode(), categories: this.categories, random: this.random });
     this.rooms.set(room.code, room);
     return room;
   }

@@ -5,13 +5,14 @@ const assert = require('node:assert/strict');
 const { RoomManager, ROOM_TTL_MS } = require('../src/rooms');
 const { GameError } = require('../src/games/herd');
 
-const BANKS = {
-  same: Array.from({ length: 20 }, (_, i) => `سؤال ${i + 1}`),
-  different: Array.from({ length: 10 }, (_, i) => `سؤال مختلف ${i + 1}`),
-};
+const prompts = (prefix, n) => Array.from({ length: n }, (_, i) => `${prefix} ${i + 1}`);
+const CATEGORIES = [
+  { id: 'food', name: 'أكل', emoji: '🍔', same: prompts('أكل', 12), different: prompts('أكل مختلف', 4) },
+  { id: 'places', name: 'أماكن', emoji: '🏠', same: prompts('مكان', 8), different: prompts('مكان مختلف', 6) },
+];
 
 function setup(names = ['أحمد', 'سارة', 'فهد']) {
-  const manager = new RoomManager({ questionBanks: BANKS });
+  const manager = new RoomManager({ categories: CATEGORIES });
   const room = manager.create();
   const players = names.map((name, i) => {
     const p = room.join({ name });
@@ -22,7 +23,7 @@ function setup(names = ['أحمد', 'سارة', 'فهد']) {
 }
 
 test('rooms get unique 4-digit codes and can be looked up', () => {
-  const manager = new RoomManager({ questionBanks: BANKS });
+  const manager = new RoomManager({ categories: CATEGORIES });
   const codes = new Set(Array.from({ length: 50 }, () => manager.create().code));
   assert.equal(codes.size, 50);
   for (const code of codes) {
@@ -108,7 +109,8 @@ test('views carry the mode, rejected groups and the final winners', () => {
   const { room, players: [a, b, c] } = setup();
   room.game.updateSettings({ rounds: 1, mode: 'different' });
   assert.equal(room.hostView().mode, 'different');
-  assert.deepEqual(room.hostView().bankSizes, { same: 20, different: 10 });
+  assert.equal(room.hostView().bankSize, 10);
+  assert.deepEqual(room.hostView().categories.map((c) => [c.id, c.counts.different]), [['food', 4], ['places', 6]]);
   room.game.start();
   room.submitAnswer(a.id, { text: 'أحمر', value: 2 });
   room.submitAnswer(b.id, { text: 'أزرق', value: 3 });
@@ -135,4 +137,12 @@ test('the host sees who skipped and which number burned', () => {
   room.game.confirm();
   assert.deepEqual(room.hostView().missed, [{ name: 'فهد', value: 1 }]);
   assert.deepEqual(room.playerView(c.id).me.used, [1]);
+});
+
+test('views show the category of the current question', () => {
+  const { room, players: [a] } = setup();
+  room.game.updateSettings({ categories: ['places'] });
+  room.game.start();
+  assert.deepEqual(room.hostView().category, { name: 'أماكن', emoji: '🏠' });
+  assert.deepEqual(room.playerView(a.id).category, { name: 'أماكن', emoji: '🏠' });
 });

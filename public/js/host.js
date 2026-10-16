@@ -69,6 +69,10 @@ function modePill() {
   return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
 }
 
+function categoryTag() {
+  return state.category ? h('div', { class: 'category-tag' }, `${state.category.emoji} ${state.category.name}`) : null;
+}
+
 /* ---------- Lobby ---------- */
 
 function field(label, control) {
@@ -93,10 +97,18 @@ function renderLobby() {
     id: 'source',
     onchange: (e) => {
       $('#custom-wrap').hidden = e.target.value === 'bank';
+      $('#categories-wrap').hidden = e.target.value === 'custom';
       act('host:settings', { source: e.target.value });
     },
   }, [['bank', 'بنك الأسئلة'], ['custom', 'أسئلتي أنا'], ['mix', 'أسئلتي + بنك الأسئلة']]
     .map(([value, label]) => h('option', { value, selected: value === s.source }, label)));
+  const categories = h('div', { class: 'category-picker', role: 'group', 'aria-label': 'فئات الأسئلة' },
+    state.categories.map((c) => h('button', {
+      type: 'button',
+      class: 'category-chip',
+      'data-category': c.id,
+      onclick: () => toggleCategory(c.id),
+    }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }))));
   const custom = h('textarea', {
     id: 'custom',
     rows: 5,
@@ -122,6 +134,15 @@ function renderLobby() {
         field('عدد الأسئلة', rounds),
         field('المؤقت', timer),
         h('label', { class: 'field wide' }, h('span', {}, 'الأسئلة'), source),
+        h('div', { class: 'field wide', id: 'categories-wrap', hidden: s.source === 'custom' },
+          h('div', { class: 'field-head' },
+            h('span', {}, 'الفئات'),
+            h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories(state.categories.map((c) => c.id)) }, 'الكل'),
+            h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories([]) }, 'ولا وحدة'),
+          ),
+          categories,
+          h('p', { id: 'bank-size', class: 'hint' }),
+        ),
         h('label', { class: 'field wide', id: 'custom-wrap', hidden: s.source === 'bank' }, h('span', {}, 'أسئلتك'), custom),
       ),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
@@ -146,12 +167,32 @@ function updateLobby() {
     el.classList.toggle('picked', picked);
     el.setAttribute('aria-checked', String(picked));
   });
-  $('#source option[value="bank"]').textContent = `بنك أسئلة «${MODES[mode].name}» (${state.bankSizes[mode]} سؤال)`;
+  const picked = new Set(state.settings.categories);
+  document.querySelectorAll('.category-chip').forEach((el) => {
+    const category = state.categories.find((c) => c.id === el.dataset.category);
+    el.classList.toggle('picked', picked.has(category.id));
+    el.setAttribute('aria-pressed', String(picked.has(category.id)));
+    el.querySelector('.category-count').textContent = category.counts[mode];
+  });
+  $('#bank-size').textContent = picked.size
+    ? `${state.bankSize} سؤال من ${picked.size} ${picked.size === 1 ? 'فئة' : 'فئات'} لطور «${MODES[mode].name}»`
+    : 'اختر فئة وحدة على الأقل';
   $('#rules-body').replaceChildren(rulesList(mode));
 
   const enough = state.players.length >= 2;
   $('#start').disabled = !enough;
   $('#start-hint').textContent = enough ? '' : 'تحتاجون لاعبين اثنين على الأقل';
+}
+
+function setCategories(categories) {
+  act('host:settings', { categories });
+}
+
+function toggleCategory(id) {
+  const picked = new Set(state.settings.categories);
+  if (picked.has(id)) picked.delete(id);
+  else picked.add(id);
+  setCategories([...picked]);
 }
 
 async function startGame() {
@@ -188,6 +229,7 @@ function renderQuestion() {
   return h('main', { class: 'stage' },
     modePill(),
     timerEl(state.endsAt),
+    categoryTag(),
     h('h1', { class: 'question' }, state.question),
     h('p', { class: 'muted center' }, `جاوب ${state.answeredCount} من ${state.playerCount}`),
     h('ul', { class: 'chips center' }, state.players.map((p) => h('li', {
@@ -259,6 +301,7 @@ function renderReveal() {
     : 'جوابين بنفس المعنى؟ اضغط على وحدة ثم الثانية عشان تدمجهم. وأي جواب غلط اضغط «رفض».';
   return h('main', { class: 'stage' },
     modePill(),
+    categoryTag(),
     h('h2', { class: 'question small' }, state.question),
     h('p', { class: 'hint center' }, hint),
     state.groups.length

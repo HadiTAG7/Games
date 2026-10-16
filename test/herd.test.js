@@ -6,12 +6,17 @@ const {
   HerdGame, GameError, groupAnswers, mergeGroups, winningGroupIds, toggleRejected, parseCustomQuestions,
 } = require('../src/games/herd');
 
-const BANK = Array.from({ length: 30 }, (_, i) => `سؤال ${i + 1}`);
-const DIFFERENT_BANK = Array.from({ length: 20 }, (_, i) => `سؤال مختلف ${i + 1}`);
-const BANKS = { same: BANK, different: DIFFERENT_BANK };
+const prompts = (prefix, n) => Array.from({ length: n }, (_, i) => `${prefix} ${i + 1}`);
+const CATEGORIES = [
+  { id: 'food', name: 'أكل', emoji: '🍔', same: prompts('أكل', 20), different: prompts('أكل مختلف', 10) },
+  { id: 'places', name: 'أماكن', emoji: '🏠', same: prompts('مكان', 10), different: prompts('مكان مختلف', 10) },
+  { id: 'tiny', name: 'صغيرة', emoji: '🔤', same: prompts('صغير', 3), different: [] },
+];
+const DIFFERENT_BANK = CATEGORIES.flatMap((c) => c.different);
+const texts = (questions) => questions.map((q) => q.text);
 
 function newGame(players = ['a', 'b', 'c', 'd']) {
-  const game = new HerdGame({ questionBanks: BANKS, random: () => 0.5 });
+  const game = new HerdGame({ categories: CATEGORIES, random: () => 0.5 });
   players.forEach((id) => game.addPlayer(id));
   return game;
 }
@@ -151,7 +156,7 @@ test('the game ends after the configured number of rounds', () => {
   game.updateSettings({ rounds: 2 });
   game.start();
   assert.equal(game.questions.length, 2);
-  assert.equal(new Set(game.questions).size, 2);
+  assert.equal(new Set(texts(game.questions)).size, 2);
   for (let round = 0; round < 2; round++) {
     play(game, [['a', 'x', round + 1], ['b', 'x', round + 3]]);
     game.confirm();
@@ -193,13 +198,13 @@ test('custom questions are used in order, mixed with the bank, or required', () 
   const custom = newGame();
   custom.updateSettings({ source: 'custom', customQuestions: 'سؤالي الأول\n\n  سؤالي الثاني  \n' });
   custom.start();
-  assert.deepEqual(custom.questions, ['سؤالي الأول', 'سؤالي الثاني']);
+  assert.deepEqual(custom.questions, [{ text: 'سؤالي الأول', category: null }, { text: 'سؤالي الثاني', category: null }]);
 
   const mix = newGame();
   mix.updateSettings({ source: 'mix', rounds: 5, customQuestions: ['خاص'] });
   mix.start();
   assert.equal(mix.questions.length, 5);
-  assert.ok(mix.questions.includes('خاص'));
+  assert.ok(texts(mix.questions).includes('خاص'));
 
   const empty = newGame();
   empty.updateSettings({ source: 'custom', customQuestions: '' });
@@ -219,10 +224,10 @@ test('bank questions do not repeat across games in the same room', () => {
   const game = newGame(['a', 'b']);
   game.updateSettings({ rounds: 15 });
   game.start();
-  const first = new Set(game.questions);
+  const first = new Set(texts(game.questions));
   game.restart();
   game.start();
-  assert.ok(game.questions.every((q) => !first.has(q)));
+  assert.ok(game.questions.every((q) => !first.has(q.text)));
 });
 
 test('removing a player mid-reveal drops them from the groups', () => {
@@ -236,7 +241,7 @@ test('removing a player mid-reveal drops them from the groups', () => {
 
 test('the timer reveals automatically', async () => {
   let now = 1_000;
-  const game = new HerdGame({ questionBanks: BANKS, now: () => now });
+  const game = new HerdGame({ categories: CATEGORIES, now: () => now });
   ['a', 'b'].forEach((id) => game.addPlayer(id));
   let notified = false;
   game.onTimeout = () => { notified = true; };
@@ -346,4 +351,50 @@ test('the mode is part of the settings and locked mid-game', () => {
   assert.equal(game.settings.mode, 'different');
   game.start();
   assert.throws(() => game.updateSettings({ mode: 'same' }), GameError);
+});
+
+test('all categories are picked by default and unknown ids are ignored', () => {
+  const game = newGame();
+  assert.deepEqual(game.settings.categories, ['food', 'places', 'tiny']);
+  game.updateSettings({ categories: ['places', 'nope'] });
+  assert.deepEqual(game.settings.categories, ['places']);
+  assert.equal(game.bankSize(), 10);
+  game.updateSettings({ mode: 'different' });
+  assert.equal(game.bankSize(), 10);
+});
+
+test('questions only come from the picked categories, drawn evenly', () => {
+  const game = newGame();
+  game.updateSettings({ categories: ['food', 'places'], rounds: 10 });
+  game.start();
+  const counts = {};
+  for (const q of game.questions) counts[q.category] = (counts[q.category] || 0) + 1;
+  assert.deepEqual(counts, { food: 5, places: 5 }, 'a big category does not crowd out a small one');
+  assert.ok(['food', 'places'].includes(game.round.category));
+  const category = CATEGORIES.find((c) => c.id === game.round.category);
+  assert.ok(category.same.includes(game.round.question));
+});
+
+test('a small category runs out and the others fill the rest', () => {
+  const game = newGame();
+  game.updateSettings({ categories: ['tiny', 'places'], rounds: 9 });
+  game.start();
+  const tiny = game.questions.filter((q) => q.category === 'tiny');
+  assert.equal(tiny.length, 3);
+  assert.equal(game.questions.length, 9);
+});
+
+test('there must be bank questions for the chosen categories and mode', () => {
+  const none = newGame();
+  none.updateSettings({ categories: [] });
+  assert.throws(() => none.start(), /اختر فئة/);
+
+  const empty = newGame();
+  empty.updateSettings({ categories: ['tiny'], mode: 'different' });
+  assert.throws(() => empty.start(), /ما فيه أسئلة/);
+
+  const custom = newGame();
+  custom.updateSettings({ categories: [], source: 'mix', customQuestions: 'سؤالي' });
+  custom.start();
+  assert.deepEqual(texts(custom.questions), ['سؤالي'], 'mix still works with only custom questions');
 });

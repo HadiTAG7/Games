@@ -137,6 +137,10 @@ function modePill() {
   return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
 }
 
+function categoryTag() {
+  return state.category ? h('div', { class: 'category-tag' }, `${state.category.emoji} ${state.category.name}`) : null;
+}
+
 function answeredText() {
   return `جاوب ${state.answeredCount} من ${state.playerCount}`;
 }
@@ -204,6 +208,7 @@ function renderAnswerForm() {
     h('form', { class: 'answer-form', onsubmit: submit },
       modePill(),
       timerEl(state.endsAt),
+      categoryTag(),
       h('h1', { class: 'question' }, state.question),
       h('div', { class: 'step' }, h('span', { class: 'step-num' }, '1'), 'اختر رقم تراهن فيه'),
       bets,
@@ -221,6 +226,7 @@ function renderSent() {
   return h('main', { class: 'stage narrow' },
     modePill(),
     timerEl(state.endsAt),
+    categoryTag(),
     h('h1', { class: 'question' }, state.question),
     h('div', { class: 'card sent' },
       h('div', { class: 'big-emoji' }, '✅'),

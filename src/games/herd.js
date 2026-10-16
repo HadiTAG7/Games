@@ -10,6 +10,9 @@
 //              win, a group needs 2+ people).
 //   different  «عكس القطيع»: every answer nobody else gave.
 // In both, the host can reject invalid answers so they can't win.
+//
+// Bank questions come from the categories the host picks; each category has
+// its own prompts for each mode, and a game draws evenly from all of them.
 
 const { normalizeAnswer } = require('../normalize');
 
@@ -135,12 +138,20 @@ function freshPlayerState() {
 }
 
 class HerdGame {
-  constructor({ questionBanks = {}, random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
-    this.questionBanks = { same: [], different: [], ...questionBanks };
+  /** categories: [{ id, name, emoji, same: [prompt], different: [prompt] }] */
+  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+    this.categories = categories;
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
-    this.settings = { mode: 'same', rounds: MAX_ROUNDS, timer: 0, source: 'bank', customQuestions: [] };
+    this.settings = {
+      mode: 'same',
+      rounds: MAX_ROUNDS,
+      timer: 0,
+      source: 'bank',
+      customQuestions: [],
+      categories: categories.map((c) => c.id),
+    };
     this.players = new Map();
     this.phase = 'lobby';
     this.questions = [];
@@ -180,33 +191,66 @@ class HerdGame {
       s.customQuestions = parseCustomQuestions(patch.customQuestions);
     }
     if (patch.mode !== undefined && MODES.includes(patch.mode)) s.mode = patch.mode;
+    if (Array.isArray(patch.categories)) {
+      const wanted = new Set(patch.categories);
+      s.categories = this.categories.filter((c) => wanted.has(c.id)).map((c) => c.id);
+    }
     this.settings = s;
   }
 
-  get questionBank() {
-    return this.questionBanks[this.settings.mode];
+  selectedCategories() {
+    const ids = new Set(this.settings.categories);
+    return this.categories.filter((c) => ids.has(c.id));
   }
 
+  /** How many bank questions the current mode and categories offer. */
+  bankSize() {
+    return new Set(this.selectedCategories().flatMap((c) => c[this.settings.mode] || [])).size;
+  }
+
+  /**
+   * Draws round-robin across the chosen categories so a big category doesn't
+   * crowd out the others, avoiding questions this room has already seen.
+   */
   pickFromBank(count) {
-    const bank = this.questionBank;
-    let pool = bank.filter((q) => !this.seenQuestions.has(q));
-    if (pool.length < count) {
-      for (const q of bank) this.seenQuestions.delete(q);
-      pool = [...bank];
+    const { mode } = this.settings;
+    const categories = this.selectedCategories().filter((c) => (c[mode] || []).length);
+    const all = categories.flatMap((c) => c[mode]);
+    if (all.filter((q) => !this.seenQuestions.has(q)).length < count) {
+      for (const q of all) this.seenQuestions.delete(q);
     }
-    const picks = shuffle(pool, this.random).slice(0, count);
-    for (const q of picks) this.seenQuestions.add(q);
-    return picks;
+    const pools = shuffle(categories, this.random).map((c) => ({
+      category: c.id,
+      questions: shuffle(c[mode].filter((q) => !this.seenQuestions.has(q)), this.random),
+    }));
+    const picks = [];
+    const taken = new Set();
+    while (picks.length < count && pools.some((pool) => pool.questions.length)) {
+      for (const pool of pools) {
+        if (picks.length >= count) break;
+        let text = pool.questions.pop();
+        while (text !== undefined && taken.has(text)) text = pool.questions.pop();
+        if (text === undefined) continue;
+        taken.add(text);
+        picks.push({ text, category: pool.category });
+      }
+    }
+    for (const q of picks) this.seenQuestions.add(q.text);
+    return shuffle(picks, this.random);
   }
 
+  /** [{ text, category }]; host-written questions have no category. */
   buildQuestions() {
     const { rounds, source, customQuestions } = this.settings;
-    const custom = source === 'bank' ? [] : customQuestions.slice(0, rounds);
+    const custom = source === 'bank' ? [] : customQuestions.slice(0, rounds).map((text) => ({ text, category: null }));
     if (source === 'custom') {
       if (!custom.length) throw new GameError('اكتب سؤال واحد على الأقل');
       return custom;
     }
     const picks = this.pickFromBank(rounds - custom.length);
+    if (!picks.length && !custom.length) {
+      throw new GameError(this.settings.categories.length ? 'ما فيه أسئلة في الفئات اللي اخترتها' : 'اختر فئة وحدة على الأقل');
+    }
     return source === 'mix' ? shuffle([...custom, ...picks], this.random) : picks;
   }
 
@@ -224,8 +268,10 @@ class HerdGame {
   startNextRound() {
     this.roundIndex += 1;
     const { timer } = this.settings;
+    const { text, category } = this.questions[this.roundIndex];
     this.round = {
-      question: this.questions[this.roundIndex],
+      question: text,
+      category,
       answers: new Map(),
       endsAt: timer ? this.now() + timer * 1000 : null,
       groups: [],

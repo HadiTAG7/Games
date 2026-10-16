@@ -126,6 +126,43 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .mode-pill.different { background: var(--unicorn-soft); border-color: var(--unicorn); }
 .player .mode-pill { font-size: 14px; }
 
+.category-tag {
+  align-self: center;
+  margin: 0 auto -8px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+}
+
+.field-head { display: flex; align-items: center; gap: 12px; }
+.field-head > span { font-weight: 700; font-size: 14px; color: var(--muted); margin-inline-end: auto; }
+.link-btn.small { font-size: 13px; direction: rtl; }
+.category-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+.category-chip.picked { border-color: var(--accent); background: rgba(255, 210, 63, 0.14); color: var(--text); }
+.category-count {
+  min-width: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--card-strong);
+  font-size: 12px;
+  text-align: center;
+}
+
 .mode-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
 .mode-option {
   display: flex;
