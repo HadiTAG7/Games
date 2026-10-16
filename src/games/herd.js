@@ -20,6 +20,7 @@
 // and then across the subcategories inside each.
 
 const { normalizeAnswer } = require('../normalize');
+const { GameError } = require('../errors');
 
 const MIN_BET = 1;
 const MAX_BET = 15;
@@ -34,7 +35,6 @@ const VOTE_CHOICES = ['keep', 'reject'];
 // Answers sent right as the clock hits zero still count.
 const TIMER_GRACE_MS = 750;
 
-class GameError extends Error {}
 
 function shuffle(items, random) {
   const a = [...items];

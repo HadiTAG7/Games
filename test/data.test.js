@@ -40,3 +40,31 @@ test('no prompt is listed twice within a mode', () => {
     }
   }
 });
+
+/* ---------- «تحدي الوقت» cards ---------- */
+
+const timeChallenge = require('../data/time-challenge.json');
+const fs = require('node:fs');
+const path = require('node:path');
+
+test('«تحدي الوقت» has 50 well-formed categories with enough cards', () => {
+  const ids = new Set();
+  assert.equal(timeChallenge.categories.length, 50);
+  for (const c of timeChallenge.categories) {
+    assert.match(c.id, /^[a-z-]+$/);
+    assert.ok(!ids.has(c.id), `duplicate id ${c.id}`);
+    ids.add(c.id);
+    assert.ok(c.name && c.emoji, c.id);
+    assert.ok(c.cards.length >= 15, `${c.id} needs 15+ cards`);
+    for (const card of c.cards) {
+      assert.ok(typeof card.answer === 'string' && card.answer.trim(), `${c.id}: card without answer`);
+      if (card.type === 'image') assert.match(card.src, /^https:\/\/commons\.wikimedia\.org\/wiki\/Special:FilePath\//);
+      else if (card.type === 'map') assert.ok(fs.existsSync(path.join(__dirname, '..', 'public', card.src)), card.src);
+      else if (card.type === 'flag' || card.type === 'hidden-flag') {
+        assert.ok(fs.existsSync(path.join(__dirname, '..', 'node_modules', 'flag-icons', 'flags', '4x3', `${card.code}.svg`)), card.code);
+      } else if (card.type === 'emoji') assert.ok(card.emoji);
+      else if (card.type === 'text') assert.ok(card.text);
+      else assert.fail(`${c.id}: unknown card type ${card.type}`);
+    }
+  }
+});

@@ -68,8 +68,9 @@ let clockOffset = 0;
 function syncClock(serverTime) {
   if (serverTime) clockOffset = serverTime - Date.now();
 }
+const serverNow = () => Date.now() + clockOffset;
 function secondsLeft(endsAt) {
-  return Math.max(0, Math.ceil((endsAt - (Date.now() + clockOffset)) / 1000));
+  return Math.max(0, Math.ceil((endsAt - serverNow()) / 1000));
 }
 function timerEl(endsAt) {
   if (!endsAt) return null;
