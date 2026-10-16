@@ -167,7 +167,7 @@ function updateLobby() {
     el.classList.toggle('picked', picked);
     el.setAttribute('aria-checked', String(picked));
   });
-  const picked = new Set(state.settings.categories);
+  const picked = new Set(currentCategories());
   document.querySelectorAll('.category-chip').forEach((el) => {
     const category = state.categories.find((c) => c.id === el.dataset.category);
     el.classList.toggle('picked', picked.has(category.id));
@@ -184,15 +184,29 @@ function updateLobby() {
   $('#start-hint').textContent = enough ? '' : 'تحتاجون لاعبين اثنين على الأقل';
 }
 
-function setCategories(categories) {
-  // Update locally first so quick taps build on each other before the server replies.
-  state.settings = { ...state.settings, categories };
+// Category taps apply locally right away and stay authoritative until the
+// server confirms the latest one, so quick taps build on each other even
+// while older updates are still coming back.
+let pendingCategories = null;
+let categoriesSeq = 0;
+
+function currentCategories() {
+  return pendingCategories ?? state.settings.categories;
+}
+
+async function setCategories(categories) {
+  pendingCategories = categories;
+  const seq = ++categoriesSeq;
   updateLobby();
-  act('host:settings', { categories });
+  await act('host:settings', { categories });
+  if (seq === categoriesSeq) {
+    pendingCategories = null;
+    if (state.phase === 'lobby') updateLobby();
+  }
 }
 
 function toggleCategory(id) {
-  const picked = new Set(state.settings.categories);
+  const picked = new Set(currentCategories());
   if (picked.has(id)) picked.delete(id);
   else picked.add(id);
   setCategories([...picked]);
