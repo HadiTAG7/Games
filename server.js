@@ -145,7 +145,7 @@ io.on('connection', (socket) => {
   // Shared by every game.
   hostAction('host:game-type', (room, { gameType }) => room.setGameType(gameType));
   hostAction('host:settings', (room, settings) => room.game.updateSettings(settings));
-  hostAction('host:start', (room) => room.game.start());
+  hostAction('host:start', (room, options) => room.game.start(options));
   hostAction('host:next', (room) => room.game.next());
   hostAction('host:end', (room) => room.game.finish());
   hostAction('host:restart', (room) => room.game.restart());
@@ -179,6 +179,7 @@ io.on('connection', (socket) => {
   hostAction('host:tc-pause', (room, { step }) => time(room).pause(step));
   hostAction('host:tc-resume', (room, { step }) => time(room).resume(step));
   hostAction('host:tc-undo', (room, { step }) => time(room).undo(step));
+  hostAction('host:tc-exclude', (room, { step }) => time(room).exclude(step));
 
   on('player:join', ({ code, name, playerId }) => {
     const room = rooms.get(code);

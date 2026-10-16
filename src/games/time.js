@@ -17,7 +17,11 @@ const WHEEL_SIZE = 8;
 // category's seen cards are shuffled back in.
 const MIN_FRESH_CARDS = 12;
 
+const MAX_EXCLUDED = 5000;
+
 const other = (team) => (team === 'red' ? 'blue' : 'red');
+/** Names a card across rebuilds of the card file. */
+const cardKey = (categoryId, card) => `${categoryId}:${card.answer}`;
 
 function shuffle(items, random) {
   const a = [...items];
@@ -50,6 +54,7 @@ class TimeGame {
     this.nextStartTeam = 'red';
     this.usedCategories = new Set();
     this.seenCards = new Map(); // categoryId → Set of card indexes shown this game
+    this.excluded = new Set(); // card keys the host took out of the game
     this.timer = null;
     this.turnToken = 0;
   }
@@ -102,7 +107,8 @@ class TimeGame {
 
   /* ---------- Game flow ---------- */
 
-  start() {
+  /** excluded: card keys the host's device has taken out before. */
+  start({ excluded } = {}) {
     if (this.phase !== 'lobby') throw new GameError('اللعبة بدأت');
     if (!this.teamSize('red') || !this.teamSize('blue')) throw new GameError('كل فريق يحتاج لاعب واحد على الأقل');
     if (!this.enabledCategories().length) throw new GameError('اختر فئة وحدة على الأقل');
@@ -113,6 +119,11 @@ class TimeGame {
     this.nextStartTeam = 'red';
     this.usedCategories.clear();
     this.seenCards.clear();
+    if (Array.isArray(excluded)) {
+      for (const key of excluded.slice(0, MAX_EXCLUDED)) {
+        if (typeof key === 'string' && key.length <= 200) this.excluded.add(key);
+      }
+    }
     this.phase = 'wheel';
   }
 
@@ -154,7 +165,8 @@ class TimeGame {
 
   buildDeck(category) {
     const seen = this.seenCards.get(category.id) ?? new Set();
-    const all = category.cards.map((_, i) => i);
+    let all = category.cards.map((_, i) => i).filter((i) => !this.excluded.has(cardKey(category.id, category.cards[i])));
+    if (!all.length) all = category.cards.map((_, i) => i);
     let fresh = all.filter((i) => !seen.has(i));
     if (fresh.length < Math.min(MIN_FRESH_CARDS, all.length)) fresh = all;
     return shuffle(fresh, this.random).map((index) => {
@@ -235,6 +247,18 @@ class TimeGame {
       this.endRound(round.active, 'time');
       return;
     }
+    this.advance();
+  }
+
+  /** Takes a bad picture out of the game: a new one, with no time taken. */
+  exclude(step) {
+    if (this.isStale(step)) return;
+    if (this.phase !== 'playing') throw new GameError('الجولة مو شغّالة');
+    this.settle();
+    const { round } = this;
+    this.snapshot();
+    round.step += 1;
+    this.excluded.add(cardKey(round.category, this.category(round.category).cards[round.deck[round.position].index]));
     this.advance();
   }
 
@@ -383,6 +407,7 @@ class TimeGame {
 module.exports = {
   TimeGame,
   TEAMS,
+  cardKey,
   SECONDS_OPTIONS,
   ROUNDS_TO_WIN_OPTIONS,
   SKIP_PENALTY_OPTIONS,

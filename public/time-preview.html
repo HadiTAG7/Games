@@ -16,18 +16,27 @@
 <script src="/js/common.js"></script>
 <script src="/js/time-ui.js"></script>
 <script>
-/* global $, h, toast, cardFace, smallerSrc */
+/* global $, h, toast, storage, cardFace */
 'use strict';
 
-// Every «تحدي الوقت» card with its answer, so the host can check the
-// pictures before a game. «افحص كل الصور» lists pictures that don't open.
+// Every «تحدي الوقت» card with its answer. 🚫 takes a card out of the games
+// hosted on this device (the host screen reads the same list).
 
 const app = $('#app');
+const EXCLUDED_KEY = 'tc:excluded';
 let categories = [];
 let current = null;
-const broken = new Map(); // src → { category, card }
 
-const isRemote = (card) => card.type === 'image' || card.type === 'map';
+const keyOf = (category, card) => `${category.id}:${card.answer}`;
+const excludedKeys = () => new Set(storage(EXCLUDED_KEY) ?? []);
+
+function setExcluded(key, on) {
+  const keys = excludedKeys();
+  if (on) keys.add(key);
+  else keys.delete(key);
+  storage(EXCLUDED_KEY, [...keys]);
+  render();
+}
 
 async function load() {
   try {
@@ -39,68 +48,19 @@ async function load() {
   }
   current = categories.find((c) => c.id === location.hash.slice(1)) ?? categories[0];
   render();
+  if (location.hash === '#excluded') $('#excluded')?.scrollIntoView();
 }
 
-function markBroken(category, card) {
-  broken.set(card.src, { category, card });
-  updateBrokenList();
-}
-
-function render() {
-  const total = categories.reduce((n, c) => n + c.cards.length, 0);
-  app.replaceChildren(
-    h('header', { class: 'topbar' },
-      h('div', { class: 'brand' }, 'تحدي الوقت ⏱️ · كل الصور'),
-      h('div', { class: 'pill' }, `${categories.length} فئة · ${total} بطاقة`),
-    ),
-    h('section', { class: 'card' },
-      h('p', {}, 'هنا كل البطاقات وأجوبتها. لو فيه صورة غلط أو ما تفتح، صوّرها وأرسلها عشان نصلحها.'),
-      h('div', { class: 'preview-check' },
-        h('button', { id: 'check', class: 'btn primary', onclick: checkAll }, '🔍 افحص كل الصور'),
-        h('span', { id: 'check-progress', class: 'muted' }),
-      ),
-      h('div', { id: 'broken' }),
-    ),
-    h('nav', { class: 'preview-cats' }, h('div', { class: 'chips' }, categories.map((c) => h('button', {
-      type: 'button',
-      class: `category-chip${c === current ? ' picked' : ''}`,
-      onclick: () => {
-        current = c;
-        history.replaceState(null, '', `#${c.id}`);
-        render();
-      },
-    }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.cards.length))))),
-    h('h2', {}, `${current.emoji} ${current.name}`),
-    h('div', { class: 'preview-grid' }, current.cards.map((card, i) => {
-      const item = h('figure', { class: `preview-item${broken.has(card.src) ? ' broken' : ''}` },
-        cardFace(card, {
-          reveal: true,
-          lazy: true,
-          onBroken: () => {
-            item.classList.add('broken');
-            markBroken(current, card);
-          },
-        }),
-        h('figcaption', {}, h('b', {}, `${i + 1}. ${card.answer}`), card.alt ? h('small', {}, card.alt) : null),
-      );
-      return item;
-    })),
-  );
-  app.querySelector('.preview-cats .picked')?.scrollIntoView({ inline: 'center', block: 'nearest' });
-  updateBrokenList();
-}
-
-function updateBrokenList() {
-  const box = $('#broken');
-  if (!box) return;
-  if (!broken.size) {
-    box.replaceChildren();
-    return;
-  }
-  const lines = [...broken.values()].map(({ category, card }) => `${category.name}: ${card.answer}${card.alt ? ` (${card.alt})` : ''}`);
-  box.replaceChildren(
-    h('p', { class: 'banner bad' }, `${broken.size} صورة ما فتحت`),
-    h('ul', { class: 'broken-list' }, lines.map((line) => h('li', {}, line))),
+function excludedSection(keys) {
+  if (!keys.size) return null;
+  const rows = categories.flatMap((c) => c.cards.filter((card) => keys.has(keyOf(c, card))).map((card) => ({ c, card })));
+  const lines = rows.map(({ c, card }) => `${c.name}: ${card.answer}`);
+  return h('section', { class: 'card', id: 'excluded' },
+    h('h2', {}, `🚫 الصور المستبعدة من هالجهاز (${rows.length})`),
+    h('p', { class: 'hint' }, 'ما تطلع في الألعاب اللي تستضيفها من هالجهاز. أرسل القائمة عشان أشيلها من اللعبة نهائياً.'),
+    h('ul', { class: 'broken-list' }, rows.map(({ c, card }) => h('li', {},
+      `${c.emoji} ${c.name}: `, h('b', {}, card.answer), ' ',
+      h('button', { class: 'link-btn small', onclick: () => setExcluded(keyOf(c, card), false) }, 'رجّعها')))),
     h('button', {
       class: 'btn small',
       onclick: async () => {
@@ -115,54 +75,49 @@ function updateBrokenList() {
   );
 }
 
-/**
- * Loads every remote picture, a few at a time, and lists the ones that fail.
- * Wikimedia slows down floods of requests, so failures get a second try
- * after a pause before they count as broken.
- */
-async function checkAll() {
-  const button = $('#check');
-  const status = (text) => { $('#check-progress').textContent = text; };
-  button.disabled = true;
-  const jobs = categories.flatMap((category) => category.cards.filter(isRemote).map((card) => ({ category, card })));
-  const loads = (src) => new Promise((resolve) => {
-    const img = new Image();
-    img.referrerPolicy = 'no-referrer';
-    img.onload = () => resolve(img.naturalWidth > 0);
-    img.onerror = () => resolve(false);
-    img.src = src;
-  });
-  // Same fallback as the game: a smaller size before giving up.
-  const opens = async (src) => {
-    for (let url = src; url; url = smallerSrc(url)) {
-      if (await loads(url)) return true;
-    }
-    return false;
-  };
-  async function run(list, workers, label) {
-    const failed = [];
-    const queue = [...list];
-    let done = 0;
-    const worker = async () => {
-      while (queue.length) {
-        const job = queue.shift();
-        if (!(await opens(job.card.src))) failed.push(job);
-        done += 1;
-        status(`${label} ${done}/${list.length}`);
-      }
-    };
-    await Promise.all(Array.from({ length: workers }, worker));
-    return failed;
-  }
-  let failed = await run(jobs, 4, 'نفحص');
-  if (failed.length) {
-    status(`نعيد فحص ${failed.length} صورة بعد شوي…`);
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-    failed = await run(failed, 2, 'نعيد الفحص');
-  }
-  for (const { category, card } of failed) markBroken(category, card);
-  status(failed.length ? `خلص الفحص · ${failed.length} صورة ما فتحت` : '✅ كل الصور تفتح');
-  button.disabled = false;
+function render() {
+  const keys = excludedKeys();
+  const total = categories.reduce((n, c) => n + c.cards.length, 0);
+  app.replaceChildren(
+    h('header', { class: 'topbar' },
+      h('div', { class: 'brand' }, 'تحدي الوقت ⏱️ · كل الصور'),
+      h('div', { class: 'pill' }, `${categories.length} فئة · ${total} بطاقة`),
+    ),
+    h('section', { class: 'card' },
+      h('p', {}, 'هنا كل البطاقات وأجوبتها. لو فيه صورة غلط أو تفضح الجواب، اضغط 🚫 عليها وما راح تطلع في الألعاب اللي تستضيفها من هالجهاز.'),
+      h('p', { class: 'hint' }, 'وأثناء اللعب، المضيف يقدر يضغط «🚫 استبعد الصورة» وتتبدل بدون ما ينخصم وقت.'),
+    ),
+    excludedSection(keys),
+    h('nav', { class: 'preview-cats' }, h('div', { class: 'chips' }, categories.map((c) => h('button', {
+      type: 'button',
+      class: `category-chip${c === current ? ' picked' : ''}`,
+      onclick: () => {
+        current = c;
+        history.replaceState(null, '', `#${c.id}`);
+        render();
+      },
+    }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.cards.length))))),
+    h('h2', {}, `${current.emoji} ${current.name}`),
+    h('div', { class: 'preview-grid' }, current.cards.map((card, i) => {
+      const key = keyOf(current, card);
+      const out = keys.has(key);
+      const item = h('figure', { class: `preview-item${out ? ' excluded' : ''}` },
+        cardFace(card, { reveal: true, lazy: true, onBroken: () => item.classList.add('broken') }),
+        h('figcaption', {},
+          h('b', {}, `${i + 1}. ${card.answer}`),
+          card.alt ? h('small', {}, card.alt) : null,
+          h('button', {
+            class: `exclude-btn${out ? ' on' : ''}`,
+            'aria-pressed': String(out),
+            title: out ? 'رجّعها للعبة' : 'استبعدها من اللعبة',
+            onclick: () => setExcluded(key, !out),
+          }, out ? '↩︎ رجّعها' : '🚫 استبعد'),
+        ),
+      );
+      return item;
+    })),
+  );
+  app.querySelector('.preview-cats .picked')?.scrollIntoView({ inline: 'center', block: 'nearest' });
 }
 
 load();

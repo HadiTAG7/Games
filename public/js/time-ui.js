@@ -12,18 +12,6 @@ const TEAM_INFO = {
 const otherTeam = (team) => (team === 'red' ? 'blue' : 'red');
 const teamLabel = (team) => `${TEAM_INFO[team].emoji} الفريق ${TEAM_INFO[team].name}`;
 const flagSrc = (code) => `/flags/4x3/${code}.svg`;
-const SMALLER_WIDTH = { 500: 330, 330: 250 };
-
-/**
- * The same Wikimedia picture at the next smaller size, or null. Wikimedia
- * hands out the original file when the asked width isn't smaller than it,
- * and often refuses those; a smaller size gets a resized copy.
- */
-function smallerSrc(src) {
-  const width = Number(src.match(/[?&]width=(\d+)/)?.[1]);
-  const smaller = SMALLER_WIDTH[width];
-  return smaller ? src.replace(/([?&]width=)\d+/, `$1${smaller}`) : null;
-}
 
 function roundsText(n) {
   if (n === 1) return 'جولة وحدة';
@@ -58,31 +46,24 @@ function cardFace(card, { reveal = false, lazy = false, brokenText = '😕 ال�
   const img = h('img', {
     src: card.src,
     alt: '',
-    referrerpolicy: 'no-referrer',
     decoding: 'async',
     loading: lazy ? 'lazy' : null,
   });
   img.addEventListener('error', () => {
-    const smaller = smallerSrc(img.src);
-    if (smaller) {
-      img.src = smaller;
-      return;
-    }
     img.replaceWith(h('div', { class: 'tc-broken' }, brokenText));
     onBroken?.(card);
   });
   return h('div', { class: `tc-face ${card.type}` }, img);
 }
 
-// Every device loads the round's pictures as soon as the wheel stops, so
-// nobody's clock runs while a picture is still loading.
+// Every device loads the round's next pictures as soon as the wheel stops,
+// so nobody's clock runs while a picture is still loading.
 const preloaded = new Map(); // src → { img, done }
 
 function preloadImages(urls, onProgress) {
   for (const src of urls) {
     if (preloaded.has(src)) continue;
     const img = new Image();
-    img.referrerPolicy = 'no-referrer';
     const entry = { img, done: false };
     img.onload = img.onerror = () => {
       entry.done = true;

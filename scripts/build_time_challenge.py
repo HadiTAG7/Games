@@ -3,13 +3,14 @@
 
     python3 scripts/build_time_challenge.py
 
-Needs internet. Wikidata gives each item's image; the cards link to it on
-Wikimedia Commons so phones load pictures straight from there (small originals
-are saved under public/tc/img/). City maps are satellite views (Esri World
-Imagery, no labels) saved under public/tc/maps/. Card text lives in scripts/time_challenge_sources.py.
+Needs internet. Wikidata names each item's picture on Wikimedia Commons; the
+build saves a resized copy under public/tc/img/, so the game never loads
+pictures from elsewhere. City maps are satellite views (Esri World Imagery, no
+labels) saved under public/tc/maps/. Card text lives in scripts/time_challenge_sources.py.
 """
 
 import concurrent.futures
+import hashlib
 import io
 import json
 import math
@@ -20,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import time_challenge_sources as src  # noqa: E402
@@ -63,16 +64,52 @@ def file_name(file_uri):
     return urllib.parse.unquote(file_uri.rsplit("/", 1)[-1]).replace("_", " ")
 
 
-def commons_url(file_uri, width):
-    name = file_name(file_uri).replace(" ", "_")
-    return f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(name)}?width={width}"
+def commons_path(name):
+    under = name.replace(" ", "_")
+    digest = hashlib.md5(under.encode()).hexdigest()
+    return f"{digest[0]}/{digest[:2]}/{urllib.parse.quote(under)}", under
 
 
-# Phones must get a resized copy (thumb.wikimedia.org): asking for a width at
-# or above the original sends them to the original file instead, which
-# Wikimedia often refuses to hotlinked pages. So each card asks for the
-# largest of the usual thumbnail sizes that Commons answers with a copy.
+def picture_url(name, width):
+    """Commons' resized copy of a file at this width (the original when width is 0)."""
+    path, under = commons_path(name)
+    if not width:
+        return f"https://upload.wikimedia.org/wikipedia/commons/{path}"
+    thumb = f"{width}px-{under}" + (".png" if under.lower().endswith(".svg") else "")
+    return f"https://thumb.wikimedia.org/wikipedia/commons/thumb/{path}/{urllib.parse.quote(thumb)}"
+
+
+# Pictures are saved with the game, so playing never depends on Wikimedia.
+# They're downloaded as resized copies, at the largest of Commons' usual
+# thumbnail sizes that's smaller than the original (Commons refuses floods
+# of requests for original files); smaller originals are taken as they are.
 THUMB_WIDTHS = (500, 330, 250)
+MAX_SIDE = 500
+
+
+def save_picture(name, width, crop=None):
+    """Downloads a picture once, stores it as WebP under public/tc/img/ and returns its path.
+    crop: (left, top, right, bottom) as fractions, to keep a logo's emblem without its lettering."""
+    if crop:
+        # A crop starts from a bigger copy so the emblem keeps its detail.
+        if name.lower().endswith(".svg"):
+            width = next((w for w in (500, 960, 1280, 1920) if w * (crop[2] - crop[0]) >= 400), 1920)
+        else:
+            width = next((w for w in (1280, 960) if "/thumb/" in redirect_target(name, w)), width)
+    stem = "".join(ch if ch.isascii() and (ch.isalnum() or ch == "-") else "_" for ch in name.rsplit(".", 1)[0])
+    key = f"{name}{crop}@{width}" if crop else name
+    slug = f"{stem[:60]}-{hashlib.md5(key.encode()).hexdigest()[:6]}.webp"
+    path = IMAGES_DIR / slug
+    if not path.exists():
+        img = ImageOps.exif_transpose(Image.open(io.BytesIO(get(picture_url(name, width), retries=6, wait=20))))
+        img = img.convert("RGBA" if "A" in img.getbands() or img.mode == "P" else "RGB")
+        if crop:
+            w, h = img.size
+            img = img.crop((round(crop[0] * w), round(crop[1] * h), round(crop[2] * w), round(crop[3] * h)))
+        img.thumbnail((MAX_SIDE, MAX_SIDE))
+        IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+        img.save(path, "WEBP", quality=75, method=6)
+    return f"/tc/img/{slug}"
 SIZES_CACHE = ROOT / "scripts" / ".commons-cache.json"
 
 
@@ -120,20 +157,6 @@ def probe_width(name):
     return 0
 
 
-def local_copy(name):
-    """Small originals are saved with the game (public/tc/img/), since Commons has no copy to hand out."""
-    safe = "".join(ch if ch.isascii() and (ch.isalnum() or ch in ".-") else "_" for ch in name)
-    path = IMAGES_DIR / safe
-    if not path.exists():
-        target = redirect_target(name, THUMB_WIDTHS[-1])
-        if not target:
-            return None
-        IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(get(target.split("?")[0]))
-        time.sleep(1)
-    return f"/tc/img/{safe}"
-
-
 class ThumbWidths:
     """Thumbnail widths by file name, probed once and cached between runs."""
 
@@ -160,14 +183,18 @@ class ThumbWidths:
         SIZES_CACHE.write_text(json.dumps(self.cache, ensure_ascii=False, indent=0))
 
 
-PROPS = ("P18", "P154", "P41", "P242")
+# Image, logo, flag, locator map, and the icon-only logos (small logo or icon, icon).
+PROPS = ("P18", "P154", "P41", "P242", "P8972", "P2910")
+ICON_PROPS = {"P8972", "P2910"}
 CACHE = ROOT / "scripts" / ".wikidata-cache.json"
 
 
-def wikidata_files(titles):
-    """{title: {prop: [commons file URIs]}} for every title, cached between runs."""
+def wikidata_files(titles, refresh=()):
+    """{title: {prop: [commons file URIs]}} for every title, cached between runs.
+    Titles in refresh are asked again if they were cached before the icon properties were."""
     cache = json.loads(CACHE.read_text()) if CACHE.exists() else {}
-    todo = [t for t in dict.fromkeys(titles) if t not in cache]
+    refresh = set(refresh)
+    todo = [t for t in dict.fromkeys(titles) if t not in cache or (t in refresh and "_props" not in cache[t])]
     for i in range(0, len(todo), 450):
         chunk = todo[i:i + 450]
         print(f"  wikidata: {len(chunk)} titles", file=sys.stderr)
@@ -179,7 +206,7 @@ def wikidata_files(titles):
           {optionals}
         }}""")
         for title in chunk:
-            cache[title] = {}
+            cache[title] = {"_props": list(PROPS)}
         for row in rows:
             entry = cache[row["title"]["value"]]
             for prop in PROPS:
@@ -191,34 +218,65 @@ def wikidata_files(titles):
     return cache
 
 
+LOGO_PROPS = {"P154", "P8972", "P2910"}
+
+
 def candidates(files, props):
-    """Files in order of preference: by property, then shortest name (usually the main one)."""
+    """Files in order of preference: by property, then shortest name (usually the main one).
+    Logos prefer vector files, which scale cleanly (a logo property can also hold a tiny favicon)."""
     for prop in props:
         usable = [u for u in files.get(prop, []) if u.rsplit(".", 1)[-1].lower() not in SKIP_EXTENSIONS]
-        yield from sorted(usable, key=len)
-
-
-def image_src(uri, sizes):
-    name = file_name(uri)
-    width = sizes(name)
-    if width:
-        return commons_url(uri, width)
-    return local_copy(name) if width == 0 else None
+        yield from sorted(usable, key=lambda u: (prop in LOGO_PROPS and not u.lower().endswith(".svg"), len(u)))
 
 
 def build_wikidata(category, files, sizes):
-    """Titles may list alternatives separated by "|"; the first one with an image wins."""
+    """Titles may list alternatives separated by "|"; the first one with an existing file wins.
+    An item may add {"file": Commons file name} to pick its picture, and {"crop": …}.
+    Cards come back with the file to download in place of a src."""
     cards, missing = [], []
-    for titles, answer in category["items"]:
-        pick = next(((title, src_) for title in titles.split("|")
-                     for uri in candidates(files.get(title, {}), category["props"])
-                     if (src_ := image_src(uri, sizes))), None)
+    for titles, answer, *extra in category["items"]:
+        options = extra[0] if extra else {}
+        if "file" in options:
+            uris = [(titles.split("|")[0], options["file"])]
+        else:
+            uris = [(title, file_name(uri)) for title in titles.split("|")
+                    for uri in candidates(files.get(title, {}), category["props"])]
+        pick = next(((title, name, width) for title, name in uris if (width := sizes(name)) is not None), None)
         if pick:
-            title, src_ = pick
-            cards.append({"type": "image", "src": src_, "answer": answer, "alt": title})
+            title, name, width = pick
+            crop = tuple(options["crop"]) if "crop" in options else None
+            cards.append({"type": "image", "file": (name, width, crop), "answer": answer, "alt": title})
         else:
             missing.append(titles.split("|")[0])
     return cards, missing
+
+
+def save_pictures(categories):
+    """Downloads every card's picture, a few at a time, and swaps the file for its local path."""
+    cards = [card for c in categories for card in c["cards"] if "file" in card]
+    files = list(dict.fromkeys(card["file"] for card in cards))
+
+    def save(file):
+        try:
+            return save_picture(*file)
+        except Exception as err:  # leave the card out this time; the next run tries again
+            print(f"  failed: {file[0]} ({err})", file=sys.stderr)
+            return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+        paths = {}
+        for i, (file, path) in enumerate(zip(files, pool.map(save, files))):
+            paths[file] = path
+            if i % 100 == 99:
+                print(f"  pictures: {i + 1}/{len(files)}", file=sys.stderr)
+    for c in categories:
+        c["cards"] = [{"type": card["type"], "src": paths[card["file"]], "answer": card["answer"], "alt": card["alt"]}
+                      if "file" in card else card for card in c["cards"] if paths.get(card.get("file"), True)]
+    # Pictures no card uses any more (a changed pick or crop) are removed.
+    used = {path.rsplit("/", 1)[-1] for path in paths.values() if path}
+    for path in IMAGES_DIR.glob("*.webp"):
+        if path.name not in used:
+            path.unlink()
 
 
 def tile_xy(lat, lon, zoom):
@@ -254,16 +312,18 @@ def build_city_map(key, lat, lon, zoom, size=640):
 def main():
     categories, report = [], []
 
-    files = wikidata_files([t for c in src.WIKIDATA for titles, _ in c["items"] for t in titles.split("|")])
+    titles = lambda cats: [t for c in cats for titles, *_ in c["items"] for t in titles.split("|")]
+    files = wikidata_files(titles(src.WIKIDATA), refresh=titles(c for c in src.WIKIDATA if ICON_PROPS & set(c["props"])))
     sizes = ThumbWidths()
     # Probe each title's first choice up front, a few at a time; fallbacks are rare.
     firsts = [next(candidates(files.get(title, {}), c["props"]), None)
-              for c in src.WIKIDATA for titles, _ in c["items"] for title in titles.split("|")]
+              for c in src.WIKIDATA for titles, *_ in c["items"] for title in titles.split("|")]
     sizes.probe_all([file_name(uri) for uri in firsts if uri])
     for category in src.WIKIDATA:
         cards, missing = build_wikidata(category, files, sizes)
         report.append((category["id"], len(cards), missing))
         categories.append({**{k: category[k] for k in ("id", "name", "emoji")}, "cards": cards})
+    save_pictures(categories)
 
     flags = [(code, name) for code, name in src.FLAGS if (FLAGS_DIR / f"{code}.svg").exists()]
     categories.append({"id": "flags", "name": "أعلام الدول", "emoji": "🏳️",

@@ -779,7 +779,20 @@ details.card[open] summary { margin-bottom: 10px; }
 .preview-item figcaption { padding: 6px 4px 2px; }
 .preview-item figcaption small { display: block; color: var(--muted); direction: ltr; text-align: right; overflow-wrap: anywhere; }
 .preview-item.broken { border-color: var(--bad); background: var(--bad-soft); }
-.preview-check { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; margin: 10px 0; }
+.preview-item.excluded { border-color: var(--bad); }
+.preview-item.excluded .tc-face { opacity: 0.35; }
+.exclude-btn {
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.exclude-btn.on { border-color: var(--bad); color: var(--text); }
 .broken-list { padding-inline-start: 20px; margin: 8px 0 0; }
 .tc-cat-details summary { cursor: pointer; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
 .tc-cat-details summary b { color: var(--text); }

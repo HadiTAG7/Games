@@ -10,6 +10,7 @@ const SECONDS = [30, 45, 60, 90];
 const ROUNDS = [1, 2, 3, 4, 5];
 const PENALTIES = [[0, 'بدون خصم وقت'], [3, 'تخصم 3 ثواني'], [5, 'تخصم 5 ثواني']];
 const PREFS_KEY = 'tc:host-prefs';
+const EXCLUDED_KEY = 'tc:excluded'; // pictures this device took out; the preview page lists them
 
 let prefs = { sound: true, answer: true, ...storage(PREFS_KEY) };
 let busy = false;
@@ -25,6 +26,17 @@ function savePrefs(patch) {
 /** Judge buttons say which screen they were pressed on, so the server ignores a double tap. */
 function judge(event) {
   act(event, { step: state.round.step });
+}
+
+const excludedCards = () => storage(EXCLUDED_KEY) ?? [];
+
+/** Takes the picture on screen out of the game, now and in later games on this device. */
+function excludeCard() {
+  const { round } = state;
+  const key = `${round.category.id}:${round.card.answer}`;
+  const saved = excludedCards();
+  if (!saved.includes(key)) storage(EXCLUDED_KEY, [...saved, key]);
+  judge('host:tc-exclude');
 }
 
 /** Other buttons send one action at a time, so a double tap can't spin twice. */
@@ -96,6 +108,7 @@ function shortcut(code) {
     if (code === 'KeyS') return round.paused ? null : 'host:tc-skip';
     if (code === 'KeyP') return round.paused ? 'host:tc-resume' : 'host:tc-pause';
     if (code === 'KeyZ') return round.canUndo ? 'host:tc-undo' : null;
+    if (code === 'KeyX') return 'host:tc-exclude';
     return null;
   }
   if (phase === 'wheel' && code === 'Space') return 'host:tc-spin';
@@ -112,7 +125,8 @@ document.addEventListener('keydown', (e) => {
   const event = shortcut(e.code);
   if (!event) return;
   e.preventDefault();
-  if (state.phase === 'playing') judge(event);
+  if (event === 'host:tc-exclude') excludeCard();
+  else if (state.phase === 'playing') judge(event);
   else send(event);
 });
 
@@ -207,10 +221,14 @@ function renderLobby() {
             h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories([]) }, 'ولا وحدة'),
           ),
           categories,
+          excludedCards().length
+            ? h('p', { class: 'hint' }, `🚫 استبعدت ${excludedCards().length} صورة من هالجهاز، وما راح تطلع. `,
+              h('a', { class: 'inline-link', href: '/time-preview#excluded', target: '_blank', rel: 'noopener' }, 'شوفها'))
+            : null,
         ),
       ),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ⏱️'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start', { excluded: excludedCards() }) }, 'ابدأ اللعبة ⏱️'),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -311,7 +329,7 @@ function renderPlaying() {
     ),
     clocksEl(round, { seconds: state.settings.seconds }),
     h('div', { class: 'tc-card' },
-      cardFace(card, { brokenText: '😕 الصورة ما فتحت — اضغط «تخطي»' }),
+      cardFace(card, { brokenText: '😕 الصورة ما فتحت — اضغط «🚫 استبعد»' }),
       round.paused ? h('div', { class: 'tc-paused' }, '⏸️ الوقت موقّف') : null,
     ),
     h('button', {
@@ -334,9 +352,14 @@ function renderPlaying() {
         ? h('button', { class: 'btn primary', onclick: () => judge('host:tc-resume') }, '▶️ كمّل')
         : h('button', { class: 'btn', onclick: () => judge('host:tc-pause') }, '⏸️ إيقاف'),
       h('button', { class: 'btn', disabled: !round.canUndo, onclick: () => judge('host:tc-undo') }, '↩︎ تراجع'),
+      h('button', {
+        class: 'btn',
+        title: 'صورة غلط أو تفضح الجواب؟ تتبدل بدون ما ينخصم وقت، وما تطلع لك مرة ثانية',
+        onclick: excludeCard,
+      }, '🚫 استبعد الصورة'),
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
-    h('p', { class: 'hint center kbd-hint' }, 'الكيبورد: مسافة = صح · S = تخطي · P = إيقاف · Z = تراجع'),
+    h('p', { class: 'hint center kbd-hint' }, 'الكيبورد: مسافة = صح · S = تخطي · P = إيقاف · Z = تراجع · X = استبعد'),
   );
 }
 

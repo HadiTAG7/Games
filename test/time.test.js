@@ -362,3 +362,38 @@ test('devices preload the next twelve pictures of the round', () => {
   assert.equal(next[0], room.hostView().round.card.src);
   assert.equal(next[0], ready.preload[1]);
 });
+
+test('the host can take a bad picture out: no time taken, and it never comes back', () => {
+  const game = newGame();
+  game.updateSettings({ categories: ['cars'] });
+  game.start({ excluded: ['cars:سيارة-1', 'cars:سيارة-2', 42] });
+  game.spin();
+  const answers = () => game.round.deck.map((e) => game.category('cars').cards[e.index].answer);
+  assert.ok(!answers().includes('سيارة-1') && !answers().includes('سيارة-2'), 'excluded before the game');
+  assert.equal(game.round.deck.length, 28);
+  game.go();
+  game.tick(3_000);
+  const bad = game.currentCard().answer;
+  game.exclude(game.round.step);
+  assert.equal(game.round.position, 1);
+  assert.equal(game.round.active, 'red');
+  assert.equal(game.round.remaining.red, 27_000, 'only the time that passed is charged');
+  assert.equal(game.round.log.length, 0, 'not in the recap');
+  game.pause(game.round.step);
+  game.exclude(game.round.step); // works while paused too
+  assert.equal(game.round.position, 2);
+  assert.ok(game.excluded.has(`cars:${bad}`));
+  game.finish();
+  game.restart();
+  game.start();
+  game.spin();
+  assert.ok(!answers().includes(bad), 'stays out for the rest of the room');
+});
+
+test('a category whose every card was taken out still plays', () => {
+  const game = newGame();
+  game.updateSettings({ categories: ['flags'] });
+  game.start({ excluded: ['flags:السعودية', 'flags:فرنسا'] });
+  game.spin();
+  assert.equal(game.round.deck.length, 2);
+});
