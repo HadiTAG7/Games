@@ -185,6 +185,9 @@ function updateLobby() {
 }
 
 function setCategories(categories) {
+  // Update locally first so quick taps build on each other before the server replies.
+  state.settings = { ...state.settings, categories };
+  updateLobby();
   act('host:settings', { categories });
 }
 
