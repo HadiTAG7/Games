@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#150c2c">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎲</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/css/style.css">
+<title>ألعاب الشلة</title>
+</head>
+<body>
+<main class="home">
+  <header class="hero">
+    <div class="logo">🎲</div>
+    <h1>ألعاب الشلة</h1>
+    <p class="muted">ادخلوا كلكم الغرفة بالباركود، وكل واحد يلعب من جواله</p>
+  </header>
+
+  <section class="card game-card">
+    <h2>وش في بالك؟ 🤔</h2>
+    <p>يطلع سؤال للكل مثل «اذكر لون من ألوان قوس قزح»، وهدفك تجاوب نفس جواب الأغلبية.
+      قبل كل جواب تراهن برقم من 1 إلى 15، وكل رقم تقدر تستخدمه مرة وحدة بس.</p>
+    <a class="btn primary big" href="/host?new=1">أنشئ غرفة</a>
+  </section>
+
+  <form class="card" id="join-form">
+    <h2>عندك رقم غرفة؟</h2>
+    <label class="field">
+      <span>رقم الغرفة</span>
+      <input id="code" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off" required>
+    </label>
+    <button class="btn big" type="submit">ادخل</button>
+  </form>
+</main>
+<script>
+  document.getElementById('join-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const code = document.getElementById('code').value
+      .replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x0660).trim();
+    if (code) location.href = '/play?room=' + encodeURIComponent(code);
+  });
+</script>
+</body>
+</html>
