@@ -1,15 +1,14 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, teamLabel, teamShort, scoreboardEl, roundsText, hrBoard, hrSides, hrLetter,
-   hrBuzzStatus, hrRulesList, hrRoundTitle */
+   hrBuzzStatus, hrRulesList, hrRoundTitle, sfx */
 'use strict';
 
 // Host screens for «حروف». The host taps the letter a team picks, reads the
 // question, sees who buzzed first on their phone, and judges the answer.
 (() => {
 const PREFS_KEY = 'hr:host-prefs';
-let prefs = { answer: true, sound: true, ...storage(PREFS_KEY) };
+let prefs = { answer: true, ...storage(PREFS_KEY) };
 let busy = false;
-let lastBuzz = null;
 
 function savePrefs(patch) {
   prefs = { ...prefs, ...patch };
@@ -30,26 +29,15 @@ async function send(event, payload = {}) {
   }
 }
 
-let audio = null;
-function ding() {
-  if (!prefs.sound) return;
-  try {
-    audio ??= new AudioContext();
-    if (audio.state === 'suspended') audio.resume();
-    const t = audio.currentTime;
-    for (const [freq, at] of [[880, 0], [1320, 0.09]]) {
-      const osc = audio.createOscillator();
-      const gain = audio.createGain();
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.2, t + at);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.25);
-      osc.connect(gain).connect(audio.destination);
-      osc.start(t + at);
-      osc.stop(t + at + 0.25);
-    }
-  } catch {
-    // No audio on this device; the game works without it.
-  }
+function sounds(prev, next) {
+  if (prev.step === next.step) return;
+  const from = prev.phase;
+  const to = next.phase;
+  if (to === 'answer' && from !== 'answer') sfx.play('buzz');
+  else if (from === 'answer' && (to === 'question' || to === 'missed')) sfx.play('wrong');
+  else if (from === 'answer' && to === 'pick') sfx.play('correct');
+  else if (from === 'answer' && to === 'roundOver') sfx.play('win');
+  else if (to === 'question' && (from === 'pick' || from === 'missed')) sfx.play('reveal');
 }
 
 document.addEventListener('keydown', (e) => {
@@ -71,12 +59,6 @@ function topbar() {
   return h('header', { class: 'topbar' },
     h('div', { class: 'brand' }, 'حروف 🔤'),
     inGame ? h('div', { class: 'pill' }, `الجولة ${state.roundNumber}`) : null,
-    inGame ? h('button', {
-      class: 'pill pill-btn',
-      title: prefs.sound ? 'كتم الصوت' : 'تشغيل الصوت',
-      'aria-label': prefs.sound ? 'كتم الصوت' : 'تشغيل الصوت',
-      onclick: () => savePrefs({ sound: !prefs.sound }),
-    }, prefs.sound ? '🔊' : '🔇') : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
 }
@@ -242,9 +224,6 @@ const SCREENS = {
 };
 
 function render() {
-  const buzzKey = state.current?.buzz ? `${state.step}` : null;
-  if (buzzKey && buzzKey !== lastBuzz) ding();
-  lastBuzz = buzzKey;
   if (state.phase === 'lobby') {
     app.replaceChildren(topbar(), renderLobby());
     return;
@@ -259,5 +238,5 @@ function render() {
   app.replaceChildren(topbar(), main);
 }
 
-HOST_GAMES.letters = { render, updateLobby };
+HOST_GAMES.letters = { render, updateLobby, sounds };
 })();

@@ -35,6 +35,7 @@ const hostChannel = (code) => `${code}:host`;
 const playerChannel = (code, playerId) => `${code}:player:${playerId}`;
 
 function broadcast(room) {
+  room.settleNight();
   io.to(hostChannel(room.code)).emit('host:state', room.hostView());
   for (const id of room.players.keys()) {
     io.to(playerChannel(room.code, id)).emit('player:state', room.playerView(id));
@@ -154,6 +155,9 @@ io.on('connection', (socket) => {
   hostAction('host:next', (room) => room.game.next());
   hostAction('host:end', (room) => room.game.finish());
   hostAction('host:restart', (room) => room.game.restart());
+  // «بطل السهرة»
+  hostAction('host:night-crown', (room, { on }) => room.night.crown(on));
+  hostAction('host:night-reset', (room) => room.night.reset());
   // The team games («تحدي الوقت», «سين جيم»).
   const teamGame = (room) => {
     if (!room.game.setTeam) throw new GameError('هذي اللعبة ما فيها فرق');

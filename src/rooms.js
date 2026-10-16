@@ -11,6 +11,7 @@ const timeViews = require('./games/time-views');
 const seenViews = require('./games/seen-views');
 const lettersViews = require('./games/letters-views');
 const { normalizeAnswer } = require('./normalize');
+const { NightBoard } = require('./night');
 
 const MAX_PLAYERS = 40;
 const MAX_NAME_LENGTH = 20;
@@ -36,6 +37,7 @@ class Room {
     this.hostToken = crypto.randomBytes(16).toString('hex');
     this.players = new Map(); // id → { id, name, sockets: Set<socketId>, joinedAt }
     this.onChange = () => {};
+    this.night = new NightBoard(); // «بطل السهرة» across every game played here
     this.gameType = 'herd';
     this.game = this.createGame('herd');
     this.touch();
@@ -93,6 +95,7 @@ class Room {
   kick(playerId) {
     if (!this.players.has(playerId)) throw new GameError('اللاعب مو موجود');
     this.players.delete(playerId);
+    this.night.remove(playerId);
     this.game.removePlayer(playerId);
     this.maybeAutoReveal();
     this.maybeFinishVote();
@@ -160,6 +163,11 @@ class Room {
     if (!waiting) game.reveal();
   }
 
+  /** Adds a finished game to «بطل السهرة»; called on every change. */
+  settleNight() {
+    return this.night.settle(this.game);
+  }
+
   /* ---------- Views ---------- */
 
   commonView(role) {
@@ -170,6 +178,7 @@ class Room {
       games: this.games(),
       serverTime: Date.now(),
       playerCount: this.players.size,
+      night: this.night.view(this.playerList()),
     };
   }
 

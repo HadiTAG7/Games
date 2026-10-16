@@ -22,6 +22,7 @@
 const { normalizeAnswer } = require('../normalize');
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
+const { rankedPoints } = require('../night');
 
 const MIN_BET = 1;
 const MAX_BET = 15;
@@ -511,6 +512,10 @@ class HerdGame {
       row.rank = i > 0 && rows[i - 1].score === row.score ? rows[i - 1].rank : i + 1;
     });
     return rows;
+  }
+
+  nightPoints() {
+    return rankedPoints(this.standings());
   }
 
   gameWinners() {

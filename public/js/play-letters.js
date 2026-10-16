@@ -1,5 +1,5 @@
 /* global $, h, emit, toast, socket, app, state, screenKey: writable, confetti, timerEl, PLAY_GAMES, otherTeam, teamLabel,
-   teamShort, scoreboardEl, hrBoard, hrSides, hrLetter, hrBuzzStatus, hrRulesList, hrRoundTitle */
+   teamShort, scoreboardEl, hrBoard, hrSides, hrLetter, hrBuzzStatus, hrRulesList, hrRoundTitle, sfx */
 'use strict';
 
 // Player screens for «حروف»: the board, and a big buzzer while a question is
@@ -54,6 +54,7 @@ async function pressBuzzer(button) {
   if (pressedStep === state.step) return;
   pressedStep = state.step;
   button.classList.add('pressed');
+  sfx.play('buzz');
   navigator.vibrate?.(60);
   const res = await emit(socket, 'player:buzz');
   if (!res.ok) toast(res.error);

@@ -201,3 +201,43 @@ test('votes close when the last voter who has not voted disconnects, and a tie s
   assert.deepEqual([vote.keep, vote.reject], [1, 1]);
   assert.equal(room.playerView(b.id).vote.status, 'tie');
 });
+
+test('«بطل السهرة» adds each finished game once, across games', () => {
+  const manager = new RoomManager({ categories: CATEGORIES, letters: require('../data/letters.json').letters });
+  const room = manager.create();
+  const [a, b, c] = ['أحمد', 'سارة', 'فهد'].map((name) => room.join({ name }));
+  // «عقلية القطيع» ends with أحمد first and سارة second.
+  room.game.start();
+  room.game.players.get(a.id).score = 9;
+  room.game.players.get(b.id).score = 4;
+  room.game.finish();
+  assert.equal(room.settleNight(), true);
+  assert.equal(room.settleNight(), false, 'counted once');
+  assert.deepEqual(room.night.standings(room.playerList()).map((r) => [r.name, r.points, r.rank]),
+    [['أحمد', 3, 1], ['سارة', 2, 2]]);
+  // Then «حروف»: the blue team wins.
+  room.setGameType('letters');
+  room.settleNight();
+  room.game.setTeam(a.id, 'red');
+  room.game.setTeam(b.id, 'blue');
+  room.game.setTeam(c.id, 'blue');
+  room.game.start();
+  room.game.score.blue = 1;
+  room.game.finish();
+  room.settleNight();
+  const rows = room.night.standings(room.playerList());
+  assert.deepEqual(rows.map((r) => [r.name, r.points, r.wins]), [['سارة', 5, 1], ['أحمد', 3, 1], ['فهد', 3, 1]]);
+  // A new game of the same kind counts again once it ends.
+  room.game.restart();
+  room.settleNight();
+  room.game.start();
+  room.game.finish();
+  assert.equal(room.settleNight(), true, 'a 0–0 game still settles');
+  assert.equal(room.night.standings(room.playerList())[0].points, 5, 'but a game nobody scored in gives nothing');
+  room.night.crown(true);
+  assert.equal(room.hostView().night.crowned, true);
+  room.kick(b.id);
+  assert.equal(room.playerView(a.id).night.standings[0].name, 'أحمد');
+  room.night.reset();
+  assert.deepEqual(room.hostView().night, { standings: [], crowned: false });
+});

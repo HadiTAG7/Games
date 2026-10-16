@@ -8,6 +8,7 @@
 
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
+const { teamPoints } = require('../night');
 const { TEAMS, otherTeam: other, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
 
 const SECONDS_OPTIONS = [30, 45, 60, 90];
@@ -373,6 +374,12 @@ class TimeGame {
   }
 
   /* ---------- Helpers for views ---------- */
+
+  nightPoints() {
+    const { red, blue } = this.score;
+    if (!this.matchWinner && red + blue === 0) return {};
+    return teamPoints(this.teams, this.matchWinner);
+  }
 
   category(id) {
     return this.categories.find((c) => c.id === id);

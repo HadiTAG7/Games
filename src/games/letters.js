@@ -8,6 +8,7 @@
 
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
+const { teamPoints } = require('../night');
 const { otherTeam, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
 
 const SIZE = 5; // 5 × 5 cells
@@ -268,6 +269,12 @@ class LettersGame {
     this.current = null;
     this.phase = 'final';
     this.step += 1;
+  }
+
+  nightPoints() {
+    const { red, blue } = this.score;
+    if (!this.matchWinner && red + blue === 0) return {};
+    return teamPoints(this.teams, this.matchWinner);
   }
 
   restart() {

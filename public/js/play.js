@@ -1,4 +1,4 @@
-/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme */
+/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme, sfx, syncCrown, pointsText */
 'use strict';
 
 // The player page shell: joining, the room session and dispatch to the
@@ -18,6 +18,7 @@ let state = null;
 let screenKey = ''; // the game screens use this to skip redraws that change nothing
 
 connectionBanner(socket);
+sfx.dock();
 
 socket.on('connect', () => {
   const code = session?.code || toLatinDigits(params.get('room') || '').trim();
@@ -27,9 +28,11 @@ socket.on('connect', () => {
 });
 
 socket.on('player:state', (next) => {
+  const prev = state;
   state = next;
   syncClock(next.serverTime);
   render();
+  playSounds(prev, next);
 });
 
 socket.on('player:kicked', () => {
@@ -61,6 +64,7 @@ async function join(code, name, playerId, { rejoin = false } = {}) {
 function renderJoin({ code = '', name = '', error = '' } = {}) {
   screenKey = 'join';
   setTheme(null);
+  document.getElementById('crown')?.remove();
   const codeInput = h('input', {
     id: 'code', inputmode: 'numeric', maxlength: 4, placeholder: '1234', autocomplete: 'off', value: code,
   });
@@ -99,4 +103,43 @@ function render() {
   document.title = game.name;
   setTheme(state.gameType);
   PLAY_GAMES[state.gameType].render();
+  placeNightMe();
+  syncCrown(state.night, { meId: session.playerId });
+}
+
+/** A few sounds on the phone: your turn, the end of a game, the champion of the night. */
+function playSounds(prev, next) {
+  if (!prev || prev.code !== next.code) return;
+  if (!prev.night.crowned && next.night.crowned) {
+    sfx.play('crown');
+    return;
+  }
+  if (prev.gameType !== next.gameType) return;
+  if (prev.phase !== 'final' && next.phase === 'final') {
+    const team = next.me?.team;
+    const winner = next.matchWinner ?? next.winner;
+    const won = next.isWinner ?? (team && winner === team);
+    sfx.play(won ? 'win' : 'lose');
+    return;
+  }
+  PLAY_GAMES[next.gameType].sounds?.(prev, next);
+}
+
+/** Your place in «بطل السهرة», at the top of the lobby. */
+function placeNightMe() {
+  const main = app.querySelector('main');
+  const old = $('#night-me');
+  const rows = state.night.standings;
+  const mine = rows.find((row) => row.id === session.playerId);
+  const leader = rows[0];
+  let text = null;
+  if (mine?.rank === 1) text = `أنت في الصدارة بـ${pointsText(mine.points)} 👑`;
+  else if (mine) text = `ترتيبك ${mine.rank} بـ${pointsText(mine.points)} · الصدارة لـ${leader.name}`;
+  else if (leader) text = `الصدارة لـ${leader.name} بـ${pointsText(leader.points)}`;
+  const el = main && state.phase === 'lobby' && text
+    ? h('div', { class: 'night-me', id: 'night-me' }, h('b', {}, '🏆 بطل السهرة: '), text)
+    : null;
+  if (old && el && old.isEqualNode(el)) return;
+  old?.remove();
+  if (el) main.prepend(el);
 }

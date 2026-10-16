@@ -1,4 +1,4 @@
-/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
+/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, sfx, nightList, syncCrown, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
 'use strict';
 
 // The host page shell: connection, room session, the shared lobby pieces
@@ -23,6 +23,8 @@ if (forceNew) history.replaceState(null, '', location.pathname);
 if (initialGame) setTheme(initialGame); // the game page's colours carry on while the room opens
 
 connectionBanner(socket);
+sfx.dock({ withMusic: true });
+sfx.timerTicks = true; // the big screen ticks through the last seconds
 
 socket.on('connect', async () => {
   const saved = forceNew ? null : storage(SESSION_KEY);
@@ -41,9 +43,11 @@ socket.on('connect', async () => {
 });
 
 socket.on('host:state', (next) => {
+  const prev = state;
   state = next;
   syncClock(next.serverTime);
   render();
+  playSounds(prev, next);
 });
 
 async function act(event, payload) {
@@ -62,15 +66,66 @@ function render() {
   // The lobby holds form fields, so keep it and only refresh what changed.
   if (state.phase === 'lobby' && renderedKey === key) {
     ui.updateLobby();
+  } else {
+    renderedKey = key;
+    // Only animate cards the first time a screen appears, not on every update.
+    const screenKey = `${key}:${state.roundNumber}`;
+    app.classList.toggle('calm', screenKey === lastScreenKey);
+    lastScreenKey = screenKey;
+    ui.render();
+    if (state.phase === 'lobby') ui.updateLobby();
+  }
+  placeNightCard();
+  syncCrown(state.night, { onClose: () => act('host:night-crown', { on: false }) });
+  sfx.music(state.phase === 'lobby' && !state.night.crowned);
+}
+
+/** Sounds for what just changed; each game adds its own through HOST_GAMES[id].sounds. */
+function playSounds(prev, next) {
+  if (!prev || prev.code !== next.code) return;
+  if (!prev.night.crowned && next.night.crowned) {
+    sfx.play('crown');
     return;
   }
-  renderedKey = key;
-  // Only animate cards the first time a screen appears, not on every update.
-  const screenKey = `${key}:${state.roundNumber}`;
-  app.classList.toggle('calm', screenKey === lastScreenKey);
-  lastScreenKey = screenKey;
-  ui.render();
-  if (state.phase === 'lobby') ui.updateLobby();
+  if (prev.gameType !== next.gameType) return;
+  if (next.phase === 'lobby' && next.playerCount > prev.playerCount) sfx.play('join');
+  if (prev.phase !== 'final' && next.phase === 'final') {
+    sfx.play('win');
+    return;
+  }
+  HOST_GAMES[next.gameType].sounds?.(prev, next);
+}
+
+/* ---------- «بطل السهرة» ---------- */
+
+function nightCard() {
+  const rows = state.night.standings;
+  if (!rows.length) return null;
+  const final = state.phase === 'final';
+  return h('section', { class: `card night-card${final ? ' compact' : ''}`, id: 'night-card' },
+    h('div', { class: 'field-head' },
+      h('h2', {}, final ? '🏆 بطل السهرة لين الحين' : '🏆 بطل السهرة'),
+      final ? null : h('button', {
+        type: 'button',
+        class: 'link-btn small',
+        onclick: () => { if (confirm('تصفّر نقاط بطل السهرة لكل اللاعبين؟')) act('host:night-reset'); },
+      }, 'صفّر'),
+    ),
+    h('p', { class: 'hint' }, 'كل لعبة تخلص تضيف نقاط: الفايز 3، والثاني 2، والثالث 1. وفي ألعاب الفرق، كل الفريق الفايز ياخذ 3.'),
+    nightList(rows, { limit: final ? 5 : 10 }),
+    h('button', { type: 'button', class: 'btn big night-crown-btn', onclick: () => act('host:night-crown', { on: true }) },
+      '👑 أعلن بطل السهرة'),
+  );
+}
+
+/** Keeps the «بطل السهرة» card at the end of the lobby and final screens. */
+function placeNightCard() {
+  const main = app.querySelector('main');
+  const old = $('#night-card');
+  const card = main && ['lobby', 'final'].includes(state.phase) ? nightCard() : null;
+  if (old && card && old.isEqualNode(card)) return;
+  old?.remove();
+  if (card) main.append(card);
 }
 
 /* ---------- Shared pieces ---------- */

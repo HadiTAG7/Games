@@ -9,6 +9,7 @@
 
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
+const { teamPoints } = require('../night');
 const { otherTeam, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
 
 const VALUES = [200, 400, 600];
@@ -281,6 +282,11 @@ class SeenGame {
 
   tilesLeft() {
     return this.board.reduce((n, col) => n + col.tiles.filter((t) => !t.wonBy).length, 0);
+  }
+
+  nightPoints() {
+    if (!this.board.some((col) => col.tiles.some((t) => t.wonBy))) return {};
+    return teamPoints(this.teams, this.winner());
   }
 
   winner() {

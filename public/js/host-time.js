@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection, updateTeamsSection,
    TEAM_ORDER, teamLabel, roundsText, cardFace, preloadImages, preloadNote, clockMs, clocksEl, startClockTicker,
-   spinRemaining, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList */
+   spinRemaining, SPIN_MS, sfx, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList */
 'use strict';
 
 // Host screens for «تحدي الوقت». The host is the judge: this screen shows
@@ -12,10 +12,9 @@ const PENALTIES = [[0, 'بدون خصم وقت'], [3, 'تخصم 3 ثواني'], 
 const PREFS_KEY = 'tc:host-prefs';
 const EXCLUDED_KEY = 'tc:excluded'; // pictures this device took out; the preview page lists them
 
-let prefs = { sound: true, answer: true, ...storage(PREFS_KEY) };
+let prefs = { answer: true, ...storage(PREFS_KEY) };
 let busy = false;
 let rerenderTimer = null;
-let previous = null; // last state seen, to play sounds on changes
 
 function savePrefs(patch) {
   prefs = { ...prefs, ...patch };
@@ -55,49 +54,47 @@ async function send(event, payload) {
 
 /* ---------- Sound ---------- */
 
-let audio = null;
-function beep(freq, ms, volume = 0.18) {
-  if (!prefs.sound) return;
-  try {
-    audio ??= new AudioContext();
-    if (audio.state === 'suspended') audio.resume();
-    const t = audio.currentTime;
-    const osc = audio.createOscillator();
-    const gain = audio.createGain();
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(volume, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
-    osc.connect(gain).connect(audio.destination);
-    osc.start(t);
-    osc.stop(t + ms / 1000);
-  } catch {
-    // No audio on this device; the game works without it.
-  }
-}
-
-let lastBeep = { team: null, second: null };
-function countdownBeeps(s) {
-  if (s.phase !== 'playing' || s.round.paused) return;
+let lastTick = null;
+let lastSpin = null;
+/** The running clock ticks every second, twice a second near the end; the wheel clicks as it turns. */
+function tickSounds(s) {
   const { round } = s;
-  const second = Math.ceil(clockMs(round, round.active) / 1000);
-  if (second >= 1 && second <= 5 && (second !== lastBeep.second || round.active !== lastBeep.team)) beep(660, 90);
-  lastBeep = { team: round.active, second };
+  if (s.phase === 'ready' && round.spinId) {
+    const left = spinRemaining(round.spinId);
+    const turned = 1 - (1 - (1 - left / SPIN_MS)) ** 3;
+    const click = left > 0 ? Math.floor(turned * 34) : -1;
+    if (click !== lastSpin) {
+      if (click >= 0) sfx.play('spin');
+      else if (lastSpin !== null) sfx.play('reveal');
+      lastSpin = click;
+    }
+  } else {
+    lastSpin = null;
+  }
+  if (s.phase !== 'playing' || round.paused) {
+    lastTick = null;
+    return;
+  }
+  const ms = clockMs(round, round.active);
+  if (ms <= 0) return;
+  const urgent = ms <= 5000;
+  const mark = `${round.active}:${urgent}:${Math.ceil(ms / (urgent ? 500 : 1000))}`;
+  if (mark === lastTick) return;
+  lastTick = mark;
+  sfx.play(urgent ? 'urgent' : Math.ceil(ms / 1000) % 2 ? 'tick' : 'tock');
 }
 
-function soundForChange(prev, next) {
-  if (!prev || prev.gameType !== 'time' || !prev.round || !next.round) return;
-  if (prev.phase === 'playing' && next.phase === 'roundOver' && next.round.result.reason === 'time') {
-    beep(160, 900, 0.3);
+function sounds(prev, next) {
+  if (!prev.round || !next.round) return;
+  if (prev.phase === 'playing' && next.phase === 'roundOver') {
+    sfx.play(next.round.result.reason === 'time' ? 'timeUp' : 'win');
     return;
   }
   if (prev.phase !== 'playing' || next.phase !== 'playing' || prev.round.spinId !== next.round.spinId) return;
-  if (next.round.cardNumber > prev.round.cardNumber) {
-    if (next.round.active !== prev.round.active) beep(990, 140);
-    else beep(320, 140);
-  }
+  if (next.round.cardNumber > prev.round.cardNumber) sfx.play(next.round.active !== prev.round.active ? 'correct' : 'skip');
 }
 
-startClockTicker(() => state, countdownBeeps);
+startClockTicker(() => state, tickSounds);
 
 /* ---------- Keyboard ---------- */
 
@@ -137,12 +134,6 @@ function topbar() {
   return h('header', { class: 'topbar' },
     h('div', { class: 'brand' }, 'تحدي الوقت ⏱️'),
     inGame && state.round ? h('div', { class: 'pill' }, `الجولة ${state.round.number}`) : null,
-    inGame ? h('button', {
-      class: 'pill pill-btn',
-      title: prefs.sound ? 'كتم الصوت' : 'تشغيل الصوت',
-      'aria-label': prefs.sound ? 'كتم الصوت' : 'تشغيل الصوت',
-      onclick: () => savePrefs({ sound: !prefs.sound }),
-    }, prefs.sound ? '🔊' : '🔇') : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
 }
@@ -400,8 +391,6 @@ function screenKey() {
 }
 
 function render() {
-  soundForChange(previous, state);
-  previous = state;
   if (state.phase === 'lobby') {
     app.replaceChildren(topbar(), renderLobby());
     return;
@@ -414,5 +403,5 @@ function render() {
   app.replaceChildren(topbar(), main);
 }
 
-HOST_GAMES.time = { render, updateLobby };
+HOST_GAMES.time = { render, updateLobby, sounds };
 })();

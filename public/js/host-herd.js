@@ -1,4 +1,4 @@
-/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES */
+/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES, sfx */
 'use strict';
 
 // Host screens for «عقلية القطيع».
@@ -392,5 +392,12 @@ function render() {
   app.replaceChildren(topbar(), screens[state.phase]());
 }
 
-HOST_GAMES.herd = { render, updateLobby };
+function sounds(prev, next) {
+  if (prev.phase === next.phase) return;
+  if (next.phase === 'question') sfx.play('turn');
+  else if (next.phase === 'reveal') sfx.play('reveal');
+  else if (next.phase === 'results') sfx.play('correct');
+}
+
+HOST_GAMES.herd = { render, updateLobby, sounds };
 })();

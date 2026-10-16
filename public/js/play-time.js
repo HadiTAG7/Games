@@ -1,6 +1,6 @@
 /* global $, h, app, state, screenKey: writable, confetti, PLAY_GAMES, TEAM_ORDER, otherTeam, teamLabel, cardFace,
    preloadImages, preloadNote, clocksEl, startClockTicker, spinRemaining, wheelEl, scoreboardEl, roundResultText,
-   recapEl, timeRulesList */
+   recapEl, timeRulesList, sfx */
 'use strict';
 
 // Player screens for «تحدي الوقت»: the picture and both clocks. Phones never
@@ -159,5 +159,11 @@ function render() {
   app.replaceChildren(topbar(), main);
 }
 
-PLAY_GAMES.time = { render };
+/** A chime when your team's clock starts. */
+function sounds(prev, next) {
+  if (next.phase !== 'playing' || !next.round || next.round.active !== next.me.team) return;
+  if (prev.phase !== 'playing' || prev.round?.active !== next.round.active) sfx.play('turn');
+}
+
+PLAY_GAMES.time = { render, sounds };
 })();

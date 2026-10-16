@@ -1,6 +1,6 @@
 /* global $, h, storage, toast, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, SJ_LIFELINES, sjAnswering, sjScoreboard, sjBoard,
-   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList */
+   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx */
 'use strict';
 
 // Host screens for «سين جيم». The host picks the categories, taps the
@@ -301,5 +301,13 @@ function render() {
   app.replaceChildren(topbar(), main);
 }
 
-HOST_GAMES.seen = { render, updateLobby };
+function sounds(prev, next) {
+  if (prev.step === next.step && prev.phase === next.phase) return;
+  if (prev.phase === 'board' && next.phase === 'picked') sfx.play('turn');
+  else if (prev.phase === 'picked' && next.phase === 'question') sfx.play('reveal');
+  else if (prev.phase === 'question' && next.phase === 'steal') sfx.play('steal');
+  else if (next.phase === 'reveal' && prev.phase !== 'reveal') sfx.play(next.current?.result?.winner ? 'correct' : 'wrong');
+}
+
+HOST_GAMES.seen = { render, updateLobby, sounds };
 })();

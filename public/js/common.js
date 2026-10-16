@@ -86,11 +86,14 @@ function timerEl(endsAt) {
   return h('div', { class: 'timer', 'data-ends': endsAt }, secondsLeft(endsAt));
 }
 setInterval(() => {
+  let lowest = null;
   document.querySelectorAll('[data-ends]').forEach((el) => {
     const left = secondsLeft(Number(el.dataset.ends));
     el.textContent = left;
     el.classList.toggle('urgent', left <= 5);
+    if (left > 0 && left <= 5) lowest = Math.min(lowest ?? left, left);
   });
+  globalThis.sfx?.countdown(lowest);
 }, 250);
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -157,6 +160,61 @@ function rulesList(mode = 'same') {
       : h('li', {}, 'الجواب اللي ما قاله إلا شخص واحد ما يفوز.'),
     h('li', {}, 'اللي خسر يروح عليه رقمه، واللي ما يجاوب ينحرق أقل رقم باقي عنده.'),
   );
+}
+
+/* ---------- «بطل السهرة» ---------- */
+
+/** «نقطة وحدة», «نقطتين», «3 نقاط», «11 نقطة». */
+function pointsText(n) {
+  if (n === 1) return 'نقطة وحدة';
+  if (n === 2) return 'نقطتين';
+  return n >= 3 && n <= 10 ? `${n} نقاط` : `${n} نقطة`;
+}
+
+/** «مرة», «مرتين», «3 مرات», «11 مرة». */
+function timesText(n) {
+  if (n === 1) return 'مرة';
+  if (n === 2) return 'مرتين';
+  return n >= 3 && n <= 10 ? `${n} مرات` : `${n} مرة`;
+}
+
+function nightList(rows, { meId = null, limit = 10 } = {}) {
+  return h('ol', { class: 'standings night-list' }, rows.slice(0, limit).map((row) => h('li', { class: row.id === meId ? 'me' : null },
+    h('span', { class: 'rank' }, MEDALS[row.rank] || row.rank),
+    h('span', { class: 'name' }, row.name),
+    row.wins ? h('span', { class: 'night-wins', title: 'عدد مرات الفوز' }, `🏅 ${row.wins}`) : null,
+    h('span', { class: 'score' }, row.points),
+  )));
+}
+
+/** The champion of the night, full screen on the host and every phone. */
+function crownOverlay(night, { meId = null, onClose = null } = {}) {
+  const champions = night.standings.filter((row) => row.rank === 1);
+  const mine = champions.some((row) => row.id === meId);
+  return h('div', { class: 'crown-overlay', id: 'crown', role: 'dialog', 'aria-label': 'بطل السهرة' },
+    confetti(),
+    h('div', { class: 'crown-box' },
+      h('div', { class: 'crown-emoji' }, '👑'),
+      h('p', { class: 'crown-kicker' }, champions.length > 1 ? 'أبطال السهرة' : 'بطل السهرة'),
+      h('h1', {}, mine ? 'أنت بطل السهرة! 🎉' : champions.map((row) => row.name).join(' و')),
+      h('p', { class: 'muted' }, `${pointsText(champions[0].points)}${champions[0].wins ? ` · فاز ${timesText(champions[0].wins)}` : ''}`),
+      nightList(night.standings, { meId, limit: 6 }),
+      onClose ? h('button', { class: 'btn primary big', onclick: onClose }, 'رجوع للغرفة') : null,
+    ),
+  );
+}
+
+/** Shows or hides the champion screen to match the room. */
+function syncCrown(night, options) {
+  const old = document.getElementById('crown');
+  const key = night.crowned ? JSON.stringify(night.standings) : null;
+  if (old && old.dataset.key === key) return false;
+  old?.remove();
+  if (!key) return false;
+  const overlay = crownOverlay(night, options);
+  overlay.dataset.key = key;
+  document.body.append(overlay);
+  return !old;
 }
 
 function confetti() {
