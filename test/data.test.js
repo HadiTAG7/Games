@@ -70,3 +70,28 @@ test('«تحدي الوقت» has 50 well-formed categories with enough cards', 
     }
   }
 });
+
+const seenJeem = require('../data/seen-jeem.json');
+
+test('«سين جيم» categories have enough questions of each value, with answers and real pictures', () => {
+  assert.ok(seenJeem.categories.length >= 24, 'enough categories to choose six from');
+  const ids = new Set();
+  for (const c of seenJeem.categories) {
+    assert.match(c.id, /^[a-z-]+$/);
+    assert.ok(!ids.has(c.id), `duplicate id ${c.id}`);
+    ids.add(c.id);
+    assert.ok(c.name && c.emoji, c.id);
+    for (const value of ['200', '400', '600']) {
+      const list = c.questions[value];
+      assert.ok(list.length >= 4, `${c.id} ${value} needs 4+ questions`);
+      for (const q of list) {
+        assert.ok(q.q.trim() && q.a.trim(), `${c.id} ${value}: question without text or answer`);
+        if (q.img?.startsWith('/flags/')) {
+          assert.ok(fs.existsSync(path.join(__dirname, '..', 'node_modules', 'flag-icons', q.img.replace('/flags/', 'flags/'))), q.img);
+        } else if (q.img) {
+          assert.ok(fs.existsSync(path.join(__dirname, '..', 'public', q.img)), q.img);
+        }
+      }
+    }
+  }
+});

@@ -7,8 +7,9 @@
 // team to win the set number of rounds wins the game. The host judges.
 
 const { GameError } = require('../errors');
+const { shuffle } = require('../shuffle');
+const { TEAMS, otherTeam: other, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
 
-const TEAMS = ['red', 'blue'];
 const SECONDS_OPTIONS = [30, 45, 60, 90];
 const ROUNDS_TO_WIN_OPTIONS = [1, 2, 3, 4, 5];
 const SKIP_PENALTY_OPTIONS = [0, 3, 5];
@@ -19,18 +20,8 @@ const MIN_FRESH_CARDS = 12;
 
 const MAX_EXCLUDED = 5000;
 
-const other = (team) => (team === 'red' ? 'blue' : 'red');
 /** Names a card across rebuilds of the card file. */
 const cardKey = (categoryId, card) => `${categoryId}:${card.answer}`;
-
-function shuffle(items, random) {
-  const a = [...items];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 class TimeGame {
   /** categories: [{ id, name, emoji, cards: [{ type, answer, … }] }] */
@@ -62,12 +53,11 @@ class TimeGame {
   /* ---------- Players and teams ---------- */
 
   teamSize(team) {
-    return [...this.teams.values()].filter((t) => t === team).length;
+    return teamSize(this.teams, team);
   }
 
   addPlayer(id) {
-    if (this.teams.has(id)) return;
-    this.teams.set(id, this.teamSize('blue') < this.teamSize('red') ? 'blue' : 'red');
+    joinTeam(this.teams, id);
   }
 
   removePlayer(id) {
@@ -75,14 +65,11 @@ class TimeGame {
   }
 
   setTeam(playerId, team) {
-    if (!this.teams.has(playerId)) throw new GameError('اللاعب مو موجود');
-    if (!TEAMS.includes(team)) throw new GameError('فريق غير معروف');
-    this.teams.set(playerId, team);
+    moveToTeam(this.teams, playerId, team);
   }
 
   shuffleTeams() {
-    const ids = shuffle([...this.teams.keys()], this.random);
-    ids.forEach((id, i) => this.teams.set(id, i % 2 === 0 ? 'red' : 'blue'));
+    shuffleTeams(this.teams, this.random);
   }
 
   /* ---------- Settings ---------- */

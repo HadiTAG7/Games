@@ -4,8 +4,10 @@ const crypto = require('crypto');
 const { GameError } = require('./errors');
 const { HerdGame } = require('./games/herd');
 const { TimeGame } = require('./games/time');
+const { SeenGame } = require('./games/seen');
 const herdViews = require('./games/herd-views');
 const timeViews = require('./games/time-views');
+const seenViews = require('./games/seen-views');
 const { normalizeAnswer } = require('./normalize');
 
 const MAX_PLAYERS = 40;
@@ -15,6 +17,7 @@ const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
 const GAMES = {
   herd: { Game: HerdGame, views: herdViews, name: 'عقلية القطيع', emoji: '🐄' },
   time: { Game: TimeGame, views: timeViews, name: 'تحدي الوقت', emoji: '⏱️' },
+  seen: { Game: SeenGame, views: seenViews, name: 'سين جيم', emoji: '❓' },
 };
 const GAME_LIST = Object.entries(GAMES).map(([id, g]) => ({ id, name: g.name, emoji: g.emoji }));
 
@@ -23,7 +26,7 @@ function cleanName(name) {
 }
 
 class Room {
-  /** content: { herd: herd categories, time: time-challenge categories } */
+  /** content: { herd: herd categories, time: time-challenge cards, seen: سين جيم questions } */
   constructor({ code, content, random }) {
     this.code = code;
     this.content = content;
@@ -175,9 +178,9 @@ class Room {
 }
 
 class RoomManager {
-  /** categories: the «عقلية القطيع» bank; timeCategories: the «تحدي الوقت» cards. */
-  constructor({ categories = [], timeCategories = [], random = Math.random } = {}) {
-    this.content = { herd: categories, time: timeCategories };
+  /** categories: the «عقلية القطيع» bank; timeCategories: the «تحدي الوقت» cards; seenCategories: «سين جيم» questions. */
+  constructor({ categories = [], timeCategories = [], seenCategories = [], random = Math.random } = {}) {
+    this.content = { herd: categories, time: timeCategories, seen: seenCategories };
     this.random = random;
     this.rooms = new Map();
   }

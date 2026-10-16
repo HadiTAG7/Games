@@ -4,7 +4,7 @@
 // host's view carries answers while a round is running; everyone sees them
 // in the round recap.
 
-const { TEAMS } = require('./time');
+const { teamsView } = require('./teams');
 
 const IMAGE_TYPES = new Set(['image', 'map', 'flag', 'hidden-flag']);
 // Devices load this many pictures ahead: enough that the clock never waits
@@ -19,15 +19,6 @@ function cardView(card, { withAnswer }) {
   if (!card) return null;
   const { answer, ...face } = card;
   return withAnswer ? { ...face, answer } : face;
-}
-
-function teamsView(room) {
-  const teams = Object.fromEntries(TEAMS.map((t) => [t, []]));
-  for (const p of room.playerList()) {
-    const team = room.game.teams.get(p.id);
-    if (team) teams[team].push(p);
-  }
-  return teams;
 }
 
 /** The next pictures of the round, so devices load them before they're needed. */

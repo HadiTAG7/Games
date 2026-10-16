@@ -21,6 +21,7 @@
 
 const { normalizeAnswer } = require('../normalize');
 const { GameError } = require('../errors');
+const { shuffle } = require('../shuffle');
 
 const MIN_BET = 1;
 const MAX_BET = 15;
@@ -35,15 +36,6 @@ const VOTE_CHOICES = ['keep', 'reject'];
 // Answers sent right as the clock hits zero still count.
 const TIMER_GRACE_MS = 750;
 
-
-function shuffle(items, random) {
-  const a = [...items];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 function clampInt(value, min, max, fallback) {
   const n = Math.round(Number(value));

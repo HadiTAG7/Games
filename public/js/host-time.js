@@ -1,5 +1,5 @@
-/* global $, h, storage, act, state, app, field, joinCard, gamePicker, kickButton, endGame, confetti, HOST_GAMES,
-   TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel, roundsText, cardFace, preloadImages, preloadNote, clockMs, clocksEl, startClockTicker,
+/* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection, updateTeamsSection,
+   TEAM_ORDER, teamLabel, roundsText, cardFace, preloadImages, preloadNote, clockMs, clocksEl, startClockTicker,
    spinRemaining, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList */
 'use strict';
 
@@ -199,15 +199,7 @@ function renderLobby() {
     joinCard(),
     h('section', { class: 'card' },
       gamePicker(),
-      h('div', { class: 'field-head tc-teams-head' },
-        h('h2', {}, 'الفرق ', h('span', { id: 'player-count', class: 'count' })),
-        h('button', { type: 'button', class: 'btn small', onclick: () => act('host:tc-shuffle') }, '🔀 وزّعهم عشوائي'),
-      ),
-      h('div', { class: 'tc-teams' }, TEAM_ORDER.map((team) => h('div', { class: `tc-team ${team}` },
-        h('h3', {}, teamLabel(team), h('span', { class: 'count', 'data-team-count': team })),
-        h('ul', { class: 'chips', 'data-team': team }),
-      ))),
-      h('p', { class: 'hint' }, 'اضغط على اسم أي لاعب عشان تنقله للفريق الثاني'),
+      teamsSection(),
       h('h2', {}, 'الإعدادات'),
       h('div', { class: 'settings' },
         field('وقت كل فريق', select('tc-seconds', 'seconds', SECONDS.map((n) => [n, `${n} ثانية`]), s.seconds)),
@@ -235,22 +227,7 @@ function renderLobby() {
 }
 
 function updateLobby() {
-  for (const team of TEAM_ORDER) {
-    const players = state.teams[team];
-    const list = $(`[data-team="${team}"]`);
-    list.replaceChildren(...players.map((p) => h('li', { class: `chip${p.connected ? '' : ' away'}` },
-      h('button', {
-        type: 'button',
-        class: 'chip-btn',
-        title: `انقل ${p.name} للفريق ${TEAM_INFO[otherTeam(team)].name}`,
-        onclick: () => act('host:tc-team', { playerId: p.id, team: otherTeam(team) }),
-      }, p.name),
-      kickButton(p),
-    )));
-    if (!players.length) list.append(h('li', { class: 'empty' }, 'ما فيه أحد'));
-    $(`[data-team-count="${team}"]`).textContent = players.length;
-  }
-  $('#player-count').textContent = state.players.length;
+  updateTeamsSection();
 
   const picked = new Set(currentCategories());
   document.querySelectorAll('.tc-categories .category-chip').forEach((el) => {

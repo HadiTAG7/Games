@@ -10,6 +10,7 @@ const { RoomManager, GAMES } = require('./src/rooms');
 const { GameError } = require('./src/errors');
 const { categories } = require('./data/questions.json');
 const timeCategories = require('./data/time-challenge.json').categories;
+const seenCategories = require('./data/seen-jeem.json').categories;
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0']);
@@ -24,7 +25,7 @@ app.get('/healthz', (req, res) => res.send('ok'));
 
 const server = http.createServer(app);
 const io = new Server(server);
-const rooms = new RoomManager({ categories, timeCategories });
+const rooms = new RoomManager({ categories, timeCategories, seenCategories });
 
 const hostChannel = (code) => `${code}:host`;
 const playerChannel = (code, playerId) => `${code}:player:${playerId}`;
@@ -149,6 +150,13 @@ io.on('connection', (socket) => {
   hostAction('host:next', (room) => room.game.next());
   hostAction('host:end', (room) => room.game.finish());
   hostAction('host:restart', (room) => room.game.restart());
+  // The team games («تحدي الوقت», «سين جيم»).
+  const teamGame = (room) => {
+    if (!room.game.setTeam) throw new GameError('هذي اللعبة ما فيها فرق');
+    return room.game;
+  };
+  hostAction('host:team', (room, { playerId, team }) => teamGame(room).setTeam(playerId, team));
+  hostAction('host:shuffle', (room) => teamGame(room).shuffleTeams());
   hostAction('host:kick', (room, { playerId }) => {
     room.kick(playerId);
     const channel = playerChannel(room.code, playerId);
@@ -170,8 +178,6 @@ io.on('connection', (socket) => {
 
   // «تحدي الوقت»
   const time = (room) => room.gameOf('time');
-  hostAction('host:tc-team', (room, { playerId, team }) => time(room).setTeam(playerId, team));
-  hostAction('host:tc-shuffle', (room) => time(room).shuffleTeams());
   hostAction('host:tc-spin', (room) => time(room).spin());
   hostAction('host:tc-go', (room) => time(room).go());
   hostAction('host:tc-correct', (room, { step }) => time(room).correct(step));
@@ -180,6 +186,16 @@ io.on('connection', (socket) => {
   hostAction('host:tc-resume', (room, { step }) => time(room).resume(step));
   hostAction('host:tc-undo', (room, { step }) => time(room).undo(step));
   hostAction('host:tc-exclude', (room, { step }) => time(room).exclude(step));
+
+  // «سين جيم»
+  const seen = (room) => room.gameOf('seen');
+  hostAction('host:sj-pick', (room, { tileId, step }) => seen(room).pick(tileId, step));
+  hostAction('host:sj-cancel', (room, { step }) => seen(room).cancelPick(step));
+  hostAction('host:sj-lifeline', (room, { name, step }) => seen(room).lifeline(name, step));
+  hostAction('host:sj-show', (room, { step }) => seen(room).showQuestion(step));
+  hostAction('host:sj-judge', (room, { correct, step }) => seen(room).judge(Boolean(correct), step));
+  hostAction('host:sj-undo', (room, { step }) => seen(room).undo(step));
+  hostAction('host:sj-next', (room, { step }) => seen(room).next(step));
 
   on('player:join', ({ code, name, playerId }) => {
     const room = rooms.get(code);

@@ -1,16 +1,9 @@
-/* global h, serverNow */
+/* global h, serverNow, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
 'use strict';
 
 // Pieces of «تحدي الوقت» shared by the host, player and preview pages:
 // card faces, the two chess clocks, the category wheel and the round recap.
 
-const TEAM_ORDER = ['red', 'blue'];
-const TEAM_INFO = {
-  red: { name: 'الأحمر', emoji: '🔴' },
-  blue: { name: 'الأزرق', emoji: '🔵' },
-};
-const otherTeam = (team) => (team === 'red' ? 'blue' : 'red');
-const teamLabel = (team) => `${TEAM_INFO[team].emoji} الفريق ${TEAM_INFO[team].name}`;
 const flagSrc = (code) => `/flags/4x3/${code}.svg`;
 
 function roundsText(n) {

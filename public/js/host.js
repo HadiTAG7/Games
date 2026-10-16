@@ -1,4 +1,4 @@
-/* global io, $, h, emit, storage, toast, connectionBanner, syncClock */
+/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
 'use strict';
 
 // The host page shell: connection, room session, the shared lobby pieces
@@ -122,4 +122,39 @@ async function copyLink() {
 
 function endGame() {
   if (confirm('تنهي اللعبة الحين وتطلع النتيجة النهائية؟')) act('host:end');
+}
+
+/* ---------- Teams (the team games' lobbies) ---------- */
+
+function teamsSection() {
+  return [
+    h('div', { class: 'field-head tc-teams-head' },
+      h('h2', {}, 'الفرق ', h('span', { id: 'player-count', class: 'count' })),
+      h('button', { type: 'button', class: 'btn small', onclick: () => act('host:shuffle') }, '🔀 وزّعهم عشوائي'),
+    ),
+    h('div', { class: 'tc-teams' }, TEAM_ORDER.map((team) => h('div', { class: `tc-team ${team}` },
+      h('h3', {}, teamLabel(team), h('span', { class: 'count', 'data-team-count': team })),
+      h('ul', { class: 'chips', 'data-team': team }),
+    ))),
+    h('p', { class: 'hint' }, 'اضغط على اسم أي لاعب عشان تنقله للفريق الثاني'),
+  ];
+}
+
+function updateTeamsSection() {
+  for (const team of TEAM_ORDER) {
+    const players = state.teams[team];
+    const list = $(`[data-team="${team}"]`);
+    list.replaceChildren(...players.map((p) => h('li', { class: `chip${p.connected ? '' : ' away'}` },
+      h('button', {
+        type: 'button',
+        class: 'chip-btn',
+        title: `انقل ${p.name} للفريق ${TEAM_INFO[otherTeam(team)].name}`,
+        onclick: () => act('host:team', { playerId: p.id, team: otherTeam(team) }),
+      }, p.name),
+      kickButton(p),
+    )));
+    if (!players.length) list.append(h('li', { class: 'empty' }, 'ما فيه أحد'));
+    $(`[data-team-count="${team}"]`).textContent = players.length;
+  }
+  $('#player-count').textContent = state.players.length;
 }
