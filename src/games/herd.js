@@ -147,6 +147,7 @@ class HerdGame {
    * categories: [{ id, name, emoji, subcategories: [{ id, name, same: [prompt], different: [prompt] }] }]
    */
   constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+    this.baseCategories = categories;
     this.categories = categories;
     this.subcategories = categories.flatMap((c) => c.subcategories.map((sub) => ({ ...sub, categoryId: c.id })));
     this.random = random;
@@ -210,6 +211,17 @@ class HerdGame {
       s.subcategories = this.subcategories.filter((sub) => wanted.has(sub.id)).map((sub) => sub.id);
     }
     this.settings = s;
+  }
+
+  /** The host's banks: each becomes a category with one section, picked as it arrives. */
+  setBanks(list) {
+    if (!['lobby', 'final'].includes(this.phase)) throw new GameError('ما تقدر تغيّر البنوك أثناء اللعب');
+    const before = new Set(this.subcategories.map((sub) => sub.id));
+    this.categories = [...this.baseCategories, ...list];
+    this.subcategories = this.categories.flatMap((c) => c.subcategories.map((sub) => ({ ...sub, categoryId: c.id })));
+    const known = new Set(this.subcategories.map((sub) => sub.id));
+    const fresh = this.subcategories.filter((sub) => !before.has(sub.id)).map((sub) => sub.id);
+    this.settings = { ...this.settings, subcategories: [...this.settings.subcategories.filter((id) => known.has(id)), ...fresh] };
   }
 
   selectedSubcategories() {

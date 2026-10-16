@@ -12,10 +12,13 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "express": "^4.22.3",
     "flag-icons": "^7.2.3",
     "pg": "^8.13.1",
     "qrcode": "^1.5.4",
-    "socket.io": "^4.8.4"
+    "sharp": "^0.35.5",
+    "socket.io": "^4.8.4",
+    "zod": "^4.6.7"
   }
 }

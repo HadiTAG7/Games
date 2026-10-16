@@ -62,7 +62,9 @@ function render() {
   const game = state.games.find((g) => g.id === state.gameType);
   document.title = `${game.name} · المضيف`;
   setTheme(state.gameType);
-  const key = `${state.gameType}:${state.phase}`;
+  // Switching a bank on or off redraws the lobby, since it changes the categories.
+  const banks = state.myBanks ? `${state.myBanks.loggedIn}:${state.myBanks.list.map((b) => `${b.id}${b.on ? '+' : ''}`).join('.')}` : '';
+  const key = `${state.gameType}:${state.phase}:${banks}`;
   // The lobby holds form fields, so keep it and only refresh what changed.
   if (state.phase === 'lobby' && renderedKey === key) {
     ui.updateLobby();
@@ -179,6 +181,36 @@ async function copyLink() {
 
 function endGame() {
   if (confirm('تنهي اللعبة الحين وتطلع النتيجة النهائية؟')) act('host:end');
+}
+
+/* ---------- «بنوكي» ---------- */
+
+/** The logged-in host's own question banks for this game, to switch on for the room. */
+function banksBox() {
+  const mine = state.myBanks;
+  if (!mine) return null;
+  if (!mine.loggedIn) {
+    return h('p', { class: 'hint banks-login' }, '📚 عندك بنوك أسئلة في حسابك؟ ',
+      h('a', { href: `/account?next=${encodeURIComponent('/host')}` }, 'سجّل دخول'), ' وترجع لنفس الغرفة.');
+  }
+  const on = mine.list.filter((b) => b.on).map((b) => b.id);
+  return h('div', { class: 'banks-box' },
+    h('div', { class: 'field-head' },
+      h('span', {}, h('b', {}, '📚 بنوكي'), h('small', { class: 'muted' }, ` · ${mine.owner}`)),
+      h('button', { type: 'button', class: 'link-btn small', onclick: () => act('host:banks-refresh') }, '🔄 تحديث'),
+      h('a', { class: 'link-btn small', href: '/account', target: '_blank' }, 'حسابي')),
+    mine.list.length
+      ? h('div', { class: 'chips' }, mine.list.map((b) => h('button', {
+        type: 'button',
+        class: `category-chip bank${b.on ? ' picked' : ''}`,
+        disabled: !b.playable,
+        'aria-pressed': String(b.on),
+        title: b.playable ? '' : 'البنك يحتاج عناصر أكثر عشان ينلعب',
+        onclick: () => act('host:banks', { ids: b.on ? on.filter((id) => id !== b.id) : [...on, b.id] }),
+      }, h('span', {}, b.emoji), h('span', {}, b.name), h('small', { class: 'category-count' }, b.count))))
+      : h('p', { class: 'hint' }, 'ما عندك بنوك لهاللعبة. سوّ واحد من ', h('a', { href: '/account', target: '_blank' }, 'حسابك'), '، أو اطلب من الذكاء الاصطناعي.'),
+    on.length ? h('p', { class: 'hint' }, '✅ البنوك المختارة انضافت للفئات.') : null,
+  );
 }
 
 /* ---------- «أسئلتكم الخاصة» ---------- */

@@ -34,6 +34,8 @@ class SeenGame {
     this.bank = categories.filter((c) => VALUES.every((v) => (c.questions[v] ?? []).length >= PER_VALUE));
     this.categories = this.bank;
     this.custom = { name: '', emoji: '', text: '', items: [], bad: 0 }; // «أسئلتكم الخاصة»
+    this.customCategory = null;
+    this.bankCategories = []; // the host's own banks («بنوكي»)
     this.random = random;
     this.now = now;
     this.settings = { turnSeconds: 60, stealSeconds: 30, categories: this.randomCategories() };
@@ -113,9 +115,24 @@ class SeenGame {
     this.custom = { name, emoji, text: String(input?.text ?? '').slice(0, 20000), items, bad };
     const questions = Object.fromEntries(VALUES.map((v) => [v, items.filter((i) => i.value === v).map(({ q, a }) => ({ q, a }))]));
     const ready = VALUES.every((v) => questions[v].length >= PER_VALUE);
-    this.categories = ready ? [...this.bank, { id: 'custom', name, emoji, questions, custom: true }] : this.bank;
-    if (!ready) s.categories = s.categories.filter((id) => id !== 'custom');
+    this.customCategory = ready ? { id: 'custom', name, emoji, questions, custom: true } : null;
+    this.rebuildCategories(s);
     for (const key of [...this.seen]) if (key.startsWith('custom:')) this.seen.delete(key);
+  }
+
+  /** The host's banks: each ready one becomes a category to pick. */
+  setBanks(list) {
+    if (!['lobby', 'final'].includes(this.phase)) throw new GameError('ما تقدر تغيّر البنوك أثناء اللعب');
+    this.bankCategories = list.filter((c) => VALUES.every((v) => (c.questions[v] ?? []).length >= PER_VALUE));
+    const s = { ...this.settings };
+    this.rebuildCategories(s);
+    this.settings = s;
+  }
+
+  rebuildCategories(s) {
+    this.categories = [...this.bank, ...(this.customCategory ? [this.customCategory] : []), ...this.bankCategories];
+    const known = new Set(this.categories.map((c) => c.id));
+    s.categories = s.categories.filter((id) => known.has(id));
   }
 
   /* ---------- Game flow ---------- */

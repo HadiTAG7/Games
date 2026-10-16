@@ -58,6 +58,7 @@ class LettersGame {
     this.bank = categories.filter((l) => l.questions.length);
     this.letters = this.bank;
     this.custom = { text: '', items: [], bad: 0 }; // «أسئلتكم الخاصة»
+    this.bankQuestions = []; // from the host's banks («بنوكي»)
     this.random = random;
     this.now = now;
     this.settings = { roundsToWin: 2 };
@@ -143,8 +144,20 @@ class LettersGame {
       items.push({ letter, q: custom.clean(parts[0], custom.MAX_QUESTION), a: custom.clean(parts[1], custom.MAX_ANSWER) });
     }
     this.custom = { text: String(text ?? '').slice(0, 20000), items, bad };
+    this.rebuildLetters();
+  }
+
+  /** The host's banks: their questions come first for their letters, after the room's own. */
+  setBanks(list) {
+    if (!['lobby', 'final'].includes(this.phase)) throw new GameError('ما تقدر تغيّر البنوك أثناء اللعب');
+    this.bankQuestions = list.flat();
+    this.rebuildLetters();
+  }
+
+  rebuildLetters() {
+    const extra = [...this.custom.items, ...this.bankQuestions];
     this.letters = this.bank.map((l) => {
-      const mine = items.filter((i) => i.letter === l.letter).map(({ q, a }) => ({ q, a, custom: true }));
+      const mine = extra.filter((i) => i.letter === l.letter).map(({ q, a }) => ({ q, a, custom: true }));
       return mine.length ? { ...l, questions: [...mine, ...l.questions] } : l;
     });
     this.seen.clear(); // question numbers moved

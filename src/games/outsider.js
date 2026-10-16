@@ -27,6 +27,8 @@ class OutsiderGame {
     this.bank = categories;
     this.categories = categories;
     this.custom = { name: '', emoji: '', text: '', words: [] }; // «أسئلتكم الخاصة»
+    this.customCategory = null;
+    this.bankCategories = []; // the host's own banks («بنوكي»)
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
@@ -94,10 +96,27 @@ class OutsiderGame {
     const emoji = custom.clean(input?.emoji, 8) || '✍️';
     this.custom = { name, emoji, text: String(input?.text ?? '').slice(0, 20000), words };
     const ready = words.length >= MIN_CUSTOM_WORDS;
-    this.categories = ready ? [...this.bank, { id: 'custom', name, emoji, words, custom: true }] : this.bank;
+    this.customCategory = ready ? { id: 'custom', name, emoji, words, custom: true } : null;
     for (const key of [...this.used]) if (key.startsWith('custom:')) this.used.delete(key);
-    if (ready && !s.categories.includes('custom')) s.categories = [...s.categories, 'custom'];
-    if (!ready) s.categories = s.categories.filter((id) => id !== 'custom');
+    this.rebuildCategories(s);
+  }
+
+  /** The host's banks: each ready one becomes a category, picked as it arrives. */
+  setBanks(list) {
+    if (!['lobby', 'final'].includes(this.phase)) throw new GameError('ما تقدر تغيّر البنوك أثناء اللعب');
+    this.bankCategories = list.filter((c) => c.words.length >= MIN_CUSTOM_WORDS);
+    const s = { ...this.settings };
+    this.rebuildCategories(s);
+    this.settings = s;
+  }
+
+  /** Bank + the room's own + banks; new extra categories start picked, gone ones are dropped. */
+  rebuildCategories(s) {
+    const before = new Set(this.categories.map((c) => c.id));
+    this.categories = [...this.bank, ...(this.customCategory ? [this.customCategory] : []), ...this.bankCategories];
+    const known = new Set(this.categories.map((c) => c.id));
+    const fresh = this.categories.filter((c) => !before.has(c.id)).map((c) => c.id);
+    s.categories = [...s.categories.filter((id) => known.has(id)), ...fresh.filter((id) => !s.categories.includes(id))];
   }
 
   /** How many outsiders this round really gets: two only with enough players. */

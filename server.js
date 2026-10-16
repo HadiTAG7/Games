@@ -11,6 +11,12 @@ const { RoomManager, GAMES } = require('./src/rooms');
 const { GameError } = require('./src/errors');
 const { openStore } = require('./src/community');
 const contrib = require('./src/contrib');
+const { limiter } = require('./src/limits');
+const { openAccounts, hashPassword } = require('./src/accounts');
+const { accountRouter, pictureRoute, accountFromCookie } = require('./src/web-accounts');
+const banks = require('./src/banks');
+const { createOAuth } = require('./src/oauth');
+const { mcpHandler } = require('./src/mcp');
 const { categories } = require('./data/questions.json');
 const timeCategories = require('./data/time-challenge.json').categories;
 const seenCategories = require('./data/seen-jeem.json').categories;
@@ -61,18 +67,6 @@ async function openCommunity() {
 }
 const communityReady = openCommunity();
 
-/** At most `limit` hits per key in each window. */
-function limiter(limit, windowMs) {
-  const hits = new Map();
-  return (keyName, cost = 1) => {
-    const now = Date.now();
-    const recent = (hits.get(keyName) ?? []).filter((t) => now - t < windowMs);
-    if (recent.length + cost > limit) return false;
-    for (let i = 0; i < cost; i++) recent.push(now);
-    hits.set(keyName, recent);
-    return true;
-  };
-}
 const submitLimit = limiter(50, 60 * 60 * 1000);
 const loginLimit = limiter(10, 15 * 60 * 1000);
 const MAX_ITEMS = 50;
@@ -86,12 +80,9 @@ api.use((req, res, next) => {
 
 api.get('/contrib/spec', (req, res) => res.json({ games: contrib.formSpec(rooms.content) }));
 
-api.post('/contrib', wrap(async (req, res) => {
-  const { game, items, submitter } = req.body ?? {};
+/** Checks entries for one game and stores the good ones for review. Returns { added, errors }. */
+async function submitEntries(game, items, submitter) {
   const spec = contrib.SPECS[game];
-  if (!spec) return res.status(400).json({ error: 'لعبة غير معروفة' });
-  if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'ما فيه أسئلة' });
-  if (items.length > MAX_ITEMS) return res.status(400).json({ error: `بالكثير ${MAX_ITEMS} سؤال في المرة` });
   const valid = [];
   const errors = [];
   const seen = new Set();
@@ -107,12 +98,18 @@ api.post('/contrib', wrap(async (req, res) => {
       errors.push({ index, error: err.message });
     }
   });
-  if (valid.length && !submitLimit(req.ip, valid.length)) {
-    return res.status(429).json({ error: 'أرسلت أسئلة كثير، جرّب بعد ساعة' });
-  }
   const name = String(submitter ?? '').trim().slice(0, 30) || null;
   await store.add(valid.map((payload) => ({ game, payload, submitter: name })));
-  return res.json({ ok: true, added: valid.length, errors });
+  return { added: valid.length, errors };
+}
+
+api.post('/contrib', wrap(async (req, res) => {
+  const { game, items, submitter } = req.body ?? {};
+  if (!contrib.SPECS[game]) return res.status(400).json({ error: 'لعبة غير معروفة' });
+  if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'ما فيه أسئلة' });
+  if (items.length > MAX_ITEMS) return res.status(400).json({ error: `بالكثير ${MAX_ITEMS} سؤال في المرة` });
+  if (!submitLimit(req.ip, Math.min(items.length, MAX_ITEMS))) return res.status(429).json({ error: 'أرسلت أسئلة كثير، جرّب بعد ساعة' });
+  return res.json({ ok: true, ...(await submitEntries(game, items, submitter)) });
 }));
 
 // The review page: everything below needs the owner's password (ADMIN_PASSWORD).
@@ -172,10 +169,64 @@ api.post('/admin/submissions/:id/delete', wrap(async (req, res) => {
   return res.json({ ok: true });
 }));
 
+/* ---------- Accounts, from the review page ---------- */
+
+api.get('/admin/accounts', wrap(async (req, res) => {
+  const accounts = await accountsReady;
+  res.json({ accounts: await accounts.listAccounts(String(req.query.q ?? '')), persistent: accounts.persistent });
+}));
+
+api.post('/admin/accounts/:id/password', wrap(async (req, res) => {
+  const password = String(req.body?.password ?? '');
+  if (password.length < 8) return res.status(400).json({ error: 'كلمة السر 8 أحرف على الأقل' });
+  const accounts = await accountsReady;
+  const done = await accounts.setPassword(Number(req.params.id), await hashPassword(password));
+  if (!done) return res.status(404).json({ error: 'ما لقينا الحساب' });
+  // Logged out everywhere, AI apps included.
+  await accounts.deleteSessions({ accountId: Number(req.params.id) });
+  await accounts.deleteTokens({ accountId: Number(req.params.id) });
+  return res.json({ ok: true });
+}));
+
+api.post('/admin/accounts/:id/delete', wrap(async (req, res) => {
+  const accounts = await accountsReady;
+  const done = await accounts.deleteAccount(Number(req.params.id));
+  if (!done) return res.status(404).json({ error: 'ما لقينا الحساب' });
+  return res.json({ ok: true });
+}));
+
 api.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error('[api]', err);
   res.status(500).json({ error: 'صار خطأ، جرّب مرة ثانية' });
 });
+
+// Accounts and their question banks (the account page, and the AI over MCP).
+const accountsDir = process.env.ACCOUNTS_DIR || path.join(__dirname, 'data', 'local');
+const accountsReady = openAccounts({ dir: accountsDir }).catch(async (err) => {
+  console.error('Accounts database unavailable, using local files:', err.message);
+  return openAccounts({ databaseUrl: '', dir: accountsDir });
+});
+app.use('/api/account', accountRouter({
+  accountsReady,
+  content: () => rooms.content,
+  community: { submit: async (game, entries, submitter) => { await communityReady; return submitEntries(game, entries, submitter); } },
+}));
+app.get('/bank-img/:id.webp', pictureRoute(accountsReady));
+
+// MCP: Claude, ChatGPT and other AI apps log in to an account (OAuth) and add banks through /mcp.
+const BASE_URL = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
+// OAuth needs an https address (or localhost for trying it out); AI apps couldn't reach a LAN address anyway.
+const base = new URL(BASE_URL);
+if (base.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(base.hostname)) {
+  const oauth = createOAuth({ accountsReady, baseUrl: BASE_URL });
+  app.use(oauth.router);
+  app.use('/oauth', oauth.consent);
+  app.post('/mcp', oauth.bearer, express.json({ limit: '10mb' }), mcpHandler({ accountsReady, content: () => rooms.content, baseUrl: BASE_URL }));
+  app.all('/mcp', (req, res) => res.status(405).set('allow', 'POST').json({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed.' }, id: null }));
+} else {
+  console.warn(`MCP is off: it needs an https PUBLIC_URL (now ${BASE_URL}).`);
+  app.all('/mcp', (req, res) => res.status(503).json({ jsonrpc: '2.0', error: { code: -32000, message: 'MCP needs the site on https.' }, id: null }));
+}
 app.use('/api', api);
 
 const server = http.createServer(app);
@@ -257,7 +308,18 @@ io.on('connection', (socket) => {
     }
   }
 
+  /** The host's account (from the site's login cookie) owns the room's «بنوكي». */
+  async function loadOwner(room) {
+    const store = await accountsReady;
+    const account = await accountFromCookie(store, socket.handshake.headers.cookie);
+    if (!account) return;
+    room.ownerId = account.id;
+    room.ownerName = account.username;
+    room.bankList = (await store.listBanks(account.id)).map(banks.summary);
+  }
+
   async function attachHost(room) {
+    await loadOwner(room).catch((err) => console.error('[owner]', err.message));
     leaveCurrent();
     socket.data = { role: 'host', code: room.code };
     socket.join(hostChannel(room.code));
@@ -364,6 +426,29 @@ io.on('connection', (socket) => {
   hostAction('host:hr-release', (room, { step }) => hr(room).release(step));
   hostAction('host:hr-undo', (room, { step }) => hr(room).undo(step));
   hostAction('host:hr-next', (room, { step }) => hr(room).next(step));
+
+  // «بنوكي»: the host's own banks, switched on per game.
+  on('host:banks', async ({ ids }) => {
+    const room = currentRoom('host');
+    if (!room.ownerId) throw new GameError('سجّل دخول عشان تستخدم بنوكك');
+    const list = await banks.playableContent(await accountsReady, room.ownerId, room.gameType, Array.isArray(ids) ? ids : []);
+    room.useBanks(list);
+    broadcast(room);
+  });
+  on('host:banks-refresh', async () => {
+    const room = currentRoom('host');
+    await loadOwner(room);
+    if (room.ownerId) {
+      const store = await accountsReady;
+      for (const [game, ids] of Object.entries(room.bankOn)) {
+        const list = await banks.playableContent(store, room.ownerId, game, ids);
+        room.bankOn[game] = list.map((x) => x.bank.id);
+        room.bankContent[game] = list.map((x) => x.content);
+      }
+      if (['lobby', 'final'].includes(room.game.phase)) room.applyBanks();
+    }
+    broadcast(room);
+  });
 
   // «برا السالفة»
   const os = (room) => room.gameOf('outsider');

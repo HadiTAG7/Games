@@ -9,6 +9,18 @@ const KEY = 'admin:password';
 let password = sessionStorage.getItem(KEY) ?? '';
 let tab = 'pending';
 let status = null;
+let accountQuery = '';
+
+function tabsEl() {
+  const tabs = [['pending', `تنتظر (${status.pending})`], ['approved', `المقبولة (${status.approved})`], ['rejected', 'المرفوضة'], ['accounts', '👤 الحسابات']];
+  return h('div', { class: 'review-tabs', role: 'tablist' }, tabs.map(([id, label]) => h('button', {
+    type: 'button',
+    class: `btn small${tab === id ? ' primary' : ''}`,
+    role: 'tab',
+    'aria-selected': String(tab === id),
+    onclick: () => { tab = id; renderTab(); },
+  }, label)));
+}
 
 async function api(path, body) {
   const res = await fetch(`/api/admin${path}`, {
@@ -109,26 +121,62 @@ async function approveAll(items) {
   await renderTab();
 }
 
+/** «الحسابات»: there's no reset by email, so the owner sets a new password here. */
+async function renderAccounts(tabs) {
+  let list;
+  try {
+    list = await api(`/accounts?q=${encodeURIComponent(accountQuery)}`);
+  } catch {
+    return;
+  }
+  const search = h('input', { placeholder: 'ابحث باسم المستخدم', value: accountQuery });
+  app.replaceChildren(...[
+    h('nav', { class: 'landing-nav' }, h('a', { href: '/' }, '→ الصفحة الرئيسية')),
+    h('h1', { class: 'center' }, '🔐 الحسابات'),
+    list.persistent ? null : h('p', { class: 'banner bad' }, '⚠️ الحسابات محفوظة في ملف مؤقت وتنمسح مع كل تحديث.'),
+    tabs,
+    h('form', { class: 'mcp-url', onsubmit: (e) => { e.preventDefault(); accountQuery = search.value; renderTab(); } },
+      search, h('button', { class: 'btn small', type: 'submit' }, 'بحث')),
+    list.accounts.length ? h('ol', { class: 'review-list' }, list.accounts.map((a) => h('li', { class: 'card review-item' },
+      h('div', { class: 'review-meta' }, `#${a.id} · ${new Date(a.createdAt).toLocaleDateString('ar-SA-u-nu-latn')} · ${a.banks} بنك`),
+      h('b', {}, a.username),
+      h('div', { class: 'review-actions' },
+        h('button', {
+          type: 'button',
+          class: 'btn small',
+          onclick: () => {
+            const password = prompt(`كلمة سر جديدة لـ${a.username} (8 أحرف على الأقل):`);
+            if (password) act(`/accounts/${a.id}/password`, { password }, 'تغيّرت كلمة السر');
+          },
+        }, '🔑 كلمة سر جديدة'),
+        h('button', {
+          type: 'button',
+          class: 'btn small danger',
+          onclick: () => { if (confirm(`تحذف حساب ${a.username} وكل بنوكه؟`)) act(`/accounts/${a.id}/delete`, {}, 'انحذف الحساب'); },
+        }, '🗑️ احذف')),
+    )))
+      : h('p', { class: 'hint center' }, 'ما فيه حسابات'),
+  ].filter(Boolean));
+}
+
 async function renderTab() {
+  if (tab === 'accounts') {
+    status = await api('/status').catch(() => status);
+    await renderAccounts(tabsEl());
+    return;
+  }
   let data;
   try {
     [data, status] = await Promise.all([api(`/submissions?status=${tab}`), api('/status')]);
   } catch {
     return;
   }
-  const tabs = [['pending', `تنتظر (${status.pending})`], ['approved', `المقبولة (${status.approved})`], ['rejected', 'المرفوضة']];
   const groups = data.games.map((spec) => ({ spec, items: data.items.filter((i) => i.game === spec.id) })).filter((g) => g.items.length);
   app.replaceChildren(...[
     h('nav', { class: 'landing-nav' }, h('a', { href: '/' }, '→ الصفحة الرئيسية'), h('a', { href: '/add' }, '✍️ أضف أسئلة')),
     h('h1', { class: 'center' }, '🔐 مراجعة الأسئلة'),
     storageBanner(),
-    h('div', { class: 'review-tabs', role: 'tablist' }, tabs.map(([id, label]) => h('button', {
-      type: 'button',
-      class: `btn small${tab === id ? ' primary' : ''}`,
-      role: 'tab',
-      'aria-selected': String(tab === id),
-      onclick: () => { tab = id; renderTab(); },
-    }, label))),
+    tabsEl(),
     groups.length ? null : h('p', { class: 'hint center' }, tab === 'pending' ? 'ما فيه أسئلة تنتظر 👌' : 'ما فيه شي هنا'),
     ...groups.map(({ spec, items }) => {
       const list = h('ol', { class: 'review-list' }, items.map((item) => itemCard(item, spec)));

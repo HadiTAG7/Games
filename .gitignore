@@ -7,3 +7,4 @@ scripts/.commons-cache.json
 __pycache__/
 data/community.local.json
 data/community.local.json.tmp
+data/local/

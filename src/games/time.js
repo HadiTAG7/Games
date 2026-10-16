@@ -27,7 +27,8 @@ const cardKey = (categoryId, card) => `${categoryId}:${card.answer}`;
 class TimeGame {
   /** categories: [{ id, name, emoji, cards: [{ type, answer, … }] }] */
   constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
-    this.categories = categories.filter((c) => c.cards.length);
+    this.bank = categories.filter((c) => c.cards.length);
+    this.categories = this.bank;
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
@@ -86,6 +87,16 @@ class TimeGame {
       s.categories = this.categories.filter((c) => wanted.has(c.id)).map((c) => c.id);
     }
     this.settings = s;
+  }
+
+  /** The host's banks: each becomes a wheel category, switched on as it arrives. */
+  setBanks(list) {
+    if (!['lobby', 'final'].includes(this.phase)) throw new GameError('ما تقدر تغيّر البنوك أثناء اللعب');
+    const before = new Set(this.categories.map((c) => c.id));
+    this.categories = [...this.bank, ...list.filter((c) => c.cards.length)];
+    const known = new Set(this.categories.map((c) => c.id));
+    const fresh = this.categories.filter((c) => !before.has(c.id)).map((c) => c.id);
+    this.settings = { ...this.settings, categories: [...this.settings.categories.filter((id) => known.has(id)), ...fresh] };
   }
 
   enabledCategories() {

@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, teamLabel, teamShort, scoreboardEl, roundsText, hrBoard, hrSides, hrLetter,
-   hrBuzzStatus, hrRulesList, hrRoundTitle, sfx, customBox */
+   hrBuzzStatus, hrRulesList, hrRoundTitle, sfx, customBox, banksBox */
 'use strict';
 
 // Host screens for «حروف». The host taps the letter a team picks, reads the
@@ -100,6 +100,7 @@ function renderLobby() {
         save: () => act('host:settings', { custom: $('#hr-custom-text').value }),
         items: () => state.custom.items.map(({ q, a }) => ({ q, a })),
       }),
+      banksBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 🔤'),
       h('p', { id: 'start-hint', class: 'hint center' }),

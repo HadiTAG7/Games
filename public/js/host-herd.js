@@ -1,4 +1,4 @@
-/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES, sfx, sendToSite */
+/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES, sfx, sendToSite, banksBox */
 'use strict';
 
 // Host screens for «عقلية القطيع».
@@ -118,6 +118,7 @@ function renderLobby() {
           h('p', { class: 'hint' }, 'تنرسل بطور اللعبة المختار فوق، وتطلع للكل بعد موافقة صاحب الموقع.'),
         ),
       ),
+      banksBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: startGame }, 'ابدأ اللعبة 🎉'),
       h('p', { id: 'start-hint', class: 'hint center' }),

@@ -45,6 +45,12 @@ class Room {
     this.players = new Map(); // id → { id, name, sockets: Set<socketId>, joinedAt }
     this.onChange = () => {};
     this.night = new NightBoard(); // «بطل السهرة» across every game played here
+    // «بنوكي»: the logged-in host's own question banks.
+    this.ownerId = null;
+    this.ownerName = null;
+    this.bankList = []; // the owner's banks, all games: [{ id, game, name, emoji, count, playable }]
+    this.bankOn = {}; // game → ids of the banks switched on
+    this.bankContent = {}; // game → those banks as game content
     this.gameType = 'herd';
     this.game = this.createGame('herd');
     this.touch();
@@ -72,6 +78,32 @@ class Room {
     this.game.dispose();
     this.gameType = type;
     this.game = this.createGame(type);
+    this.applyBanks();
+  }
+
+  /** Puts the banks switched on for the current game into it. */
+  applyBanks() {
+    if (this.game.setBanks) this.game.setBanks(this.bankContent[this.gameType] ?? []);
+  }
+
+  /** Switches the given banks on for the current game: list = [{ bank, content }] from banks.playableContent. */
+  useBanks(list) {
+    if (!this.game.setBanks) throw new GameError('هذي اللعبة ما فيها بنوك');
+    if (!['lobby', 'final'].includes(this.game.phase)) throw new GameError('خلّص اللعبة الحالية أول');
+    this.bankOn[this.gameType] = list.map((x) => x.bank.id);
+    this.bankContent[this.gameType] = list.map((x) => x.content);
+    this.applyBanks();
+  }
+
+  /** What the lobby shows of «بنوكي» for the current game. */
+  banksView() {
+    if (!this.game.setBanks) return null;
+    const on = this.bankOn[this.gameType] ?? [];
+    return {
+      loggedIn: Boolean(this.ownerId),
+      owner: this.ownerName,
+      list: this.bankList.filter((b) => b.game === this.gameType).map((b) => ({ ...b, on: on.includes(b.id) })),
+    };
   }
 
   /** Throws unless the room is playing the given game, so game-specific actions can't misfire. */
@@ -233,7 +265,7 @@ class Room {
 
   // The room's own fields come last, so a game's view can't shadow them (say, «night»).
   hostView() {
-    return { ...GAMES[this.gameType].views.hostView(this), ...this.commonView('host') };
+    return { ...GAMES[this.gameType].views.hostView(this), ...this.commonView('host'), myBanks: this.banksView() };
   }
 
   playerView(playerId) {
