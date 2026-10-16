@@ -256,6 +256,42 @@
      "src": "/tc/img/Hummer_H2-b716e9.webp",
      "answer": "همر H2",
      "alt": "Hummer H2"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/2026_Cadillac_Escalade_ESV-1e8881.webp",
+     "answer": "كاديلاك إسكاليد",
+     "alt": "Cadillac Escalade"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/TOYOTA_AVALON_China__73_-862a79.webp",
+     "answer": "تويوتا أفالون",
+     "alt": "Toyota Avalon"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hyundai_Tucson__NX4__SWB__Facelift_IMG_2344-3e3c61.webp",
+     "answer": "هيونداي توسان",
+     "alt": "Hyundai Tucson"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/2025_Kia_Sportage__NQ5__Automesse_Ludwigsburg_2025_DSC_2532-b767db.webp",
+     "answer": "كيا سبورتاج",
+     "alt": "Kia Sportage"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mercedes-Benz_W214_1X7A0885-56aa63.webp",
+     "answer": "مرسيدس إي كلاس",
+     "alt": "Mercedes-Benz E-Class"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/2009_Nissan_Maxima_SV-ab6e12.webp",
+     "answer": "نيسان ماكسيما",
+     "alt": "Nissan Maxima"
     }
    ]
   },
@@ -413,6 +449,102 @@
      "src": "/tc/img/Austin-Healey_3000_at_2010_Ottawa_British_Auto_Show-6ece50.webp",
      "answer": "أوستن هيلي 3000",
      "alt": "Austin-Healey 3000"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1968ChevroletCamaroZ28-05a1e1.webp",
+     "answer": "شفروليه كمارو الأولى",
+     "alt": "Chevrolet Camaro (first generation)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Porsche_356_No__1_Roadster_IMG_0814-106019.webp",
+     "answer": "بورش 356",
+     "alt": "Porsche 356"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1964_Aston_Martin_DB5_LC23-b1fa41.webp",
+     "answer": "أستون مارتن DB5",
+     "alt": "Aston Martin DB5"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1962_Ferrari_250_GTO_SP25-bef33a.webp",
+     "answer": "فيراري 250 GTO",
+     "alt": "Ferrari 250 GTO"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Volkswagen_Type_14_13-4-07-f0ee32.webp",
+     "answer": "فولكس فاجن كارمن غيا",
+     "alt": "Volkswagen Karmann Ghia"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Lamborghini_Miura_P400_S_Classic-Days_2022_DSC_0086-1dc0d5.webp",
+     "answer": "لامبورغيني ميورا",
+     "alt": "Lamborghini Miura"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mercedes-Benz_W113_IMG_5551-86e9ab.webp",
+     "answer": "مرسيدس باغودا (W113)",
+     "alt": "Mercedes-Benz W113"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1965_Chevrolet_Corvette_front-baf001.webp",
+     "answer": "شفروليه كورفيت C2",
+     "alt": "Chevrolet Corvette (C2)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/TOYOTA_2000GT-c336a6.webp",
+     "answer": "تويوتا 2000GT",
+     "alt": "Toyota 2000GT"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Jeep_-_Bedfordshire_Steam___Country_Fayre_2017__36515507253_-fa4308.webp",
+     "answer": "جيب ويليز",
+     "alt": "Willys MB"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Morris_Minor_MM-515f14.webp",
+     "answer": "موريس ماينر",
+     "alt": "Morris Minor"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mercedes-Benz_W126_MOPF_1X7A0398-328eab.webp",
+     "answer": "مرسيدس W126",
+     "alt": "Mercedes-Benz W126"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Plymouth_Roadrunner-223d24.webp",
+     "answer": "بليموث رود رنر",
+     "alt": "Plymouth Road Runner"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1970_Chevrolet_Chevelle_Malibu_4-dr__front_left-8fb507.webp",
+     "answer": "شفروليه شيفيل",
+     "alt": "Chevrolet Chevelle"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1972_Buick_Riviera_in_Finland-d85778.webp",
+     "answer": "بيوك ريفييرا",
+     "alt": "Buick Riviera"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1941_Cadillac_Series_62_convertible_coupe-cf2dec.webp",
+     "answer": "كاديلاك سيريس 62",
+     "alt": "Cadillac Series 62"
     }
    ]
   },
@@ -787,6 +919,48 @@
      "src": "/tc/img/Lamine_Yamal_Argentina_v_Spain_19_July_2026-214__new_cropped-a426b4.webp",
      "answer": "لامين يامال",
      "alt": "Lamine Yamal"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/LS3_1288__53332367864___cropped_-9a727a.webp",
+     "answer": "روبرتو كارلوس",
+     "alt": "Roberto Carlos"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mesut__zil_at_Baku_before_2019_UEFA_Europe_League_Final-e33896.webp",
+     "answer": "مسعود أوزيل",
+     "alt": "Mesut Özil"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/2022_FIFA_World_Cup_United_States_1_1_Wales_-__32___cropped_-14ff1c.webp",
+     "answer": "غاريث بيل",
+     "alt": "Gareth Bale"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Eden_Hazard_at_Baku_before_2019_UEFA_Europe_League_Final-c72266.webp",
+     "answer": "إدين هازارد",
+     "alt": "Eden Hazard"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Didier_Drogba_9279__cropped_-cee3dd.webp",
+     "answer": "ديدييه دروغبا",
+     "alt": "Didier Drogba"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Johan_Cruyff_in_trainingspak_Nederlands_Elftal___kop-792127.webp",
+     "answer": "يوهان كرويف",
+     "alt": "Johan Cruyff"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Steven_Gerrard_2018-857350.webp",
+     "answer": "ستيفن جيرارد",
+     "alt": "Steven Gerrard"
     }
    ]
   },
@@ -950,6 +1124,102 @@
      "src": "/tc/img/Amr_Zaki_-_Wigan-201451.webp",
      "answer": "عمرو زكي",
      "alt": "Amr Zaki"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hamdallah-1f0e4c.webp",
+     "answer": "عبدالرزاق حمدالله",
+     "alt": "Abderrazak Hamdallah"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Ali_Al-Habsi_27-02-2016_1-bf4f53.webp",
+     "answer": "علي الحبسي",
+     "alt": "Ali Al-Habsi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bader_Al-Mutwa-9748ad.webp",
+     "answer": "بدر المطوع",
+     "alt": "Bader Al-Mutawa"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Qatar_-_Japan__AFC_Asian_Cup_2019_58_-_Hassan_Al_Haydos-b3862a.webp",
+     "answer": "حسن الهيدوس",
+     "alt": "Hassan Al-Haydos"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Al_taamari_asse_mhsc_2425-34c462.webp",
+     "answer": "موسى التعمري",
+     "alt": "Musa Al-Taamari"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Essam_El-Hadary-9a0967.webp",
+     "answer": "عصام الحضري",
+     "alt": "Essam El Hadary"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/______________________________cropped_-62136d.webp",
+     "answer": "أحمد حسن",
+     "alt": "Ahmed Hassan (footballer, born 1975)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mohammed_zidan-63323a.webp",
+     "answer": "محمد زيدان",
+     "alt": "Mohamed Zidan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Alg_rie_-_Arm_nie_-_20140531_-_Sofiane_Feghouli-3ca318.webp",
+     "answer": "سفيان فيغولي",
+     "alt": "Sofiane Feghouli"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Alg_rie_-_Arm_nie_-_20140531_-_Yacine_Brahimi-270f0b.webp",
+     "answer": "ياسين براهيمي",
+     "alt": "Yacine Brahimi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Brahim_Diaz_Morocco_v_Norway_7_June_2026-36-a06847.webp",
+     "answer": "إبراهيم دياز",
+     "alt": "Brahim Díaz"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Azzedine_Ounahi_Brazil_V_Morocco_13_June_2026-159__cropped_-10fad1.webp",
+     "answer": "عز الدين أوناحي",
+     "alt": "Azzedine Ounahi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Youcef_Bela_li__2019-01-18-6f9240.webp",
+     "answer": "يوسف بلايلي",
+     "alt": "Youcef Belaïli"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Ahmed_Hegazy_2018-7e30e5.webp",
+     "answer": "أحمد حجازي",
+     "alt": "Ahmed Hegazi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Nashat_Akram-43fe2f.webp",
+     "answer": "نشأت أكرم",
+     "alt": "Nashat Akram"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Aymen_Hussein-13b241.webp",
+     "answer": "أيمن حسين",
+     "alt": "Aymen Hussein"
     }
    ]
   },
@@ -1074,6 +1344,12 @@
     },
     {
      "type": "image",
+     "src": "/tc/img/Mohamed_Kanno_Fifa_World_Cup_2026-c167bd.webp",
+     "answer": "محمد كنو",
+     "alt": "Mohamed Kanno"
+    },
+    {
+     "type": "image",
      "src": "/tc/img/Persepolis_F_C__v_Al_Nassr_FC__19_September_2023__Abdulrahma-69047d.webp",
      "answer": "عبدالرحمن غريب",
      "alt": "Abdulrahman Ghareeb"
@@ -1083,6 +1359,96 @@
      "src": "/tc/img/Sultan_Al-Ghannam_2023__cropped_-c5e948.webp",
      "answer": "سلطان الغنام",
      "alt": "Sultan Al-Ghannam"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/BPpt3orCAAEWqDv-7901c2.webp",
+     "answer": "حسين عبدالغني",
+     "alt": "Hussein Abdulghani"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Al-Shalhoub-8c0400.webp",
+     "answer": "محمد الشلهوب",
+     "alt": "Mohammad Al-Shalhoub"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Waleed_Abdullah-539105.webp",
+     "answer": "وليد عبدالله",
+     "alt": "Waleed Abdullah"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Nawaf_Al_Abed-b33a0c.webp",
+     "answer": "نواف العابد",
+     "alt": "Nawaf Al-Abed"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Yahea_Al-Sheri-e2c821.webp",
+     "answer": "يحيى الشهري",
+     "alt": "Yahya Al-Shehri"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mohammed_Al-Breik-7d3e1b.webp",
+     "answer": "محمد البريك",
+     "alt": "Mohammed Al-Breik"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Omar_Hawsawi_2018-01496c.webp",
+     "answer": "عمر هوساوي",
+     "alt": "Omar Hawsawi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Motaz_Hawsawi-a9f442.webp",
+     "answer": "معتز هوساوي",
+     "alt": "Motaz Hawsawi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hamad_Al-Montashari_2009-0a7066.webp",
+     "answer": "حمد المنتشري",
+     "alt": "Hamad Al-Montashari"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Nawaf_Al-Aqidi_2023__cropped_-46fb32.webp",
+     "answer": "نواف العقيدي",
+     "alt": "Nawaf Al-Aqidi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Abdullah_Al-Khaibari_2023__cropped_-1ac520.webp",
+     "answer": "عبدالله الخيبري",
+     "alt": "Abdullah Al-Khaibari"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Esteghlal_0_-_0_Al_Nassr__round_of_16_of_the_AFC_Elite_Leagu-d673f3.webp",
+     "answer": "أيمن يحيى",
+     "alt": "Ayman Yahya"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Abdulelah_Al-Amri_After_Scoring_for_the_Saudi_National_Team_-642826.webp",
+     "answer": "عبدالإله العمري",
+     "alt": "Abdulelah Al-Amri"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Saudi_Arabia_v_Oman__9___cropped_-92d595.webp",
+     "answer": "ناصر الدوسري",
+     "alt": "Nasser Al-Dawsari"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/AFC_Elite_League_Western__Azadi_Stadium__Persepolis_0-0_Al_N-c21114.webp",
+     "answer": "عبدالمجيد الصليهم",
+     "alt": "Abdulmajeed Al-Sulaiheem"
     }
    ]
   },
@@ -1252,6 +1618,60 @@
      "src": "/tc/img/StadeFranceNationsLeague2018-53c8da.webp",
      "answer": "ستاد دو فرانس",
      "alt": "Stade de France"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Beijing_National_Stadium_from_the_Central_Axis__202209051407-4f0d4e.webp",
+     "answer": "عش الطائر (ملعب بكين الوطني)",
+     "alt": "Beijing National Stadium"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/LuzhnikiStadium-ac3189.webp",
+     "answer": "لوجنيكي",
+     "alt": "Luzhniki Stadium"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Stadio_Olimpico_2024-4e0f3b.webp",
+     "answer": "الملعب الأولمبي في روما",
+     "alt": "Stadio Olimpico"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Newcastle_st-james-park_stadium-88c9c1.webp",
+     "answer": "سانت جيمس بارك",
+     "alt": "St James' Park"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cairo_stadium_Egypt_vs_Senegal-0e7766.webp",
+     "answer": "استاد القاهرة الدولي",
+     "alt": "Cairo International Stadium"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Abu_Dhabi_Zayed_Sports_City_Stadium_1-2da198.webp",
+     "answer": "استاد مدينة زايد الرياضية",
+     "alt": "Zayed Sports City Stadium"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/La_Bombonera_2-a9d164.webp",
+     "answer": "لا بومبونيرا",
+     "alt": "La Bombonera"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Stadio_Maradona_Serie_A-4e6861.webp",
+     "answer": "ملعب دييغو مارادونا (نابولي)",
+     "alt": "Stadio Diego Armando Maradona"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Entire_King_Saud_University_Stadium-f4a92e.webp",
+     "answer": "الأول بارك (ملعب جامعة الملك سعود)",
+     "alt": "King Saud University Stadium"
     }
    ]
   },
@@ -1469,6 +1889,42 @@
      "src": "/tc/img/Abdula_latif_Galadari__cropped_-62d286.webp",
      "answer": "الشيخ زايد",
      "alt": "Zayed bin Sultan Al Nahyan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mohammed_bin_Rashid_Al_Maktoum__15-02-2021_-435459.webp",
+     "answer": "الشيخ محمد بن راشد",
+     "alt": "Mohammed bin Rashid Al Maktoum"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Fahd_of_Saudi_Arabia_Portrait-45ddd6.webp",
+     "answer": "الملك فهد",
+     "alt": "Fahd of Saudi Arabia"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Khalid_II_of_Saudi_Arabia_portrait-649454.webp",
+     "answer": "الملك خالد",
+     "alt": "Khalid of Saudi Arabia"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Official_portrait_of_Sultan_Qaboos_bin_Said-7b01ae.webp",
+     "answer": "السلطان قابوس",
+     "alt": "Qaboos bin Said"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Sheikh_Sabah_IV__cropped_-d6ede4.webp",
+     "answer": "الشيخ صباح الأحمد",
+     "alt": "Sabah Al-Ahmad Al-Jaber Al-Sabah"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Abraham_Lincoln_O-77_matte_collodion_print-bd9392.webp",
+     "answer": "أبراهام لينكولن",
+     "alt": "Abraham Lincoln"
     }
    ]
   },
@@ -1650,6 +2106,96 @@
      "src": "/tc/img/Freddie_Mercury_at_Sheraton_Hotel_Buenos_Aires-e55c5a.webp",
      "answer": "فريدي ميركوري",
      "alt": "Freddie Mercury"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/BrunoMars24KMagicWorldTourLive__cropped_-ea2eb1.webp",
+     "answer": "برونو مارس",
+     "alt": "Bruno Mars"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/BillieEilishO2140725-39_-_54665577407__cropped_-d1f7f1.webp",
+     "answer": "بيلي آيليش",
+     "alt": "Billie Eilish"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Dua_Lipa-69798__cropped_-351e06.webp",
+     "answer": "دوا ليبا",
+     "alt": "Dua Lipa"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bob_Marley__1976_-160ac8.webp",
+     "answer": "بوب مارلي",
+     "alt": "Bob Marley"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Celine_Dion_2000-3dfae8.webp",
+     "answer": "سيلين ديون",
+     "alt": "Celine Dion"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Snoop_Dogg_2023__53775197331___cropped___cropped_-95ac46.webp",
+     "answer": "سنوب دوغ",
+     "alt": "Snoop Dogg"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mike_Tyson_Photo_Op_GalaxyCon_Austin_2023-722693.webp",
+     "answer": "مايك تايسون",
+     "alt": "Mike Tyson"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/LeBron_James__51959977144___cropped2_-75819f.webp",
+     "answer": "ليبرون جيمس",
+     "alt": "LeBron James"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/KBryant8-223334.webp",
+     "answer": "كوبي براينت",
+     "alt": "Kobe Bryant"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tiger_Woods_in_May_2019-93bc4d.webp",
+     "answer": "تايغر وودز",
+     "alt": "Tiger Woods"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Serena_Williams_at_2013_US_Open-16f05d.webp",
+     "answer": "سيرينا ويليامز",
+     "alt": "Serena Williams"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Rafael_Nadal_en_2024__cropped_-b6fddf.webp",
+     "answer": "رافاييل نادال",
+     "alt": "Rafael Nadal"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Novak_Djokovic_Paris_2024_Olympic_Games__cropped_-1e75e9.webp",
+     "answer": "نوفاك ديوكوفيتش",
+     "alt": "Novak Djokovic"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Gordon_Ramsay__cropped_-dbebd8.webp",
+     "answer": "غوردون رامزي",
+     "alt": "Gordon Ramsay"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/KhabyLame-1577ed.webp",
+     "answer": "خابي لام",
+     "alt": "Khaby Lame"
     }
    ]
   },
@@ -1861,6 +2407,66 @@
      "src": "/tc/img/Mohamed_Henedy-d46e91.webp",
      "answer": "محمد هنيدي",
      "alt": "Mohamed Henedi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bruce_Lee_1973__cropped_-2129f0.webp",
+     "answer": "بروس لي",
+     "alt": "Bruce Lee"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hugh_Jackman_Is_This_Thing_On-68__cropped_-42eef1.webp",
+     "answer": "هيو جاكمان",
+     "alt": "Hugh Jackman"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/SamuelLJackson-29c86d.webp",
+     "answer": "صامويل إل جاكسون",
+     "alt": "Samuel L. Jackson"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Festival_de_cinema_de_Sitges_2018__30240292207___cropped_-d459b0.webp",
+     "answer": "نيكولاس كيج",
+     "alt": "Nicolas Cage"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Emma_Watson_2013-164b07.webp",
+     "answer": "إيما واتسون",
+     "alt": "Emma Watson"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/TomHolland-byPhilipRomano-186fae.webp",
+     "answer": "توم هولاند",
+     "alt": "Tom Holland"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/MattDamon-byPhilipRomano2-f96be9.webp",
+     "answer": "مات ديمون",
+     "alt": "Matt Damon"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Abdulhussain_Abdulredha_2008-b965ef.webp",
+     "answer": "عبدالحسين عبدالرضا",
+     "alt": "Abdulhussain Abdulredha"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hayat_Al-Fahad-c49971.webp",
+     "answer": "حياة الفهد",
+     "alt": "Hayat Al-Fahad"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mahmoud_Abdel_Aziz________________________-4ad8c3.webp",
+     "answer": "محمود عبدالعزيز",
+     "alt": "Mahmoud Abdel Aziz"
     }
    ]
   },
@@ -2036,6 +2642,90 @@
      "src": "/tc/img/Latifa__2022___2_-04b141.webp",
      "answer": "لطيفة",
      "alt": "Latifa (singer)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Jerash_Festival_2018_42__cropped_-b7ecfa.webp",
+     "answer": "عبدالله الرويشد",
+     "alt": "Abdallah Al Rowaished"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Aseel_Hamim__Souq_Wagif_Festival__Doha_-_Jan_1__2019__04_-bd3d9b.webp",
+     "answer": "أصيل هميم",
+     "alt": "Aseel Hameem"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Ragheb_Alama_2014-05-24_04-03-bc98c0.webp",
+     "answer": "راغب علامة",
+     "alt": "Ragheb Alama"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Najwa_Karam__New_Year_s_Eve__1_-29428c.webp",
+     "answer": "نجوى كرم",
+     "alt": "Najwa Karam"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/MyriamFaresforl_OfficielIndia-f52274.webp",
+     "answer": "ميريام فارس",
+     "alt": "Myriam Fares"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Saad_Lamjarred_Star_Academy_2015-40da5c.webp",
+     "answer": "سعد لمجرد",
+     "alt": "Saad Lamjarred"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/George_Wassouf-cde353.webp",
+     "answer": "جورج وسوف",
+     "alt": "George Wassouf"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/6464hoss-11f35d.webp",
+     "answer": "فريد الأطرش",
+     "alt": "Farid al-Atrash"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Wadih_El_Safi-7b00cf.webp",
+     "answer": "وديع الصافي",
+     "alt": "Wadih El Safi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Sabah_-_1960s__1_-18e1de.webp",
+     "answer": "صباح",
+     "alt": "Sabah (singer)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/_____-49ce35.webp",
+     "answer": "شيرين عبدالوهاب",
+     "alt": "Sherine"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Beirut_International_Awards_Festivals__BIAF__honored_Samira_-99c5b5.webp",
+     "answer": "سميرة سعيد",
+     "alt": "Samira Said"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Diana_Haddad__8619111489_-30d46c.webp",
+     "answer": "ديانا حداد",
+     "alt": "Diana Haddad"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Sabah_Fakhri-172025.webp",
+     "answer": "صباح فخري",
+     "alt": "Sabah Fakhri"
     }
    ]
   },
@@ -2199,6 +2889,102 @@
      "src": "/tc/img/Sigmund_Freud__by_Max_Halberstadt__cropped_-65d818.webp",
      "answer": "سيغموند فرويد",
      "alt": "Sigmund Freud"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Johannes_Kepler_by_Hans_von_Aachen-aa0e8c.webp",
+     "answer": "يوهانس كيبلر",
+     "alt": "Johannes Kepler"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Max_Planck-cccc08.webp",
+     "answer": "ماكس بلانك",
+     "alt": "Max Planck"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Niels_Bohr-73f21b.webp",
+     "answer": "نيلز بور",
+     "alt": "Niels Bohr"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/James_Watt_by_Henry_Howard-e9baf7.webp",
+     "answer": "جيمس واط",
+     "alt": "James Watt"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Gregor_Mendel_2-1bf9a1.webp",
+     "answer": "غريغور مندل",
+     "alt": "Gregor Mendel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Joseph_Siffrein_Duplessis_-_Benjamin_Franklin_-_Google_Art_P-9c9d65.webp",
+     "answer": "بنجامين فرانكلين",
+     "alt": "Benjamin Franklin"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/LS3_4919__cropped_-41cd37.webp",
+     "answer": "تيم بيرنرز لي",
+     "alt": "Tim Berners-Lee"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Al-Biruni_Portrait-2c6551.webp",
+     "answer": "البيروني",
+     "alt": "Al-Biruni"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Statue_of_Averroes_in_C_rdoba__Spain-59658d.webp",
+     "answer": "ابن رشد",
+     "alt": "Averroes"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Kapitolinischer_Pythagoras-f56fc4.webp",
+     "answer": "فيثاغورس",
+     "alt": "Pythagoras"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Oppenheimer__cropped_-951c4a.webp",
+     "answer": "روبرت أوبنهايمر",
+     "alt": "J. Robert Oppenheimer"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Dmitri_Mendeleev-929861.webp",
+     "answer": "ديمتري مندلييف",
+     "alt": "Dmitri Mendeleev"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Samuel_Morse_portrait-391a9c.webp",
+     "answer": "صامويل مورس",
+     "alt": "Samuel Morse"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Rudolf_Diesel2-2debee.webp",
+     "answer": "رودولف ديزل",
+     "alt": "Rudolf Diesel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hippocrates_rubens-8466b4.webp",
+     "answer": "أبقراط",
+     "alt": "Hippocrates"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Carl_Sagan_Planetary_Society-7767a1.webp",
+     "answer": "كارل ساغان",
+     "alt": "Carl Sagan"
     }
    ]
   },
@@ -2344,6 +3130,108 @@
      "src": "/tc/img/Ilia_Topuria_in_the_Oval_Office__while_President_Donald_J__T-30751b.webp",
      "answer": "إيليا توبوريا",
      "alt": "Ilia Topuria"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Chuck_Liddell_in_Santa_Monica-California_2005_photo_by_Ithak-550acf.webp",
+     "answer": "تشاك ليدل",
+     "alt": "Chuck Liddell"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Randy_Couture_by_Gage_Skidmore-868f07.webp",
+     "answer": "راندي كوتور",
+     "alt": "Randy Couture"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/With_Royce_Gracie__cropped_-dbf044.webp",
+     "answer": "رويس غرايسي",
+     "alt": "Royce Gracie"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cain_Velasquez-f7d080.webp",
+     "answer": "كين فيلاسكيز",
+     "alt": "Cain Velasquez"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Valentina_Shevchenko_2020-501c3b.webp",
+     "answer": "فالنتينا شيفتشينكو",
+     "alt": "Valentina Shevchenko"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/___-4d164e.webp",
+     "answer": "تشانغ وي لي",
+     "alt": "Zhang Weili"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Henry_Cejudo__54235464255___cropped_-8b5ab0.webp",
+     "answer": "هنري سيخودو",
+     "alt": "Henry Cejudo"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Jos__Aldo__UFC_189_World_Tour_London__2___cropped_-05ed22.webp",
+     "answer": "جوزيه ألدو",
+     "alt": "José Aldo"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Leon_Edwards_2021-943693.webp",
+     "answer": "ليون إدواردز",
+     "alt": "Leon Edwards"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Robert_whittaker-13cc10.webp",
+     "answer": "روبرت ويتاكر",
+     "alt": "Robert Whittaker (fighter)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tony_Ferguson_2025-9446c8.webp",
+     "answer": "توني فيرغسون",
+     "alt": "Tony Ferguson"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/UFC_Star_Paddy_The_Baddy_Pimblett_tells_his_story__cropped_-78bad4.webp",
+     "answer": "بادي بيمبليت",
+     "alt": "Paddy Pimblett"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/MichaelChandler0523__cropped_-2d7b36.webp",
+     "answer": "مايكل تشاندلر",
+     "alt": "Michael Chandler"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/ColbyCovingtonFortJackson2022_cropped_-18611e.webp",
+     "answer": "كولبي كوفينغتون",
+     "alt": "Colby Covington"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/IMG-Dricus-Duplessis_cropped_-31c58d.webp",
+     "answer": "دريكوس دو بليسيس",
+     "alt": "Dricus du Plessis"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Merab_Dvalishvili_at_UFC_316__cropped_-824a60.webp",
+     "answer": "ميراب دفاليشفيلي",
+     "alt": "Merab Dvalishvili"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Michael_Bisping-38d48b.webp",
+     "answer": "مايكل بيسبينغ",
+     "alt": "Michael Bisping"
     }
    ]
   },
@@ -2555,6 +3443,54 @@
      "src": "/tc/img/Papas_fritas__plato_-ccf600.webp",
      "answer": "بطاطس مقلية",
      "alt": "French fries"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tempura_by_GinkgoTelegraph-918d02.webp",
+     "answer": "تمبورا",
+     "alt": "Tempura"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bagel-Plain-Alt-1d24ea.webp",
+     "answer": "بيغل",
+     "alt": "Bagel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Brezel_l_B_ckerei-Raisch-2520a9.webp",
+     "answer": "بريتزل",
+     "alt": "Pretzel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Fried_rice_in_home-6ec307.webp",
+     "answer": "رز مقلي",
+     "alt": "Fried rice"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Caesar_salad__2_-20164c.webp",
+     "answer": "سلطة سيزر",
+     "alt": "Caesar salad"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Club-sandwich-bdd60a.webp",
+     "answer": "كلوب ساندويتش",
+     "alt": "Club sandwich"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Eye_Fillet__Grass-Fed_Beef-74796c.webp",
+     "answer": "ستيك",
+     "alt": "Steak"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Lula_kebab_2-09a012.webp",
+     "answer": "كباب",
+     "alt": "Kebab"
     }
    ]
   },
@@ -2712,6 +3648,96 @@
      "src": "/tc/img/Tharid_-d707c3.webp",
      "answer": "ثريد",
      "alt": "Tharid"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/_______________________-0be7b6.webp",
+     "answer": "فتة",
+     "alt": "Fatteh"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tanoreen_muhammara-bebc26.webp",
+     "answer": "محمرة",
+     "alt": "Muhammara"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Kleeja_1-3321c0.webp",
+     "answer": "كليجة",
+     "alt": "Kleicha"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Masgouf-074a76.webp",
+     "answer": "سمك مسقوف",
+     "alt": "Masgouf"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mujaddara-c96b48.webp",
+     "answer": "مجدرة",
+     "alt": "Mujaddara"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Musakhan-b4bbfb.webp",
+     "answer": "مسخن",
+     "alt": "Musakhan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/EgFoodKofta-7e8ee1.webp",
+     "answer": "كفتة",
+     "alt": "Kofta"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Eating_Asida-67b1ba.webp",
+     "answer": "عصيدة",
+     "alt": "Asida"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Balaleet_2019-434e01.webp",
+     "answer": "بلاليط",
+     "alt": "Balaleet"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Sfiha2-d207bd.webp",
+     "answer": "صفيحة (لحم بعجين)",
+     "alt": "Sfiha"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Fatayer-9f2f43.webp",
+     "answer": "فطاير",
+     "alt": "Fatayer"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/___________________-e03bd5.webp",
+     "answer": "حلاوة الجبن",
+     "alt": "Halawet el jibn"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Overhead_view__haneeth__Marib_restaurant__Springfield__Virgi-c1139a.webp",
+     "answer": "حنيذ",
+     "alt": "Haneeth"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Turkish_muhallebi-8b061f.webp",
+     "answer": "مهلبية",
+     "alt": "Muhallebi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Egyptian_meatloaf-0874a9.webp",
+     "answer": "حواوشي",
+     "alt": "Hawawshi"
     }
    ]
   },
@@ -2893,6 +3919,72 @@
      "src": "/tc/img/Arroz_con_leche-f30030.webp",
      "answer": "رز بحليب",
      "alt": "Rice pudding"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Rueblitorte-87cf20.webp",
+     "answer": "كيكة الجزر",
+     "alt": "Carrot cake"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/K__retorttu-9e2edb.webp",
+     "answer": "سويس رول",
+     "alt": "Swiss roll"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cannolo_siciliano_with_chocolate_squares-e19f6a.webp",
+     "answer": "كانولي",
+     "alt": "Cannoli"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cotton_candy________________-ec7d33.webp",
+     "answer": "غزل البنات (شعر البنات)",
+     "alt": "Cotton candy"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/White_Marshmallows-8010c0.webp",
+     "answer": "مارشملو",
+     "alt": "Marshmallow"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Traditional_Banana_Boat-661337.webp",
+     "answer": "بنانا سبليت",
+     "alt": "Banana split"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/StrawberrySundae-aeafba.webp",
+     "answer": "صنداي",
+     "alt": "Sundae"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Merengues-Spain-3d6cbc.webp",
+     "answer": "مرينغ",
+     "alt": "Meringue"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/4_ingredient_berry_souffle-5ed474.webp",
+     "answer": "سوفليه",
+     "alt": "Soufflé"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tootsie-Roll-Pop-Orange-ac8670.webp",
+     "answer": "مصاصة",
+     "alt": "Lollipop"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Madeleines_de_Commercy-ab933e.webp",
+     "answer": "مادلين",
+     "alt": "Madeleine (cake)"
     }
    ]
   },
@@ -3056,6 +4148,84 @@
      "src": "/tc/img/Schmelzk_se-1-ecd443.webp",
      "answer": "جبنة مثلثات (مطبوخة)",
      "alt": "Processed cheese"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/White_american_cheese__4551480048_-941f82.webp",
+     "answer": "جبنة أمريكية (شرائح)",
+     "alt": "American cheese"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Babybel__143761741_-490e86.webp",
+     "answer": "بيبي بيل",
+     "alt": "Babybel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/___1-8aa920.webp",
+     "answer": "جبنة عربية (بيضاء)",
+     "alt": "Jibneh Arabieh"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Domiati_cheese-f03417.webp",
+     "answer": "جبنة دمياطي",
+     "alt": "Domiati"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/_den__korb__ik__Slovakia_-db06af.webp",
+     "answer": "جبنة مشللة (خيوط)",
+     "alt": "String cheese"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Shanklish-2a3dd7.webp",
+     "answer": "شنكليش",
+     "alt": "Shanklish"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Raclette_20040817_140816-83c584.webp",
+     "answer": "راكليت",
+     "alt": "Raclette"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Pepperjack_Cheese-65e923.webp",
+     "answer": "بيبر جاك (بالفلفل)",
+     "alt": "Pepper jack cheese"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Red_Leicester-9f2cce.webp",
+     "answer": "ريد ليستر",
+     "alt": "Red Leicester"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mimolette_vieille_etuvee-c77d2c.webp",
+     "answer": "ميموليت",
+     "alt": "Mimolette"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cacio_cavallo_with_slices-ea0ae5.webp",
+     "answer": "كاتشوكافالو",
+     "alt": "Caciocavallo"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Taleggio_Cheese-797338.webp",
+     "answer": "تاليجيو",
+     "alt": "Taleggio cheese"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Colby_Cheese-60d3a7.webp",
+     "answer": "كولبي",
+     "alt": "Colby cheese"
     }
    ]
   },
@@ -3225,6 +4395,96 @@
      "src": "/tc/img/Tortiglioni-a9b2b9.webp",
      "answer": "تورتيليوني",
      "alt": "Tortiglioni"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Rotelle2-12a3a1.webp",
+     "answer": "روتيلي (عجلات)",
+     "alt": "Rotelle"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/EMS-110123-Campanelle-rule-87dea1.webp",
+     "answer": "كامبانيلي",
+     "alt": "Campanelle"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cavatelli-d60450.webp",
+     "answer": "كافاتيلي",
+     "alt": "Cavatelli"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Trofie-705ce6.webp",
+     "answer": "تروفيي",
+     "alt": "Trofie"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Strozzapretti2-0bd5d2.webp",
+     "answer": "ستروتزابريتي",
+     "alt": "Strozzapreti"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Casarecce-790a64.webp",
+     "answer": "كازاريتشي",
+     "alt": "Casarecce"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mafaldine-d4d093.webp",
+     "answer": "مافالديني",
+     "alt": "Mafaldine"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Agnolotti_single-3aaad7.webp",
+     "answer": "أنيولوتي",
+     "alt": "Agnolotti"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/02_Cappelletti_-_Cappellacci_-_Pasta_ripiena_-_Cucina_tipica-63a792.webp",
+     "answer": "كابيليتي",
+     "alt": "Cappelletti"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/EMS-109321-Manicotti-rule_-440d47.webp",
+     "answer": "مانيكوتي",
+     "alt": "Manicotti"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/AlphabetPasta-3d66ed.webp",
+     "answer": "مكرونة حروف",
+     "alt": "Alphabet pasta"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Pastasorten_Garganelli-91f1e8.webp",
+     "answer": "غارغانيلي",
+     "alt": "Garganelli"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Pasta_Anelli_1-41f9e0.webp",
+     "answer": "أنيلي (حلقات)",
+     "alt": "Anelli"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/UncookedFregula-292574.webp",
+     "answer": "فريغولا",
+     "alt": "Fregula"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Croxetti-48f490.webp",
+     "answer": "كورزيتي",
+     "alt": "Corzetti"
     }
    ]
   },
@@ -3412,6 +4672,72 @@
      "src": "/tc/img/RedBellPepper-dc728c.webp",
      "answer": "فلفل رومي",
      "alt": "Bell pepper"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Banana_on_whitebackground-ecf2f5.webp",
+     "answer": "موز",
+     "alt": "Banana"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Honeycrisp-f4f14b.webp",
+     "answer": "تفاح",
+     "alt": "Apple"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Oranges_-_whole-halved-segment-be5f5c.webp",
+     "answer": "برتقال",
+     "alt": "Orange (fruit)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Raspberries05-6920da.webp",
+     "answer": "توت العليق (راسبيري)",
+     "alt": "Raspberry"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Plum_on_tree02-07fda8.webp",
+     "answer": "برقوق",
+     "alt": "Plum"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Rambutan_masak_didahan-545414.webp",
+     "answer": "رامبوتان",
+     "alt": "Rambutan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Owoce_Morwa-96c6f2.webp",
+     "answer": "توت",
+     "alt": "Mulberry"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Carrots_of_many_colors-72b751.webp",
+     "answer": "جزر",
+     "alt": "Carrot"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Garlic_bulbs_and_cloves-f34a0f.webp",
+     "answer": "ثوم",
+     "alt": "Garlic"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Purple_onion_01-75d4a2.webp",
+     "answer": "بصل",
+     "alt": "Onion"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Witte_kool-23fcad.webp",
+     "answer": "ملفوف (كرنب)",
+     "alt": "Cabbage"
     }
    ]
   },
@@ -3629,6 +4955,60 @@
      "src": "/tc/img/Fennec_Fox_Peek-eb6c38.webp",
      "answer": "ثعلب الفنك",
      "alt": "Fennec fox"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Uncia_uncia-90925f.webp",
+     "answer": "نمر الثلج",
+     "alt": "Snow leopard"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Honey_badger-2b7f9b.webp",
+     "answer": "غرير العسل",
+     "alt": "Honey badger"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Israel__Nubian_ibex__15625972648_-df8b2b.webp",
+     "answer": "وعل (بدن)",
+     "alt": "Nubian ibex"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Caracal_Caracal-001-ba9784.webp",
+     "answer": "وشق (كركال)",
+     "alt": "Caracal"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bradypus-183842.webp",
+     "answer": "كسلان",
+     "alt": "Brown-throated sloth"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Varan_komodsk__3-7150c1.webp",
+     "answer": "تنين كومودو",
+     "alt": "Komodo dragon"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Erinaceus_europaeus__Linnaeus__1758_-9b8112.webp",
+     "answer": "قنفذ",
+     "alt": "European hedgehog"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Crested_porcupine__Photo_1-6602d4.webp",
+     "answer": "نيص (شيهم)",
+     "alt": "Crested porcupine"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Nine-banded_Armadillo-77dd7f.webp",
+     "answer": "أرماديلو (المدرع)",
+     "alt": "Nine-banded armadillo"
     }
    ]
   },
@@ -3810,6 +5190,90 @@
      "src": "/tc/img/AB013_White_eared_Bulbul-387a8c.webp",
      "answer": "بلبل",
      "alt": "White-eared bulbul"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Falco_rusticolus_white_cropped-c8a005.webp",
+     "answer": "صقر جير",
+     "alt": "Gyrfalcon"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bubo_scandiacus_male_Muskegon-d66b95.webp",
+     "answer": "بومة ثلجية",
+     "alt": "Snowy owl"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Puffin__Fratercula_arctica_-e14c91.webp",
+     "answer": "بفن",
+     "alt": "Atlantic puffin"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Budgerigar-strzelecki-qld-ec8010.webp",
+     "answer": "بادجي",
+     "alt": "Budgerigar"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cockateil-acb731.webp",
+     "answer": "كوكتيل",
+     "alt": "Cockatiel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/African_Rose-ringed_Parakeet__Tamanrasset__Algeria_1-7c04dd.webp",
+     "answer": "درة",
+     "alt": "Rose-ringed parakeet"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Canary_perched_inside_cage-2fb79d.webp",
+     "answer": "كناري",
+     "alt": "Domestic canary"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Common_Myna_in_Rabindra_Sarobar_February_2025_by_Tisha_Mukhe-6bfbfc.webp",
+     "answer": "مينا",
+     "alt": "Common myna"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Schoebill-Lake-Albert-69c37a.webp",
+     "answer": "أبو مركوب",
+     "alt": "Shoebill"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Golden_Pheasant__Tangjiahe_Nature_Reserve-ca2868.webp",
+     "answer": "تدرج ذهبي",
+     "alt": "Golden pheasant"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Emu-wild-fcd815.webp",
+     "answer": "إيمو",
+     "alt": "Emu"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cygnus_atratus_Running-48cbb5.webp",
+     "answer": "بجعة سوداء",
+     "alt": "Black swan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Dacelo_novaeguineae_waterworks-ab434a.webp",
+     "answer": "كوكابورا",
+     "alt": "Laughing kookaburra"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hirundo-rustica-001-7603b5.webp",
+     "answer": "سنونو (خطاف)",
+     "alt": "Barn swallow"
     }
    ]
   },
@@ -3973,6 +5437,102 @@
      "src": "/tc/img/Canthigaster_callisterna__Clown_toado_-e3040b.webp",
      "answer": "سمكة منتفخة",
      "alt": "Tetraodontidae"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mother_and_baby_sperm_whale-f91d5a.webp",
+     "answer": "حوت العنبر",
+     "alt": "Sperm whale"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Beluga_oceanografic-74d4f8.webp",
+     "answer": "حوت أبيض (بيلوغا)",
+     "alt": "Beluga whale"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tiger_shark-869bb4.webp",
+     "answer": "قرش النمر",
+     "alt": "Tiger shark"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Black_sea_fauna_stingray_01-a2d62e.webp",
+     "answer": "لخمة (راي)",
+     "alt": "Common stingray"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Paletten-Doktorfisch_M_nster-c6b753.webp",
+     "answer": "سمكة دوري",
+     "alt": "Paracanthurus"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Sepia_com_n__Sepia_officinalis___Parque_natural_de_la_Arr_bi-12b423.webp",
+     "answer": "خثاق (حبار)",
+     "alt": "Common cuttlefish"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Sea_Otters-83c6be.webp",
+     "answer": "ثعلب البحر",
+     "alt": "Sea otter"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Pez__ngel_emperador__Pomacanthus_imperator___mar_Rojo__Egipt-2fa8ea.webp",
+     "answer": "سمكة الملاك",
+     "alt": "Emperor angelfish"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Gran_barracuda__Sphyraena_barracuda___Yeda__Arabia_Saudita__-513ab6.webp",
+     "answer": "باراكودا",
+     "alt": "Great barracuda"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Giant_clam_black_white_komodo-42d51c.webp",
+     "answer": "محار عملاق",
+     "alt": "Giant clam"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Nautilus-JB-01-ad82b6.webp",
+     "answer": "نوتي (نوتيلوس)",
+     "alt": "Chambered nautilus"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Estuary_cod_3-96379d.webp",
+     "answer": "هامور",
+     "alt": "Orange-spotted grouper"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Ththy_u0-cad36e.webp",
+     "answer": "تونة",
+     "alt": "Atlantic bluefin tuna"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cucumaria_miniata-e17452.webp",
+     "answer": "خيار البحر",
+     "alt": "Sea cucumber"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Actiniaria-769b54.webp",
+     "answer": "شقائق النعمان البحرية",
+     "alt": "Sea anemone"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Palaemon_serratus_Croazia-e415eb.webp",
+     "answer": "روبيان (جمبري)",
+     "alt": "Shrimp"
     }
    ]
   },
@@ -4196,6 +5756,54 @@
      "src": "/tc/img/Ahu_Tongariki-e31e52.webp",
      "answer": "تماثيل جزيرة الفصح",
      "alt": "Moai"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Trevi_Fountain_-_Roma-16f2f9.webp",
+     "answer": "نافورة تريفي",
+     "alt": "Trevi Fountain"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/16-04-04-Felsendom-Tempelberg-Jerusalem-RalfR-WAT_6385-5ac4a3.webp",
+     "answer": "قبة الصخرة",
+     "alt": "Dome of the Rock"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mont_St_Michel_3__Brittany__France_-_July_2011-21f934.webp",
+     "answer": "مون سان ميشيل",
+     "alt": "Mont-Saint-Michel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Gro_er_Tempel__Abu_Simbel__31-9dd8ed.webp",
+     "answer": "معبد أبو سمبل",
+     "alt": "Abu Simbel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Laeken_Atomium_06-7b2071.webp",
+     "answer": "أتوميوم",
+     "alt": "Atomium"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cairotower-a0e6a8.webp",
+     "answer": "برج القاهرة",
+     "alt": "Cairo Tower"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Grand_Canyon_view_from_Pima_Point_2010-0c5107.webp",
+     "answer": "جراند كانيون",
+     "alt": "Grand Canyon"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hall_of_Supreme_Harmony__20241127120000_-5a5598.webp",
+     "answer": "المدينة المحرمة",
+     "alt": "Forbidden City"
     }
    ]
   },
@@ -4311,6 +5919,60 @@
      "src": "/tc/img/Jabal_Nur-d4cac6.webp",
      "answer": "جبل النور",
      "alt": "Jabal al-Nour"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/AlBalad_CoralHouses-0540fd.webp",
+     "answer": "جدة التاريخية (البلد)",
+     "alt": "Al-Balad, Jeddah"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Masjid_al-Qiblatain-d63024.webp",
+     "answer": "مسجد القبلتين",
+     "alt": "Masjid al-Qiblatayn"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Marid_Castle_20170827-c7ab02.webp",
+     "answer": "قلعة مارد",
+     "alt": "Marid Castle"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Jeddah_Fahne-1b88a1.webp",
+     "answer": "سارية علم جدة",
+     "alt": "Jeddah Flagpole"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/_________-f8083a.webp",
+     "answer": "قلعة تبوك",
+     "alt": "Tabuk Castle"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mina_Overview-a3db8e.webp",
+     "answer": "مشعر منى",
+     "alt": "Mina, Saudi Arabia"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Al_Rajhi_Mosque_Riyadh-bbad07.webp",
+     "answer": "جامع الراجحي",
+     "alt": "Al Rajhi Grand Mosque"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/The_sprawling_Jamarat_bridge_-_Flickr_-_Al_Jazeera_English-216c8d.webp",
+     "answer": "جسر الجمرات",
+     "alt": "Jamaraat Bridge"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/___________-365414.webp",
+     "answer": "قصر إبراهيم (الهفوف)",
+     "alt": "Qasr Ibrahim"
     }
    ]
   },
@@ -4492,6 +6154,72 @@
      "src": "/tc/img/Cufflinks-awi_hg-7387b4.webp",
      "answer": "كبك",
      "alt": "Cufflink"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Rose_quartz_Spain-2c041e.webp",
+     "answer": "كوارتز وردي",
+     "alt": "Rose quartz"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tigers-Eye-4a118d.webp",
+     "answer": "عين النمر",
+     "alt": "Tiger's eye"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/TourmalineUSGOV-d19b10.webp",
+     "answer": "تورمالين",
+     "alt": "Tourmaline"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Zircon-t09zirc-06c-b1a9d6.webp",
+     "answer": "زركون",
+     "alt": "Zircon"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/MoonstoneGem-6b7613.webp",
+     "answer": "حجر القمر",
+     "alt": "Moonstone (gemstone)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Citrin_cut-48ef5d.webp",
+     "answer": "سترين",
+     "alt": "Citrine"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hematite-ae60db.webp",
+     "answer": "هيماتيت",
+     "alt": "Hematite"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Imperial_State_Crown-1391b5.webp",
+     "answer": "تاج الدولة الإمبراطوري",
+     "alt": "Imperial State Crown"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Tasbih1924-47cbb9.webp",
+     "answer": "مسباح (سبحة)",
+     "alt": "Misbaha"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Multicolor_Glass_Bangles_Gangotri_WTK20150915-DSC_4117-c9db39.webp",
+     "answer": "غوايش (بناجري)",
+     "alt": "Bangle"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Gold_Ingots_on_white_background-8ae5a7.webp",
+     "answer": "سبيكة ذهب",
+     "alt": "Gold bar"
     }
    ]
   },
@@ -4673,6 +6401,78 @@
      "src": "/tc/img/Main_pipe_organ_-_Frauenkirche_-_Munich_-_Germany_2017-abd6c9.webp",
      "answer": "أورغن",
      "alt": "Pipe organ"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/FoxBassoon-6fd602.webp",
+     "answer": "باسون",
+     "alt": "Bassoon"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/M_nnig__Oboe_Modell_155_Albrecht_Mayer-304ec6.webp",
+     "answer": "أوبوا",
+     "alt": "Oboe"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/18th_century_recorders_from_N_rnberg-4d0f15.webp",
+     "answer": "ريكوردر (مزمار خشبي)",
+     "alt": "Recorder (musical instrument)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Triangel1-db50f9.webp",
+     "answer": "مثلث (تراينجل)",
+     "alt": "Triangle (musical instrument)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Djemb__s-a93d44.webp",
+     "answer": "جيمبي (طبل أفريقي)",
+     "alt": "Djembe"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Munich_-_A_standard_set_of_timpani_Percussion_-_5647-b0251b.webp",
+     "answer": "تيمباني",
+     "alt": "Timpani"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Castanuelas1-c59b32.webp",
+     "answer": "كاستانيت",
+     "alt": "Castanets"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mandolin1-70a76d.webp",
+     "answer": "ماندولين",
+     "alt": "Mandolin"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Didgeridoo-grass-bdc43f.webp",
+     "answer": "ديدجريدو",
+     "alt": "Didgeridoo"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Balalajka__druga_polovina_20__veka-3d5eb7.webp",
+     "answer": "بالالايكا",
+     "alt": "Balalaika"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/19th_Century_Gong_on_display_at_the_National_Folk_Museum_of_-d605de.webp",
+     "answer": "غونغ",
+     "alt": "Gong"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Aasizzler3-072c58.webp",
+     "answer": "صنج (سيمبال)",
+     "alt": "Cymbal"
     }
    ]
   },
@@ -4890,6 +6690,54 @@
      "src": "/tc/img/Asashoryu_fight_Jan08-9696c2.webp",
      "answer": "سومو",
      "alt": "Sumo"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Varsity_Polo_2013-47fa0b.webp",
+     "answer": "بولو",
+     "alt": "Polo"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Isabelle_Delobel___Olivier_Schoenfelder_EX_Lift_-_2007_Europ-3b1ebb.webp",
+     "answer": "تزلج فني",
+     "alt": "Figure skating"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/US_Navy_020219-N-3995K-304_Gold_Medal_Women_BobSledders_1-f268f5.webp",
+     "answer": "بوبسلي (زلاجة جماعية)",
+     "alt": "Bobsleigh"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Men_decathlon_PV_French_Athletics_Championships_2013_t141911-f142c6.webp",
+     "answer": "قفز بالزانة",
+     "alt": "Pole vault"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Ainhize_Belar_eskalatzen-d62e39.webp",
+     "answer": "تسلق الصخور",
+     "alt": "Rock climbing"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/WRJCH_2018-08-11_JM2x_Semi_CD__Martin_Rulsch__68-bd1878.webp",
+     "answer": "تجديف",
+     "alt": "Rowing (sport)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Salto_ornamental_-_UnB-874631.webp",
+     "answer": "غطس",
+     "alt": "Diving (sport)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Dual_Paragliding-5f1071.webp",
+     "answer": "طيران شراعي (باراغلايدنغ)",
+     "alt": "Paragliding"
     }
    ]
   },
@@ -5023,6 +6871,108 @@
      "src": "/tc/img/Cone_clutch-e9e893.webp",
      "answer": "كلتش",
      "alt": "Clutch"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bonnet_raised_Saab_9-5-2a8b56.webp",
+     "answer": "كبوت",
+     "alt": "Hood (car)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Disk_brake_dsc03682-fd51ba.webp",
+     "answer": "ديسك الفرامل (هوب)",
+     "alt": "Disc brake"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Brake_pad-73cc38.webp",
+     "answer": "فحمات الفرامل",
+     "alt": "Brake pad"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Damper_1-23dbda.webp",
+     "answer": "مساعدات",
+     "alt": "Shock absorber"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Engine_oil_filter_cutaway-9b42c3.webp",
+     "answer": "فلتر زيت",
+     "alt": "Oil filter"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Turbocharger-761b14.webp",
+     "answer": "تيربو",
+     "alt": "Turbocharger"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Felge_Borbet_Tuning_World__Foto_Hilarmont_-30339b.webp",
+     "answer": "جنط",
+     "alt": "Alloy wheel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/1930_Pierce_Arrow_B_Roadster__7548054034_-497136.webp",
+     "answer": "شعار الكبوت",
+     "alt": "Hood ornament"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Carburateur1-b57a6c.webp",
+     "answer": "كاربريتر",
+     "alt": "Carburetor"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/EF7_Piston-152177.webp",
+     "answer": "بستم",
+     "alt": "Piston"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Fastway_e2_Weight_Distribution_and_Sway_Control_Trailer_Tow_-8b9873.webp",
+     "answer": "شنكل سحب",
+     "alt": "Tow hitch"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Dashcams_P1210466-f0a3fa.webp",
+     "answer": "كاميرا داش",
+     "alt": "Dashcam"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Triangle_de_pr_signalisation-757c5d.webp",
+     "answer": "مثلث عاكس",
+     "alt": "Warning triangle"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Kreuzschl_ssel-0c080d.webp",
+     "answer": "مفتاح كفرات (صليبة)",
+     "alt": "Lug wrench"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/______-8e7aea.webp",
+     "answer": "مسند الرأس",
+     "alt": "Head restraint"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Wheel_Nuts_All_Details-edb207.webp",
+     "answer": "صامولة الكفر",
+     "alt": "Lug nut"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/FireExtinguisherABC-d9770c.webp",
+     "answer": "طفاية حريق",
+     "alt": "Fire extinguisher"
     }
    ]
   },
@@ -5301,6 +7251,84 @@
      "src": "/tc/img/Flag_of_Afghanistan__1931_1973_-025637.webp",
      "answer": "مملكة أفغانستان",
      "alt": "Kingdom of Afghanistan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_Germany__1867_1918_-1cb78f.webp",
+     "answer": "الإمبراطورية الألمانية",
+     "alt": "German Empire"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_Italy__1861_1946_-cefca0.webp",
+     "answer": "مملكة إيطاليا",
+     "alt": "Kingdom of Italy"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_Libya__1977_2011_-9e586e.webp",
+     "answer": "الجماهيرية الليبية (ليبيا القذافي)",
+     "alt": "Libyan Arab Jamahiriya"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_the_Yemen_Arab_Republic-42d508.webp",
+     "answer": "الجمهورية العربية اليمنية (اليمن الشمالي)",
+     "alt": "Yemen Arab Republic"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_the_Emirate_of_Transjordan-0bdd9a.webp",
+     "answer": "إمارة شرق الأردن",
+     "alt": "Emirate of Transjordan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_Kingdom_of_Syria__1920-03-08_to_1920-07-24_-407abf.webp",
+     "answer": "المملكة السورية العربية",
+     "alt": "Arab Kingdom of Syria"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_Syria__1972_1980_-75977e.webp",
+     "answer": "اتحاد الجمهوريات العربية",
+     "alt": "Federation of Arab Republics"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Red_Ensign_of_South_Africa__1910_1912_-fc5778.webp",
+     "answer": "اتحاد جنوب أفريقيا",
+     "alt": "Union of South Africa"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_Republic_of_Venice__1659-1675_-2a791d.webp",
+     "answer": "جمهورية البندقية",
+     "alt": "Republic of Venice"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_the_Sultanate_of_Zanzibar__1963_-59007e.webp",
+     "answer": "سلطنة زنجبار",
+     "alt": "Sultanate of Zanzibar"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_the_Arab_Federation-8e9d44.webp",
+     "answer": "الاتحاد العربي الهاشمي",
+     "alt": "Arab Federation"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_Spain__1945_1977_-d9d3c1.webp",
+     "answer": "إسبانيا فرانكو",
+     "alt": "Francoist Spain"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Flag_of_the_Federation_of_South_Arabia-9d595d.webp",
+     "answer": "اتحاد الجنوب العربي",
+     "alt": "Federation of South Arabia"
     }
    ]
   },
@@ -5542,6 +7570,54 @@
      "src": "/tc/img/Thailand__orthographic_projection_-32f761.webp",
      "answer": "تايلاند",
      "alt": "Thailand"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Germany__orthographic_projection_-e84fb7.webp",
+     "answer": "ألمانيا",
+     "alt": "Germany"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Pakistan_on_the_globe__de-facto_and_claimed_hatched___Afro-E-fa8c2b.webp",
+     "answer": "باكستان",
+     "alt": "Pakistan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Ukraine__orthographic_projection_-9b7aec.webp",
+     "answer": "أوكرانيا",
+     "alt": "Ukraine"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Iceland__orthographic_projection_-602dea.webp",
+     "answer": "آيسلندا",
+     "alt": "Iceland"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Malaysia__orthographic_projection_-f7387d.webp",
+     "answer": "ماليزيا",
+     "alt": "Malaysia"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Peru__orthographic_projection_-106c33.webp",
+     "answer": "بيرو",
+     "alt": "Peru"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Afghanistan__orthographic_projection_-59e248.webp",
+     "answer": "أفغانستان",
+     "alt": "Afghanistan"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mongolia__orthographic_projection_-a5999a.webp",
+     "answer": "منغوليا",
+     "alt": "Mongolia"
     }
    ]
   },
@@ -5723,6 +7799,96 @@
      "src": "/tc/img/Wisconsin_in_United_States-4898a1.webp",
      "answer": "ويسكونسن",
      "alt": "Wisconsin"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Missouri_in_United_States-148dbe.webp",
+     "answer": "ميزوري",
+     "alt": "Missouri"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Indiana_in_United_States-ad3a67.webp",
+     "answer": "إنديانا",
+     "alt": "Indiana"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Iowa_in_United_States-fd395f.webp",
+     "answer": "آيوا",
+     "alt": "Iowa"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Kansas_in_United_States-eb6515.webp",
+     "answer": "كانساس",
+     "alt": "Kansas"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Nebraska_in_United_States-7dad9a.webp",
+     "answer": "نبراسكا",
+     "alt": "Nebraska"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Wyoming_in_United_States-03cd40.webp",
+     "answer": "وايومنغ",
+     "alt": "Wyoming"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/New_Mexico_in_United_States-4b7f52.webp",
+     "answer": "نيو مكسيكو",
+     "alt": "New Mexico"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Arkansas_in_United_States-d48d05.webp",
+     "answer": "أركنساس",
+     "alt": "Arkansas"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Mississippi_in_United_States-481fa2.webp",
+     "answer": "ميسيسيبي",
+     "alt": "Mississippi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Alabama_in_United_States-bea8ea.webp",
+     "answer": "ألاباما",
+     "alt": "Alabama"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/South_Carolina_in_United_States-39aba2.webp",
+     "answer": "كارولاينا الجنوبية",
+     "alt": "South Carolina"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/West_Virginia_in_United_States-ce0f2d.webp",
+     "answer": "فيرجينيا الغربية",
+     "alt": "West Virginia"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Maryland_in_United_States__zoom_-0825d8.webp",
+     "answer": "ماريلاند",
+     "alt": "Maryland"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/North_Dakota_in_United_States-85950e.webp",
+     "answer": "داكوتا الشمالية",
+     "alt": "North Dakota"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/South_Dakota_in_United_States-516a42.webp",
+     "answer": "داكوتا الجنوبية",
+     "alt": "South Dakota"
     }
    ]
   },
@@ -6067,6 +8233,90 @@
      "src": "/tc/img/Akita_inu_criado_por_Tsutsui_Kennel-df0e24.webp",
      "answer": "أكيتا",
      "alt": "Akita (dog breed)"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Alaskan_Malamute-23aeb6.webp",
+     "answer": "ألاسكان مالاموت",
+     "alt": "Alaskan Malamute"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Samojed00-18411e.webp",
+     "answer": "سامويد",
+     "alt": "Samoyed dog"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bullterier_089_LM-d4e383.webp",
+     "answer": "بول تيرير",
+     "alt": "Bull Terrier"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/FINLEY_DE_LA_MIRAGE_DE_TORRELLAS_01-89ca4f.webp",
+     "answer": "كين كورسو",
+     "alt": "Cane Corso"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Shar_pei-cb95d9.webp",
+     "answer": "شار بي",
+     "alt": "Shar Pei"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Basset_Hound_600-c7250e.webp",
+     "answer": "باسيت هاوند",
+     "alt": "Basset Hound"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/GraceTheGreyhound-efc1cf.webp",
+     "answer": "غريهاوند",
+     "alt": "Greyhound"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Jack_Russell_Terrier_1-75c4c4.webp",
+     "answer": "جاك راسل",
+     "alt": "Jack Russell Terrier"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bobtail-7b29a5.webp",
+     "answer": "شيب دوق الإنجليزي",
+     "alt": "Old English Sheepdog"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bichon_Fris__sitting-b094d8.webp",
+     "answer": "بيشون فريز",
+     "alt": "Bichon Frisé"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Weimaraner_Amigo-d069a6.webp",
+     "answer": "فايمارانر",
+     "alt": "Weimaraner"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/HMKC_Christmas_Fun_Run_2012__8265428196_-da94a7.webp",
+     "answer": "مالينوا",
+     "alt": "Malinois dog"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/_Bill__-_Cocker_spaniel_anglais_1-f8a9cd.webp",
+     "answer": "كوكر سبانيل",
+     "alt": "English Cocker Spaniel"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/2013_Westminster_Kennel_Club_Dog_Show-_Tibetan_Mastiff_GCH_S-ad9fed.webp",
+     "answer": "الماستيف التبتي",
+     "alt": "Tibetan Mastiff"
     }
    ]
   },
@@ -6218,6 +8468,108 @@
      "src": "/tc/img/Manx_cat_by_Karen_Weaver-cd03ae.webp",
      "answer": "مانكس",
      "alt": "Manx cat"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bex_Arabian_Mau-b482c2.webp",
+     "answer": "الماو العربي",
+     "alt": "Arabian Mau"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Munchkin_cat_2__cropped_-837f2f.webp",
+     "answer": "مانشكن (قصير الأرجل)",
+     "alt": "Munchkin cat"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Cornish_Rex_-_Gatos__cropped_-4aeaca.webp",
+     "answer": "كورنيش ريكس",
+     "alt": "Cornish Rex"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Selkirk_Longhair-a9c073.webp",
+     "answer": "سيلكيرك ريكس",
+     "alt": "Selkirk Rex"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/20050922AmarilloRes-f3e9e3.webp",
+     "answer": "راغامافن",
+     "alt": "Ragamuffin cat"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Bluestream_s_QuiQui2_SOM_o-780b13.webp",
+     "answer": "صومالي",
+     "alt": "Somali cat"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Ocicat_Fond_Blanc-1801e6.webp",
+     "answer": "أوسيكات",
+     "alt": "Ocicat"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Oriental_Shorthair__Black_smoke-05d156.webp",
+     "answer": "الشرقي قصير الشعر",
+     "alt": "Oriental Shorthair"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Toyger_male_queenanne-be6d1d.webp",
+     "answer": "تويغر",
+     "alt": "Toyger"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/American_curl_2-663d79.webp",
+     "answer": "أمريكان كيرل",
+     "alt": "American Curl"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/JapaneseBobtailBlueEyedMi-ke-5635d3.webp",
+     "answer": "بوبتيل الياباني",
+     "alt": "Japanese Bobtail"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/KOR_1149-945072.webp",
+     "answer": "كورات",
+     "alt": "Korat"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Nebelung_Male__Aleksandr_van_Song_de_Chine-9e5e6d.webp",
+     "answer": "نيبيلونغ",
+     "alt": "Nebelung"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Peterbald-497e42.webp",
+     "answer": "بيتربولد",
+     "alt": "Peterbald"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/8-month-old_male_Lykoi-c95ab8.webp",
+     "answer": "لايكوي",
+     "alt": "Lykoi"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Khaomanee_cat-31e0ff.webp",
+     "answer": "خاو ماني",
+     "alt": "Khao Manee"
+    },
+    {
+     "type": "image",
+     "src": "/tc/img/Hattikatin_Lumipyry-c197f3.webp",
+     "answer": "سنوشو",
+     "alt": "Snowshoe cat"
     }
    ]
   },
@@ -6635,6 +8987,146 @@
      "type": "flag",
      "code": "az",
      "answer": "أذربيجان"
+    },
+    {
+     "type": "flag",
+     "code": "ve",
+     "answer": "فنزويلا"
+    },
+    {
+     "type": "flag",
+     "code": "ec",
+     "answer": "الإكوادور"
+    },
+    {
+     "type": "flag",
+     "code": "bo",
+     "answer": "بوليفيا"
+    },
+    {
+     "type": "flag",
+     "code": "py",
+     "answer": "باراغواي"
+    },
+    {
+     "type": "flag",
+     "code": "pa",
+     "answer": "بنما"
+    },
+    {
+     "type": "flag",
+     "code": "cr",
+     "answer": "كوستاريكا"
+    },
+    {
+     "type": "flag",
+     "code": "do",
+     "answer": "الدومينيكان"
+    },
+    {
+     "type": "flag",
+     "code": "hu",
+     "answer": "المجر"
+    },
+    {
+     "type": "flag",
+     "code": "ro",
+     "answer": "رومانيا"
+    },
+    {
+     "type": "flag",
+     "code": "bg",
+     "answer": "بلغاريا"
+    },
+    {
+     "type": "flag",
+     "code": "al",
+     "answer": "ألبانيا"
+    },
+    {
+     "type": "flag",
+     "code": "ba",
+     "answer": "البوسنة والهرسك"
+    },
+    {
+     "type": "flag",
+     "code": "is",
+     "answer": "آيسلندا"
+    },
+    {
+     "type": "flag",
+     "code": "cy",
+     "answer": "قبرص"
+    },
+    {
+     "type": "flag",
+     "code": "mt",
+     "answer": "مالطا"
+    },
+    {
+     "type": "flag",
+     "code": "ge",
+     "answer": "جورجيا"
+    },
+    {
+     "type": "flag",
+     "code": "uz",
+     "answer": "أوزبكستان"
+    },
+    {
+     "type": "flag",
+     "code": "tm",
+     "answer": "تركمانستان"
+    },
+    {
+     "type": "flag",
+     "code": "mn",
+     "answer": "منغوليا"
+    },
+    {
+     "type": "flag",
+     "code": "kp",
+     "answer": "كوريا الشمالية"
+    },
+    {
+     "type": "flag",
+     "code": "sg",
+     "answer": "سنغافورة"
+    },
+    {
+     "type": "flag",
+     "code": "bn",
+     "answer": "بروناي"
+    },
+    {
+     "type": "flag",
+     "code": "mv",
+     "answer": "جزر المالديف"
+    },
+    {
+     "type": "flag",
+     "code": "bt",
+     "answer": "بوتان"
+    },
+    {
+     "type": "flag",
+     "code": "kh",
+     "answer": "كمبوديا"
+    },
+    {
+     "type": "flag",
+     "code": "ci",
+     "answer": "ساحل العاج"
+    },
+    {
+     "type": "flag",
+     "code": "tz",
+     "answer": "تنزانيا"
+    },
+    {
+     "type": "flag",
+     "code": "ug",
+     "answer": "أوغندا"
     }
    ]
   },
@@ -7052,6 +9544,146 @@
      "type": "hidden-flag",
      "code": "az",
      "answer": "أذربيجان"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "ve",
+     "answer": "فنزويلا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "ec",
+     "answer": "الإكوادور"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "bo",
+     "answer": "بوليفيا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "py",
+     "answer": "باراغواي"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "pa",
+     "answer": "بنما"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "cr",
+     "answer": "كوستاريكا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "do",
+     "answer": "الدومينيكان"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "hu",
+     "answer": "المجر"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "ro",
+     "answer": "رومانيا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "bg",
+     "answer": "بلغاريا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "al",
+     "answer": "ألبانيا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "ba",
+     "answer": "البوسنة والهرسك"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "is",
+     "answer": "آيسلندا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "cy",
+     "answer": "قبرص"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "mt",
+     "answer": "مالطا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "ge",
+     "answer": "جورجيا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "uz",
+     "answer": "أوزبكستان"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "tm",
+     "answer": "تركمانستان"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "mn",
+     "answer": "منغوليا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "kp",
+     "answer": "كوريا الشمالية"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "sg",
+     "answer": "سنغافورة"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "bn",
+     "answer": "بروناي"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "mv",
+     "answer": "جزر المالديف"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "bt",
+     "answer": "بوتان"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "kh",
+     "answer": "كمبوديا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "ci",
+     "answer": "ساحل العاج"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "tz",
+     "answer": "تنزانيا"
+    },
+    {
+     "type": "hidden-flag",
+     "code": "ug",
+     "answer": "أوغندا"
     }
    ]
   },
@@ -7219,6 +9851,56 @@
      "type": "map",
      "src": "/tc/maps/beirut.jpg",
      "answer": "بيروت"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/alexandria.jpg",
+     "answer": "الإسكندرية"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/amman.jpg",
+     "answer": "عمّان"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/damascus.jpg",
+     "answer": "دمشق"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/marrakesh.jpg",
+     "answer": "مراكش"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/losangeles.jpg",
+     "answer": "لوس أنجلوس"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/berlin.jpg",
+     "answer": "برلين"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/madrid.jpg",
+     "answer": "مدريد"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/seoul.jpg",
+     "answer": "سيول"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/mumbai.jpg",
+     "answer": "مومباي"
+    },
+    {
+     "type": "map",
+     "src": "/tc/maps/capetown.jpg",
+     "answer": "كيب تاون"
     }
    ]
   },
@@ -7401,6 +10083,61 @@
      "type": "emoji",
      "emoji": "🐘👂🎪",
      "answer": "دامبو"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧜‍♀️🦀🐠",
+     "answer": "حورية البحر الصغيرة"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏠👦🎄🦹‍♂️",
+     "answer": "وحدي في المنزل (هوم ألون)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🍫🏭🎫",
+     "answer": "تشارلي ومصنع الشوكولاتة"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🌊👧🏽🛶🐓",
+     "answer": "موانا"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🦊🐰🚓",
+     "answer": "زوتوبيا"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👨‍👩‍👧‍👦🦸",
+     "answer": "الخارقون (ذا إنكريديبلز)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐉👦🔥",
+     "answer": "كيف تروض تنينك"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👦🐻🐍🐯🌴",
+     "answer": "كتاب الأدغال (ماوكلي)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "😀😢😡😱🤢🧠",
+     "answer": "قلباً وقالباً (إنسايد أوت)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "💣🍢",
+     "answer": "الإرهاب والكباب"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🍯⚫",
+     "answer": "عسل أسود"
     }
    ]
   },
@@ -7533,6 +10270,96 @@
      "type": "emoji",
      "emoji": "🍋🌳",
      "answer": "على الليمونة (طقطوقة شعبية)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "😊👏🎶",
+     "answer": "هابي (فاريل ويليامز)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🌧️☂️",
+     "answer": "أمبريلا (ريهانا)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👋📞",
+     "answer": "هيلو (أديل)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧟‍♂️💃🌕",
+     "answer": "ثريلر (مايكل جاكسون)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐴🕺🇰🇷",
+     "answer": "قانقنام ستايل"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👶🦈🎶",
+     "answer": "بيبي شارك"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👏👏🦶🪨",
+     "answer": "وي ويل روك يو (كوين)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏆👥🎶",
+     "answer": "وي آر ذا تشامبيونز (كوين)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧊🧊👶",
+     "answer": "آيس آيس بيبي"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏨🌴☀️",
+     "answer": "هوتيل كاليفورنيا"
+    },
+    {
+     "type": "emoji",
+     "emoji": "✨⭐🌙",
+     "answer": "توينكل توينكل ليتل ستار"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🖍️✏️〰️",
+     "answer": "شخبط شخابيط (نانسي عجرم)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🌙🌙",
+     "answer": "قمرين (عمرو دياب)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🚶‍♂️🌍",
+     "answer": "سوّاح (عبدالحليم)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧳✈️",
+     "answer": "المسافر (راشد الماجد)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🪟🪟",
+     "answer": "شبابيك (محمد منير)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏖️🇪🇬",
+     "answer": "شط إسكندرية (فيروز)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏃‍♂️🏆⬆️🇸🇦",
+     "answer": "سارعي للمجد والعلياء"
     }
    ]
   },
@@ -7660,6 +10487,111 @@
      "type": "emoji",
      "emoji": "⚽👦🇯🇵",
      "answer": "الكابتن ماجد"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🛤️🍌",
+     "answer": "درب الزلق"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🌪️🇸🇦📺",
+     "answer": "العاصوف"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🤳😂🇸🇦",
+     "answer": "سيلفي"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🔩🔨😂",
+     "answer": "مسامير"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🔫🏜️🇸🇦",
+     "answer": "رشاش"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👑👳‍♂️👩‍👩‍👧",
+     "answer": "حريم السلطان"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏞️🐺🐺",
+     "answer": "وادي الذئاب"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👦👧🏝️🌊",
+     "answer": "عدنان ولينا"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🕵️‍♂️👦👓",
+     "answer": "المحقق كونان"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏴‍☠️👒🍖",
+     "answer": "ون بيس"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🍥🥷🦊",
+     "answer": "ناروتو"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐉🟠⭐",
+     "answer": "دراغون بول"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🤖🛸👦",
+     "answer": "جريندايزر"
+    },
+    {
+     "type": "emoji",
+     "emoji": "✈️💥🏝️",
+     "answer": "لوست"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👧🏻🖤✋🏫",
+     "answer": "وينزداي"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👑🇬🇧👸",
+     "answer": "ذا كراون"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧸🚗😬",
+     "answer": "مستر بين"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🔵🍄🏠",
+     "answer": "السنافر"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐷🎀🌧️",
+     "answer": "بيبا بيغ"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👧🏼🐻",
+     "answer": "ماشا والدب"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👦⌚👽",
+     "answer": "بن تن"
     }
    ]
   },
@@ -7787,6 +10719,106 @@
      "type": "emoji",
      "emoji": "🧱🟦👦",
      "answer": "روبلوكس"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🦍🛢️👨‍🔧",
+     "answer": "دونكي كونغ"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧝‍♂️🗡️🔺",
+     "answer": "زيلدا"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐔🛣️🚗",
+     "answer": "كروسي رود"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏎️🍌🐢",
+     "answer": "ماريو كارت"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🥋🔥👊",
+     "answer": "ستريت فايتر"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🥷❄️🔥🐉",
+     "answer": "مورتال كومبات"
+    },
+    {
+     "type": "emoji",
+     "emoji": "⚽🚗🚀",
+     "answer": "روكيت ليق"
+    },
+    {
+     "type": "emoji",
+     "emoji": "👑⚔️🃏",
+     "answer": "كلاش رويال"
+    },
+    {
+     "type": "emoji",
+     "emoji": "♟️👑",
+     "answer": "شطرنج"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🃏🟥🟦🟩🟨",
+     "answer": "أونو"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🎲🏠💰🎩",
+     "answer": "مونوبولي"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🃏🃏🇸🇦☕",
+     "answer": "بلوت"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🟫⚫⚪👆",
+     "answer": "كيرم"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🚀👾",
+     "answer": "سبيس إنفيدرز"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐍🪜🎲",
+     "answer": "السلم والثعبان"
+    },
+    {
+     "type": "emoji",
+     "emoji": "❌⭕",
+     "answer": "إكس أو"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏎️💨🚓",
+     "answer": "نيد فور سبيد"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🤠🐎🔫",
+     "answer": "ريد ديد ريدمبشن"
+    },
+    {
+     "type": "emoji",
+     "emoji": "💣✂️👮",
+     "answer": "كاونتر سترايك"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐔🌾🚜",
+     "answer": "هاي داي"
     }
    ]
   },
@@ -7944,6 +10976,86 @@
      "type": "emoji",
      "emoji": "🐑🌄",
      "answer": "راعي غنم"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧮📊💰",
+     "answer": "محاسب"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🩺🐶🐱",
+     "answer": "طبيب بيطري"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🕵️‍♂️🔍",
+     "answer": "محقق"
+    },
+    {
+     "type": "emoji",
+     "emoji": "📰🎤📹",
+     "answer": "صحفي (مراسل)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🎙️📻",
+     "answer": "مذيع"
+    },
+    {
+     "type": "emoji",
+     "emoji": "⚽📋📣",
+     "answer": "مدرب"
+    },
+    {
+     "type": "emoji",
+     "emoji": "💊🥼🧴",
+     "answer": "صيدلي"
+    },
+    {
+     "type": "emoji",
+     "emoji": "✈️👩‍💼🧳",
+     "answer": "مضيفة طيران"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🧹🧽🗑️",
+     "answer": "عامل نظافة"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🏊‍♂️🛟",
+     "answer": "منقذ"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🐝🍯",
+     "answer": "نحّال"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🤡🎪",
+     "answer": "مهرج"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🛵📦🏠",
+     "answer": "مندوب توصيل"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🪖🎖️",
+     "answer": "عسكري"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🤵🍽️🧾",
+     "answer": "جرسون (نادل)"
+    },
+    {
+     "type": "emoji",
+     "emoji": "🔭🌌",
+     "answer": "فلكي"
     }
    ]
   },
@@ -8101,6 +11213,66 @@
      "type": "text",
      "text": "LXXVI",
      "answer": "76"
+    },
+    {
+     "type": "text",
+     "text": "V",
+     "answer": "5"
+    },
+    {
+     "type": "text",
+     "text": "X",
+     "answer": "10"
+    },
+    {
+     "type": "text",
+     "text": "XV",
+     "answer": "15"
+    },
+    {
+     "type": "text",
+     "text": "XX",
+     "answer": "20"
+    },
+    {
+     "type": "text",
+     "text": "XXX",
+     "answer": "30"
+    },
+    {
+     "type": "text",
+     "text": "LXVI",
+     "answer": "66"
+    },
+    {
+     "type": "text",
+     "text": "LXXXVIII",
+     "answer": "88"
+    },
+    {
+     "type": "text",
+     "text": "CL",
+     "answer": "150"
+    },
+    {
+     "type": "text",
+     "text": "MDCCXXVII",
+     "answer": "1727"
+    },
+    {
+     "type": "text",
+     "text": "MCMLXIX",
+     "answer": "1969"
+    },
+    {
+     "type": "text",
+     "text": "MMXXX",
+     "answer": "2030"
+    },
+    {
+     "type": "text",
+     "text": "MMXXXIV",
+     "answer": "2034"
     }
    ]
   },
@@ -8333,6 +11505,56 @@
      "type": "text",
      "text": "عاصمة ماليزيا",
      "answer": "كوالالمبور"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة السويد",
+     "answer": "ستوكهولم"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة النرويج",
+     "answer": "أوسلو"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة الدنمارك",
+     "answer": "كوبنهاغن"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة أيرلندا",
+     "answer": "دبلن"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة بلجيكا",
+     "answer": "بروكسل"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة المجر",
+     "answer": "بودابست"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة التشيك",
+     "answer": "براغ"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة الفلبين",
+     "answer": "مانيلا"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة أفغانستان",
+     "answer": "كابل"
+    },
+    {
+     "type": "text",
+     "text": "عاصمة إثيوبيا",
+     "answer": "أديس أبابا"
     }
    ]
   },
@@ -8490,6 +11712,86 @@
      "type": "text",
      "text": "عملة نيجيريا",
      "answer": "النيرة"
+    },
+    {
+     "type": "text",
+     "text": "عملة العراق",
+     "answer": "الدينار"
+    },
+    {
+     "type": "text",
+     "text": "عملة الجزائر",
+     "answer": "الدينار"
+    },
+    {
+     "type": "text",
+     "text": "عملة تونس",
+     "answer": "الدينار"
+    },
+    {
+     "type": "text",
+     "text": "عملة لبنان",
+     "answer": "الليرة"
+    },
+    {
+     "type": "text",
+     "text": "عملة اليمن",
+     "answer": "الريال"
+    },
+    {
+     "type": "text",
+     "text": "عملة السودان",
+     "answer": "الجنيه"
+    },
+    {
+     "type": "text",
+     "text": "عملة باكستان",
+     "answer": "الروبية"
+    },
+    {
+     "type": "text",
+     "text": "عملة بنغلاديش",
+     "answer": "التاكا"
+    },
+    {
+     "type": "text",
+     "text": "عملة الفلبين",
+     "answer": "البيزو"
+    },
+    {
+     "type": "text",
+     "text": "عملة كندا",
+     "answer": "الدولار الكندي"
+    },
+    {
+     "type": "text",
+     "text": "عملة أستراليا",
+     "answer": "الدولار الأسترالي"
+    },
+    {
+     "type": "text",
+     "text": "عملة الأرجنتين",
+     "answer": "البيزو"
+    },
+    {
+     "type": "text",
+     "text": "عملة أوكرانيا",
+     "answer": "الهريفنيا"
+    },
+    {
+     "type": "text",
+     "text": "عملة المجر",
+     "answer": "الفورنت"
+    },
+    {
+     "type": "text",
+     "text": "عملة كينيا",
+     "answer": "الشلن"
+    },
+    {
+     "type": "text",
+     "text": "عملة أذربيجان",
+     "answer": "المانات"
     }
    ]
   },
@@ -8622,6 +11924,126 @@
      "type": "text",
      "text": "رمز 4001",
      "answer": "أسواق العثيم"
+    },
+    {
+     "type": "text",
+     "text": "رمز 5110",
+     "answer": "الكهرباء السعودية"
+    },
+    {
+     "type": "text",
+     "text": "رمز 1111",
+     "answer": "مجموعة تداول السعودية"
+    },
+    {
+     "type": "text",
+     "text": "رمز 1050",
+     "answer": "البنك السعودي الفرنسي"
+    },
+    {
+     "type": "text",
+     "text": "رمز 1030",
+     "answer": "البنك السعودي للاستثمار"
+    },
+    {
+     "type": "text",
+     "text": "رمز 1020",
+     "answer": "بنك الجزيرة"
+    },
+    {
+     "type": "text",
+     "text": "رمز 2380",
+     "answer": "بترو رابغ"
+    },
+    {
+     "type": "text",
+     "text": "رمز 2060",
+     "answer": "التصنيع"
+    },
+    {
+     "type": "text",
+     "text": "رمز 2310",
+     "answer": "سبكيم"
+    },
+    {
+     "type": "text",
+     "text": "رمز 2270",
+     "answer": "سدافكو"
+    },
+    {
+     "type": "text",
+     "text": "رمز 6002",
+     "answer": "هرفي"
+    },
+    {
+     "type": "text",
+     "text": "رمز 6010",
+     "answer": "نادك"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4002",
+     "answer": "المواساة"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4003",
+     "answer": "إكسترا"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4250",
+     "answer": "جبل عمر"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4300",
+     "answer": "دار الأركان"
+    },
+    {
+     "type": "text",
+     "text": "رمز 7203",
+     "answer": "علم"
+    },
+    {
+     "type": "text",
+     "text": "رمز 8010",
+     "answer": "التعاونية"
+    },
+    {
+     "type": "text",
+     "text": "رمز 8210",
+     "answer": "بوبا العربية"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4161",
+     "answer": "بن داود"
+    },
+    {
+     "type": "text",
+     "text": "رمز 1830",
+     "answer": "لجام للرياضة (وقت اللياقة)"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4040",
+     "answer": "سابتكو"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4009",
+     "answer": "السعودي الألماني الصحية"
+    },
+    {
+     "type": "text",
+     "text": "رمز 4263",
+     "answer": "سال للخدمات اللوجستية"
+    },
+    {
+     "type": "text",
+     "text": "رمز 7202",
+     "answer": "حلول من STC"
     }
    ]
   },
@@ -8739,6 +12161,81 @@
      "type": "text",
      "text": "وش يسمون صغير الذئب؟",
      "answer": "جرو (دِرص)"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير الضب؟",
+     "answer": "حِسل"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير القرد؟",
+     "answer": "قِشّة"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير اليربوع؟",
+     "answer": "دِرص"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير الصقر؟",
+     "answer": "فرخ"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير المها (البقرة الوحشية)؟",
+     "answer": "جؤذر (برغز)"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير الوعل؟",
+     "answer": "غُفر"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير العقاب؟",
+     "answer": "هيثم"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير الحبارى؟",
+     "answer": "نُهار"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير الجراد؟",
+     "answer": "دَبى"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير النمل؟",
+     "answer": "ذَرّ"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير السمك؟",
+     "answer": "زريعة (إصبعيات)"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير النمر؟",
+     "answer": "شبل (جرو)"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير الفقمة؟",
+     "answer": "جرو"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير الجاموس؟",
+     "answer": "عجل"
+    },
+    {
+     "type": "text",
+     "text": "وش يسمون صغير البطريق؟",
+     "answer": "فرخ"
     }
    ]
   },
@@ -8886,6 +12383,96 @@
      "type": "text",
      "text": "يوم لك …",
      "answer": "ويوم عليك"
+    },
+    {
+     "type": "text",
+     "text": "اللي ما يطول العنب …",
+     "answer": "يقول عنه حامض"
+    },
+    {
+     "type": "text",
+     "text": "الباب اللي يجيك منه الريح …",
+     "answer": "سده واستريح"
+    },
+    {
+     "type": "text",
+     "text": "اللي يبي الدح …",
+     "answer": "ما يقول أح"
+    },
+    {
+     "type": "text",
+     "text": "حط راسك بين الروس …",
+     "answer": "وقل يا قطاع الروس"
+    },
+    {
+     "type": "text",
+     "text": "الجنة بلا ناس …",
+     "answer": "ما تنداس"
+    },
+    {
+     "type": "text",
+     "text": "العين ما تعلى …",
+     "answer": "على الحاجب"
+    },
+    {
+     "type": "text",
+     "text": "اللي بيته من زجاج …",
+     "answer": "لا يرمي الناس بالحجارة"
+    },
+    {
+     "type": "text",
+     "text": "الطمع …",
+     "answer": "ضر ما نفع"
+    },
+    {
+     "type": "text",
+     "text": "إذا حضر الماء …",
+     "answer": "بطل التيمم"
+    },
+    {
+     "type": "text",
+     "text": "الصديق وقت …",
+     "answer": "الضيق"
+    },
+    {
+     "type": "text",
+     "text": "درهم وقاية …",
+     "answer": "خير من قنطار علاج"
+    },
+    {
+     "type": "text",
+     "text": "في التأني السلامة …",
+     "answer": "وفي العجلة الندامة"
+    },
+    {
+     "type": "text",
+     "text": "رجعت حليمة …",
+     "answer": "لعادتها القديمة"
+    },
+    {
+     "type": "text",
+     "text": "لا ناقة لي فيها …",
+     "answer": "ولا جمل"
+    },
+    {
+     "type": "text",
+     "text": "رجع بخفي …",
+     "answer": "حنين"
+    },
+    {
+     "type": "text",
+     "text": "من شب على شيء …",
+     "answer": "شاب عليه"
+    },
+    {
+     "type": "text",
+     "text": "الشيوخ …",
+     "answer": "أبخص"
+    },
+    {
+     "type": "text",
+     "text": "ما طار طير وارتفع …",
+     "answer": "إلا كما طار وقع"
     }
    ]
   },
@@ -9023,6 +12610,96 @@
      "type": "text",
      "text": "«إذا استطعت أن تحلم به، تستطيع تحقيقه»",
      "answer": "والت ديزني"
+    },
+    {
+     "type": "text",
+     "text": "«المعرفة قوة»",
+     "answer": "فرانسيس بيكون"
+    },
+    {
+     "type": "text",
+     "text": "«الحياة مثل ركوب الدراجة، لتحافظ على توازنك لازم تستمر في الحركة»",
+     "answer": "أينشتاين"
+    },
+    {
+     "type": "text",
+     "text": "«أعطني مكاناً أقف عليه وسأحرك الأرض»",
+     "answer": "أرخميدس"
+    },
+    {
+     "type": "text",
+     "text": "«ليس لدي ما أقدمه سوى الدم والكدح والدموع والعرق»",
+     "answer": "ونستون تشرشل"
+    },
+    {
+     "type": "text",
+     "text": "«لا تسأل ماذا يمكن أن يقدم لك وطنك، بل اسأل ماذا يمكنك أن تقدم لوطنك»",
+     "answer": "جون كينيدي"
+    },
+    {
+     "type": "text",
+     "text": "«رحلة الألف ميل تبدأ بخطوة»",
+     "answer": "لاو تسو"
+    },
+    {
+     "type": "text",
+     "text": "«اعرف عدوك واعرف نفسك»",
+     "answer": "سون تزو (فن الحرب)"
+    },
+    {
+     "type": "text",
+     "text": "«كل ما أعرفه أنني لا أعرف شيئاً»",
+     "answer": "سقراط"
+    },
+    {
+     "type": "text",
+     "text": "«الحياة إما مغامرة جريئة أو لا شيء»",
+     "answer": "هيلين كيلر"
+    },
+    {
+     "type": "text",
+     "text": "«همة السعوديين مثل جبل طويق»",
+     "answer": "الأمير محمد بن سلمان"
+    },
+    {
+     "type": "text",
+     "text": "«الناس أعداء ما جهلوا»",
+     "answer": "الإمام علي (ع)"
+    },
+    {
+     "type": "text",
+     "text": "«على قدر أهل العزم تأتي العزائم»",
+     "answer": "المتنبي"
+    },
+    {
+     "type": "text",
+     "text": "«وما نيل المطالب بالتمني ولكن تؤخذ الدنيا غلابا»",
+     "answer": "أحمد شوقي"
+    },
+    {
+     "type": "text",
+     "text": "«الأم مدرسة إذا أعددتها أعددت شعباً طيب الأعراق»",
+     "answer": "حافظ إبراهيم"
+    },
+    {
+     "type": "text",
+     "text": "«كن جميلاً ترَ الوجود جميلا»",
+     "answer": "إيليا أبو ماضي"
+    },
+    {
+     "type": "text",
+     "text": "«قفا نبكِ من ذكرى حبيب ومنزل»",
+     "answer": "امرؤ القيس"
+    },
+    {
+     "type": "text",
+     "text": "«هل غادر الشعراء من متردم»",
+     "answer": "عنترة بن شداد"
+    },
+    {
+     "type": "text",
+     "text": "«أراك عصي الدمع شيمتك الصبر»",
+     "answer": "أبو فراس الحمداني"
     }
    ]
   }
