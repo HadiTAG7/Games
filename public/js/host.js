@@ -1,4 +1,4 @@
-/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
+/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
 'use strict';
 
 // The host page shell: connection, room session, the shared lobby pieces
@@ -20,6 +20,7 @@ const params = new URLSearchParams(location.search);
 let forceNew = params.has('new');
 let initialGame = forceNew ? params.get('game') : null;
 if (forceNew) history.replaceState(null, '', location.pathname);
+if (initialGame) setTheme(initialGame); // the game page's colours carry on while the room opens
 
 connectionBanner(socket);
 
@@ -56,6 +57,7 @@ function render() {
   const ui = HOST_GAMES[state.gameType];
   const game = state.games.find((g) => g.id === state.gameType);
   document.title = `${game.name} · المضيف`;
+  setTheme(state.gameType);
   const key = `${state.gameType}:${state.phase}`;
   // The lobby holds form fields, so keep it and only refresh what changed.
   if (state.phase === 'lobby' && renderedKey === key) {

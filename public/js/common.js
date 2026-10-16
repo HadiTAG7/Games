@@ -63,6 +63,15 @@ function connectionBanner(socket) {
   socket.on('connect', () => { el.hidden = true; });
 }
 
+/** Dresses the page in a game's colours ([data-theme] in style.css); null goes back to the plain look. */
+function setTheme(gameType) {
+  if ((document.body.dataset.theme ?? null) === (gameType ?? null)) return;
+  if (gameType) document.body.dataset.theme = gameType;
+  else delete document.body.dataset.theme;
+  const bg = getComputedStyle(document.body).getPropertyValue('--bg').trim();
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+}
+
 // Countdowns follow the server clock so every screen shows the same number.
 let clockOffset = 0;
 function syncClock(serverTime) {

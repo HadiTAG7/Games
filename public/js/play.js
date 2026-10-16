@@ -1,4 +1,4 @@
-/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock */
+/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme */
 'use strict';
 
 // The player page shell: joining, the room session and dispatch to the
@@ -60,6 +60,7 @@ async function join(code, name, playerId, { rejoin = false } = {}) {
 
 function renderJoin({ code = '', name = '', error = '' } = {}) {
   screenKey = 'join';
+  setTheme(null);
   const codeInput = h('input', {
     id: 'code', inputmode: 'numeric', maxlength: 4, placeholder: '1234', autocomplete: 'off', value: code,
   });
@@ -96,5 +97,6 @@ function render() {
   if (!state || !session) return;
   const game = state.games.find((g) => g.id === state.gameType);
   document.title = game.name;
+  setTheme(state.gameType);
   PLAY_GAMES[state.gameType].render();
 }
