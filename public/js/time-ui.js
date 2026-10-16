@@ -12,6 +12,18 @@ const TEAM_INFO = {
 const otherTeam = (team) => (team === 'red' ? 'blue' : 'red');
 const teamLabel = (team) => `${TEAM_INFO[team].emoji} الفريق ${TEAM_INFO[team].name}`;
 const flagSrc = (code) => `/flags/4x3/${code}.svg`;
+const SMALLER_WIDTH = { 500: 330, 330: 250 };
+
+/**
+ * The same Wikimedia picture at the next smaller size, or null. Wikimedia
+ * hands out the original file when the asked width isn't smaller than it,
+ * and often refuses those; a smaller size gets a resized copy.
+ */
+function smallerSrc(src) {
+  const width = Number(src.match(/[?&]width=(\d+)/)?.[1]);
+  const smaller = SMALLER_WIDTH[width];
+  return smaller ? src.replace(/([?&]width=)\d+/, `$1${smaller}`) : null;
+}
 
 function roundsText(n) {
   if (n === 1) return 'جولة وحدة';
@@ -51,6 +63,11 @@ function cardFace(card, { reveal = false, lazy = false, brokenText = '😕 ال�
     loading: lazy ? 'lazy' : null,
   });
   img.addEventListener('error', () => {
+    const smaller = smallerSrc(img.src);
+    if (smaller) {
+      img.src = smaller;
+      return;
+    }
     img.replaceWith(h('div', { class: 'tc-broken' }, brokenText));
     onBroken?.(card);
   });

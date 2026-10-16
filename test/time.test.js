@@ -343,3 +343,22 @@ test('only the host sees the answer while a round runs; everyone sees the recap'
   assert.deepEqual(recap.map((r) => r.result), ['correct', 'skip']);
   assert.ok(recap.every((r) => r.answer));
 });
+
+test('devices preload the next twelve pictures of the round', () => {
+  const pictures = Array.from({ length: 20 }, (_, i) => ({ type: 'image', src: `https://img/${i}.jpg`, answer: `صورة ${i}` }));
+  const manager = new RoomManager({ timeCategories: [{ id: 'pics', name: 'صور', emoji: '🖼️', cards: pictures }] });
+  const room = manager.create();
+  const [a] = ['أحمد', 'فهد'].map((name) => room.join({ name }));
+  room.setGameType('time');
+  room.game.start();
+  room.game.spin();
+  const ready = room.playerView(a.id).round;
+  assert.equal(ready.preload.length, 12);
+  room.game.go();
+  assert.equal(room.playerView(a.id).round.preload[0], room.hostView().round.card.src);
+  room.game.correct();
+  const next = room.playerView(a.id).round.preload;
+  assert.equal(next.length, 12);
+  assert.equal(next[0], room.hostView().round.card.src);
+  assert.equal(next[0], ready.preload[1]);
+});

@@ -7,6 +7,9 @@
 const { TEAMS } = require('./time');
 
 const IMAGE_TYPES = new Set(['image', 'map', 'flag', 'hidden-flag']);
+// Devices load this many pictures ahead: enough that the clock never waits
+// on a picture, without every phone hitting Wikimedia for the whole deck.
+const PRELOAD_AHEAD = 12;
 
 function categoryInfo(category) {
   return category ? { id: category.id, name: category.name, emoji: category.emoji } : null;
@@ -27,13 +30,13 @@ function teamsView(room) {
   return teams;
 }
 
-/** Image sources for the round, so devices can load them before the clock starts. */
+/** The next pictures of the round, so devices load them before they're needed. */
 function preloadList(game) {
   const { round } = game;
   if (!round) return [];
   const category = game.category(round.category);
   return round.deck
-    .slice(round.position)
+    .slice(round.position, round.position + PRELOAD_AHEAD)
     .map((entry) => category.cards[entry.index])
     .filter((card) => IMAGE_TYPES.has(card.type))
     .map((card) => (card.type === 'flag' || card.type === 'hidden-flag' ? `/flags/4x3/${card.code}.svg` : card.src));

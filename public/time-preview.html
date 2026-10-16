@@ -16,7 +16,7 @@
 <script src="/js/common.js"></script>
 <script src="/js/time-ui.js"></script>
 <script>
-/* global $, h, toast, cardFace */
+/* global $, h, toast, cardFace, smallerSrc */
 'use strict';
 
 // Every «تحدي الوقت» card with its answer, so the host can check the
@@ -115,32 +115,53 @@ function updateBrokenList() {
   );
 }
 
-/** Loads every remote picture, a few at a time, and lists the ones that fail. */
+/**
+ * Loads every remote picture, a few at a time, and lists the ones that fail.
+ * Wikimedia slows down floods of requests, so failures get a second try
+ * after a pause before they count as broken.
+ */
 async function checkAll() {
   const button = $('#check');
+  const status = (text) => { $('#check-progress').textContent = text; };
   button.disabled = true;
   const jobs = categories.flatMap((category) => category.cards.filter(isRemote).map((card) => ({ category, card })));
-  let done = 0;
-  const progress = () => { $('#check-progress').textContent = `${done}/${jobs.length}`; };
-  progress();
-  const queue = [...jobs];
-  const worker = async () => {
-    while (queue.length) {
-      const { category, card } = queue.shift();
-      const ok = await new Promise((resolve) => {
-        const img = new Image();
-        img.referrerPolicy = 'no-referrer';
-        img.onload = () => resolve(img.naturalWidth > 0);
-        img.onerror = () => resolve(false);
-        img.src = card.src;
-      });
-      if (!ok) markBroken(category, card);
-      done += 1;
-      progress();
+  const loads = (src) => new Promise((resolve) => {
+    const img = new Image();
+    img.referrerPolicy = 'no-referrer';
+    img.onload = () => resolve(img.naturalWidth > 0);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+  // Same fallback as the game: a smaller size before giving up.
+  const opens = async (src) => {
+    for (let url = src; url; url = smallerSrc(url)) {
+      if (await loads(url)) return true;
     }
+    return false;
   };
-  await Promise.all(Array.from({ length: 6 }, worker));
-  $('#check-progress').textContent = broken.size ? `خلص الفحص · ${broken.size} صورة ما فتحت` : '✅ كل الصور تفتح';
+  async function run(list, workers, label) {
+    const failed = [];
+    const queue = [...list];
+    let done = 0;
+    const worker = async () => {
+      while (queue.length) {
+        const job = queue.shift();
+        if (!(await opens(job.card.src))) failed.push(job);
+        done += 1;
+        status(`${label} ${done}/${list.length}`);
+      }
+    };
+    await Promise.all(Array.from({ length: workers }, worker));
+    return failed;
+  }
+  let failed = await run(jobs, 4, 'نفحص');
+  if (failed.length) {
+    status(`نعيد فحص ${failed.length} صورة بعد شوي…`);
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+    failed = await run(failed, 2, 'نعيد الفحص');
+  }
+  for (const { category, card } of failed) markBroken(category, card);
+  status(failed.length ? `خلص الفحص · ${failed.length} صورة ما فتحت` : '✅ كل الصور تفتح');
   button.disabled = false;
 }
 
