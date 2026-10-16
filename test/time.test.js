@@ -183,6 +183,30 @@ test('undo restores the clocks, the turn and the picture', () => {
   assert.throws(() => game.undo(), /ما فيه شي/);
 });
 
+test('a repeated tap on an old screen is ignored', () => {
+  const game = newGame();
+  game.updateSettings({ categories: ['cars'] });
+  game.start();
+  game.spin();
+  game.go();
+  const { step } = game.round;
+  game.correct(step);
+  game.correct(step); // double tap on «صح»
+  assert.equal(game.round.position, 1);
+  assert.equal(game.round.active, 'blue');
+  game.pause(game.round.step);
+  game.pause(game.round.step - 1);
+  game.resume(game.round.step);
+  game.resume(game.round.step - 1);
+  assert.equal(game.round.paused, false);
+  game.skip(game.round.step);
+  const before = game.round.step;
+  game.undo(before);
+  game.undo(before); // the second undo must not take back the «صح» too
+  assert.equal(game.round.position, 1);
+  assert.equal(game.round.log.length, 1);
+});
+
 test('when the pictures run out, the team with more time left wins', () => {
   const game = newGame();
   game.updateSettings({ categories: ['flags'] });

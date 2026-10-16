@@ -71,6 +71,7 @@ function roundView(room, { host }) {
     remaining: round.remaining,
     runningSince: round.runningSince,
     paused: round.paused,
+    step: round.step,
     cardNumber: round.position + 1,
     cardsLeft: Math.max(0, round.deck.length - round.position),
     card: cardView(game.currentCard(), { withAnswer: host }),

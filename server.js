@@ -174,11 +174,11 @@ io.on('connection', (socket) => {
   hostAction('host:tc-shuffle', (room) => time(room).shuffleTeams());
   hostAction('host:tc-spin', (room) => time(room).spin());
   hostAction('host:tc-go', (room) => time(room).go());
-  hostAction('host:tc-correct', (room) => time(room).correct());
-  hostAction('host:tc-skip', (room) => time(room).skip());
-  hostAction('host:tc-pause', (room) => time(room).pause());
-  hostAction('host:tc-resume', (room) => time(room).resume());
-  hostAction('host:tc-undo', (room) => time(room).undo());
+  hostAction('host:tc-correct', (room, { step }) => time(room).correct(step));
+  hostAction('host:tc-skip', (room, { step }) => time(room).skip(step));
+  hostAction('host:tc-pause', (room, { step }) => time(room).pause(step));
+  hostAction('host:tc-resume', (room, { step }) => time(room).resume(step));
+  hostAction('host:tc-undo', (room, { step }) => time(room).undo(step));
 
   on('player:join', ({ code, name, playerId }) => {
     const room = rooms.get(code);

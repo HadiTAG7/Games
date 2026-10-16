@@ -22,13 +22,21 @@ function savePrefs(patch) {
   render();
 }
 
-/** Sends one judge action at a time, so a double tap can't skip two pictures. */
+/** Judge buttons say which screen they were pressed on, so the server ignores a double tap. */
+function judge(event) {
+  act(event, { step: state.round.step });
+}
+
+/** Other buttons send one action at a time, so a double tap can't spin twice. */
 async function send(event, payload) {
   if (busy) return;
   busy = true;
+  // Don't stay locked if a reply gets lost on a bad connection.
+  const release = setTimeout(() => { busy = false; }, 3000);
   try {
     await act(event, payload);
   } finally {
+    clearTimeout(release);
     busy = false;
   }
 }
@@ -104,7 +112,8 @@ document.addEventListener('keydown', (e) => {
   const event = shortcut(e.code);
   if (!event) return;
   e.preventDefault();
-  send(event);
+  if (state.phase === 'playing') judge(event);
+  else send(event);
 });
 
 /* ---------- Shared bits ---------- */
@@ -316,15 +325,15 @@ function renderPlaying() {
       card.alt ? h('span', { class: 'tc-alt', dir: 'ltr' }, card.alt) : null,
     ),
     h('div', { class: 'tc-judge' },
-      h('button', { class: 'btn tc-correct', disabled: round.paused, onclick: () => send('host:tc-correct') }, '✅ صح'),
-      h('button', { class: 'btn tc-skip', disabled: round.paused, onclick: () => send('host:tc-skip') },
+      h('button', { class: 'btn tc-correct', disabled: round.paused, onclick: () => judge('host:tc-correct') }, '✅ صح'),
+      h('button', { class: 'btn tc-skip', disabled: round.paused, onclick: () => judge('host:tc-skip') },
         '⏭️ تخطي', penalty ? h('small', {}, `−${penalty} ث`) : null),
     ),
     h('div', { class: 'actions tc-tools' },
       round.paused
-        ? h('button', { class: 'btn primary', onclick: () => send('host:tc-resume') }, '▶️ كمّل')
-        : h('button', { class: 'btn', onclick: () => send('host:tc-pause') }, '⏸️ إيقاف'),
-      h('button', { class: 'btn', disabled: !round.canUndo, onclick: () => send('host:tc-undo') }, '↩︎ تراجع'),
+        ? h('button', { class: 'btn primary', onclick: () => judge('host:tc-resume') }, '▶️ كمّل')
+        : h('button', { class: 'btn', onclick: () => judge('host:tc-pause') }, '⏸️ إيقاف'),
+      h('button', { class: 'btn', disabled: !round.canUndo, onclick: () => judge('host:tc-undo') }, '↩︎ تراجع'),
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
     h('p', { class: 'hint center kbd-hint' }, 'الكيبورد: مسافة = صح · S = تخطي · P = إيقاف · Z = تراجع'),

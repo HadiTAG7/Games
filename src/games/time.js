@@ -147,6 +147,7 @@ class TimeGame {
       history: [],
       log: [],
       result: null,
+      step: 0, // counts the host's actions, so a repeated tap can be told apart
     };
     this.phase = 'ready';
   }
@@ -187,6 +188,14 @@ class TimeGame {
     if (this.round.paused) throw new GameError('الوقت موقّف، كمّل أول');
   }
 
+  /**
+   * True when the host acted on a screen that's already out of date — a
+   * double tap, or a tap that crossed another update — so it's ignored.
+   */
+  isStale(step) {
+    return this.phase === 'playing' && step !== undefined && step !== this.round.step;
+  }
+
   snapshot() {
     const { round } = this;
     round.history.push({
@@ -197,10 +206,12 @@ class TimeGame {
     });
   }
 
-  correct() {
+  correct(step) {
+    if (this.isStale(step)) return;
     this.assertRunning();
     this.settle();
     const { round } = this;
+    round.step += 1;
     if (round.remaining[round.active] <= 0) {
       this.endRound(round.active, 'time');
       return;
@@ -211,10 +222,12 @@ class TimeGame {
     this.advance();
   }
 
-  skip() {
+  skip(step) {
+    if (this.isStale(step)) return;
     this.assertRunning();
     this.settle();
     const { round } = this;
+    round.step += 1;
     this.snapshot();
     round.log.push({ index: round.deck[round.position].index, team: round.active, result: 'skip' });
     round.remaining[round.active] = Math.max(0, round.remaining[round.active] - this.settings.skipPenalty * 1000);
@@ -242,27 +255,33 @@ class TimeGame {
     return red < blue ? 'red' : 'blue';
   }
 
-  pause() {
+  pause(step) {
+    if (this.isStale(step)) return;
     this.assertRunning();
     this.settle();
+    this.round.step += 1;
     this.round.paused = true;
     this.round.runningSince = null;
     this.clearTimer();
   }
 
-  resume() {
+  resume(step) {
+    if (this.isStale(step)) return;
     if (this.phase !== 'playing' || !this.round.paused) throw new GameError('الوقت مو موقّف');
+    this.round.step += 1;
     this.round.paused = false;
     this.round.runningSince = this.now();
     this.scheduleTimeout();
   }
 
   /** Takes back the host's last «صح» or «تخطي». */
-  undo() {
+  undo(step) {
+    if (this.isStale(step)) return;
     if (this.phase !== 'playing') throw new GameError('الجولة مو شغّالة');
     const { round } = this;
     const last = round.history.pop();
     if (!last) throw new GameError('ما فيه شي تتراجع عنه');
+    round.step += 1;
     round.remaining = last.remaining;
     round.active = last.active;
     round.position = last.position;
