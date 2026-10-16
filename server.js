@@ -224,6 +224,14 @@ io.on('connection', (socket) => {
   hostAction('host:os-close', (room, { step }) => os(room).closeVote(step));
   hostAction('host:os-skip-guess', (room, { step }) => os(room).skipGuess(step));
 
+  // «مافيا»
+  const mf = (room) => room.gameOf('mafia');
+  hostAction('host:mf-night', (room, { step }) => mf(room).startNight(step));
+  hostAction('host:mf-end-night', (room, { step }) => mf(room).endNight(step));
+  hostAction('host:mf-discuss', (room, { step }) => mf(room).startDiscussion(step));
+  hostAction('host:mf-vote', (room, { step }) => mf(room).startVote(step));
+  hostAction('host:mf-end-vote', (room, { step }) => mf(room).endVote(step));
+
   on('player:join', ({ code, name, playerId }) => {
     const room = rooms.get(code);
     if (!room) throw new GameError('ما لقينا الغرفة، تأكد من الرقم');
@@ -259,6 +267,18 @@ io.on('connection', (socket) => {
   on('player:os-guess', ({ word }) => {
     const room = currentRoom('player');
     room.gameOf('outsider').guess(socket.data.playerId, word);
+    broadcast(room);
+  });
+
+  on('player:mf-pick', ({ target }) => {
+    const room = currentRoom('player');
+    room.mafiaPick(socket.data.playerId, target ?? null);
+    broadcast(room);
+  });
+
+  on('player:mf-vote', ({ target }) => {
+    const room = currentRoom('player');
+    room.mafiaVote(socket.data.playerId, target);
     broadcast(room);
   });
 

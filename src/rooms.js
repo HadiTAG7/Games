@@ -7,11 +7,13 @@ const { TimeGame } = require('./games/time');
 const { SeenGame } = require('./games/seen');
 const { LettersGame } = require('./games/letters');
 const { OutsiderGame } = require('./games/outsider');
+const { MafiaGame } = require('./games/mafia');
 const herdViews = require('./games/herd-views');
 const timeViews = require('./games/time-views');
 const seenViews = require('./games/seen-views');
 const lettersViews = require('./games/letters-views');
 const outsiderViews = require('./games/outsider-views');
+const mafiaViews = require('./games/mafia-views');
 const { normalizeAnswer } = require('./normalize');
 const { NightBoard } = require('./night');
 
@@ -25,6 +27,8 @@ const GAMES = {
   seen: { Game: SeenGame, views: seenViews, name: 'سين جيم', emoji: '❓' },
   letters: { Game: LettersGame, views: lettersViews, name: 'حروف', emoji: '🔤' },
   outsider: { Game: OutsiderGame, views: outsiderViews, name: 'برا السالفة', emoji: '🤫' },
+  // «مافيا» needs no question file.
+  mafia: { Game: MafiaGame, views: mafiaViews, name: 'مافيا', emoji: '🎭', needsContent: false },
 };
 
 function cleanName(name) {
@@ -57,7 +61,7 @@ class Room {
   /** The games this room can play: the ones whose questions are loaded. */
   games() {
     return Object.entries(GAMES)
-      .filter(([id]) => (this.content[id] ?? []).length > 0)
+      .filter(([id, g]) => g.needsContent === false || (this.content[id] ?? []).length > 0)
       .map(([id, g]) => ({ id, name: g.name, emoji: g.emoji }));
   }
 
@@ -103,6 +107,7 @@ class Room {
     this.maybeAutoReveal();
     this.maybeFinishVote();
     this.maybeCloseOutsiderVote();
+    this.maybeMoveMafia();
   }
 
   connect(playerId, socketId) {
@@ -113,6 +118,7 @@ class Room {
     this.players.get(playerId)?.sockets.delete(socketId);
     this.maybeFinishVote();
     this.maybeCloseOutsiderVote();
+    this.maybeMoveMafia();
   }
 
   isConnected(playerId) {
@@ -182,6 +188,30 @@ class Room {
     if (this.game.allVoted(connected)) this.game.closeVote();
   }
 
+  /* ---------- «مافيا» room rules ---------- */
+
+  connectedIds() {
+    return [...this.players.keys()].filter((id) => this.isConnected(id));
+  }
+
+  mafiaPick(playerId, target) {
+    this.gameOf('mafia').pick(playerId, target);
+    this.maybeMoveMafia();
+  }
+
+  mafiaVote(playerId, target) {
+    this.gameOf('mafia').castVote(playerId, target);
+    this.maybeMoveMafia();
+  }
+
+  /** The night ends once everyone still connected has picked; the vote once they've voted. */
+  maybeMoveMafia() {
+    if (this.gameType !== 'mafia') return;
+    const { game } = this;
+    if (game.phase === 'night') game.maybeEndNight(this.connectedIds());
+    else if (game.phase === 'vote' && game.allVoted(this.connectedIds())) game.endVote();
+  }
+
   /** Adds a finished game to «بطل السهرة»; called on every change. */
   settleNight() {
     return this.night.settle(this.game);
@@ -201,12 +231,13 @@ class Room {
     };
   }
 
+  // The room's own fields come last, so a game's view can't shadow them (say, «night»).
   hostView() {
-    return { ...this.commonView('host'), ...GAMES[this.gameType].views.hostView(this) };
+    return { ...GAMES[this.gameType].views.hostView(this), ...this.commonView('host') };
   }
 
   playerView(playerId) {
-    return { ...this.commonView('player'), ...GAMES[this.gameType].views.playerView(this, playerId) };
+    return { ...GAMES[this.gameType].views.playerView(this, playerId), ...this.commonView('player') };
   }
 
   dispose() {

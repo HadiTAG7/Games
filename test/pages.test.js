@@ -32,6 +32,7 @@ test('every game has its own themed page with a create-room button', () => {
 test('the counts on the pages match the question files', () => {
   const home = page('index');
   for (const id of Object.keys(GAMES)) {
+    if (!COUNTS[id]) continue; // «مافيا» has no question file
     const count = COUNTS[id]();
     const shown = page(id).match(new RegExp(`data-count="${id}">(\\d+)<`));
     assert.ok(shown, `${id} page shows its count`);

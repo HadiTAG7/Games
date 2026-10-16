@@ -159,7 +159,8 @@ test('players without a team cannot buzz, and the host can give the turn', () =>
 
 test('a game without questions is hidden from the picker', () => {
   const room = new RoomManager({ categories: require('../data/questions.json').categories }).create();
-  assert.deepEqual(room.games().map((g) => g.id), ['herd']);
+  // «مافيا» needs no questions, so it is always there.
+  assert.deepEqual(room.games().map((g) => g.id), ['herd', 'mafia']);
   assert.throws(() => room.setGameType('letters'), /غير معروفة/);
 });
 

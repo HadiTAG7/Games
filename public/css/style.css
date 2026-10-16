@@ -54,6 +54,15 @@
   --accent-ink: #2a1d00;
   --watermark: '❓';
 }
+[data-theme="mafia"] {
+  --bg: #0c0707;
+  --glow1: #7f1d1d;
+  --glow2: #3f1d1d;
+  --muted: #e6c3c3;
+  --accent: #f43f5e;
+  --accent-ink: #ffffff;
+  --watermark: '🎭';
+}
 [data-theme="outsider"] {
   --bg: #170a1f;
   --glow1: #9d174d;
@@ -1472,3 +1481,43 @@ button.hr-cell:hover { filter: brightness(1.1); transform: scale(0.98); }
 .os-tally-bar span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .os-gains { justify-content: center; }
 .os-gains b { color: var(--good); }
+
+/* ---------- «مافيا» ---------- */
+
+.mf-stage { align-items: stretch; text-align: center; gap: 6px; }
+.mf-big { font-size: 84px; line-height: 1.1; text-align: center; }
+.mf-night .mf-big { animation: bounce 2.4s ease infinite; }
+.mf-night { --card: rgba(120, 140, 255, 0.06); }
+.mf-prompt { font-size: 22px; font-weight: 800; margin: 4px 0 8px; }
+.mf-mayor { font-weight: 700; color: var(--accent); }
+.mf-players { justify-content: center; margin: 12px 0; }
+.mf-players .chip { font-size: 17px; }
+.mf-players .chip.dead { opacity: 0.55; text-decoration: line-through; }
+.mf-players .chip.me { outline: 2px solid var(--accent); }
+.mf-badge { font-weight: 700; color: var(--muted); }
+.mf-badge.mafia { color: #ff8a9b; }
+.mf-lineup { justify-content: center; }
+.mf-chip.mafia { border-color: rgba(244, 63, 94, 0.6); background: rgba(244, 63, 94, 0.14); }
+.mf-lineup-box { margin: 14px 0; text-align: center; }
+.mf-lineup-box b { display: block; margin-bottom: 8px; }
+.mf-announce { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 560px; margin: 8px auto; animation: pop 0.35s ease; }
+.mf-death, .mf-safe { padding: 16px; border-radius: var(--radius); font-size: clamp(22px, 4.5vw, 32px); font-weight: 800; }
+.mf-death { border: 2px solid var(--bad); background: var(--bad-soft); }
+.mf-death span { font-size: 0.7em; font-weight: 700; color: var(--muted); }
+.mf-safe { border: 2px solid var(--good); background: var(--good-soft); }
+.mf-shot { margin: 0; font-weight: 800; color: var(--accent); }
+.mf-tally { list-style: none; padding: 0; margin: 4px auto; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 6px; }
+.mf-tally li { display: flex; justify-content: space-between; padding: 8px 14px; border-radius: 12px; background: var(--card); }
+.mf-team { color: var(--accent) !important; font-weight: 700; }
+.mf-card .os-card-word { color: var(--accent); }
+.btn.ghost.picked { border-color: var(--accent); color: var(--accent); }
+
+/* مافيا: night, the cards and the morning news */
+.mf-demo { padding: 22px 16px; border: 1px solid var(--line); border-radius: 26px; background: radial-gradient(circle at 80% 10%, rgba(255, 240, 200, 0.12), transparent 40%), rgba(0, 0, 0, 0.35); text-align: center; }
+.mf-demo-moon { font-size: 56px; line-height: 1; text-align: end; }
+.mf-demo-cards { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 10px 0 18px; }
+.mf-demo-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 84px; aspect-ratio: 3 / 4; border-radius: 14px; border: 1px solid var(--line); background: var(--card-strong); }
+.mf-demo-card span { font-size: 34px; line-height: 1; }
+.mf-demo-card b { font-size: 15px; }
+.mf-demo-card.bad { border-color: var(--accent); background: rgba(244, 63, 94, 0.18); transform: translateY(-6px); }
+.mf-demo-news { padding: 12px 14px; border-radius: 14px; background: var(--good-soft); border: 1px solid var(--good); font-size: 17px; }

@@ -118,7 +118,7 @@ function playSounds(prev, next) {
   if (prev.phase !== 'final' && next.phase === 'final') {
     const team = next.me?.team;
     const winner = next.matchWinner ?? next.winner;
-    const won = next.isWinner ?? (team && winner === team);
+    const won = PLAY_GAMES[next.gameType].won?.(next) ?? next.isWinner ?? (team && winner === team);
     sfx.play(won ? 'win' : 'lose');
     return;
   }

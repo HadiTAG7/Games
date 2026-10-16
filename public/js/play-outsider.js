@@ -197,5 +197,7 @@ function sounds(prev, next) {
   if (pair.asker.id === next.me.id && before?.asker.id !== next.me.id) sfx.play('turn');
 }
 
-PLAY_GAMES.outsider = { render, sounds };
+const won = (s) => s.me.rank === 1 && s.me.score > 0;
+
+PLAY_GAMES.outsider = { render, sounds, won };
 })();
