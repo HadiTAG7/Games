@@ -7,9 +7,13 @@ const { GameError } = require('../src/games/herd');
 
 const prompts = (prefix, n) => Array.from({ length: n }, (_, i) => `${prefix} ${i + 1}`);
 const CATEGORIES = [
-  { id: 'food', name: 'أكل', emoji: '🍔', same: prompts('أكل', 12), different: prompts('أكل مختلف', 4) },
-  { id: 'places', name: 'أماكن', emoji: '🏠', same: prompts('مكان', 8), different: prompts('مكان مختلف', 6) },
-];
+  { id: 'food', name: 'أكل', emoji: '🍔', subcategories: [
+    { id: 'food-a', name: 'شعبي', same: prompts('أكل', 12), different: prompts('أكل مختلف', 4) },
+  ] },
+  { id: 'places', name: 'أماكن', emoji: '🏠', subcategories: [
+    { id: 'places-a', name: 'البيت', same: prompts('مكان', 8), different: prompts('مكان مختلف', 6) },
+  ] },
+]
 
 function setup(names = ['أحمد', 'سارة', 'فهد']) {
   const manager = new RoomManager({ categories: CATEGORIES });
@@ -110,7 +114,7 @@ test('views carry the mode, rejected groups and the final winners', () => {
   room.game.updateSettings({ rounds: 1, mode: 'different' });
   assert.equal(room.hostView().mode, 'different');
   assert.equal(room.hostView().bankSize, 10);
-  assert.deepEqual(room.hostView().categories.map((c) => [c.id, c.counts.different]), [['food', 4], ['places', 6]]);
+  assert.deepEqual(room.hostView().categories.map((c) => [c.id, c.subcategories[0].counts.different]), [['food', 4], ['places', 6]]);
   room.game.start();
   room.submitAnswer(a.id, { text: 'أحمر', value: 2 });
   room.submitAnswer(b.id, { text: 'أزرق', value: 3 });
@@ -141,8 +145,59 @@ test('the host sees who skipped and which number burned', () => {
 
 test('views show the category of the current question', () => {
   const { room, players: [a] } = setup();
-  room.game.updateSettings({ categories: ['places'] });
+  room.game.updateSettings({ subcategories: ['places-a'] });
   room.game.start();
-  assert.deepEqual(room.hostView().category, { name: 'أماكن', emoji: '🏠' });
-  assert.deepEqual(room.playerView(a.id).category, { name: 'أماكن', emoji: '🏠' });
+  assert.deepEqual(room.hostView().category, { name: 'أماكن', emoji: '🏠', sub: 'البيت' });
+  assert.deepEqual(room.playerView(a.id).category, { name: 'أماكن', emoji: '🏠', sub: 'البيت' });
+});
+
+test('votes: connected non-authors vote, it closes by itself, and the host sees no tally early', () => {
+  const { room, players: [a, b, c] } = setup();
+  const d = room.join({ name: 'نوف' });
+  room.connect(d.id, 'socket-d');
+  room.game.start();
+  room.submitAnswer(a.id, { text: 'زرافة', value: 1 });
+  room.submitAnswer(b.id, { text: 'أحمر', value: 1 });
+  room.submitAnswer(c.id, { text: 'أزرق', value: 1 });
+  room.disconnect(d.id, 'socket-d');
+  room.game.reveal();
+  const giraffe = room.hostView().groups.find((g) => g.text === 'زرافة');
+  room.startVote(giraffe.id);
+  assert.equal(room.hostView().vote.eligibleCount, 2, 'the author and the disconnected player are out');
+  assert.equal(room.playerView(a.id).vote.isAuthor, true);
+  assert.equal(room.playerView(a.id).vote.canVote, false);
+  assert.equal(room.playerView(b.id).vote.canVote, true);
+
+  room.castVote(b.id, 'reject');
+  const hostVote = room.hostView().vote;
+  assert.equal(hostVote.votedCount, 1);
+  assert.equal(hostVote.keep, undefined, 'no tally while voting');
+  assert.deepEqual(hostVote.voters.map((v) => v.voted).sort(), [false, true]);
+  assert.equal(room.playerView(b.id).vote.myVote, 'reject');
+
+  room.castVote(c.id, 'reject');
+  assert.equal(room.hostView().vote, null, 'closed once everyone voted');
+  assert.equal(room.hostView().lastVote.rejected, true);
+  assert.equal(room.playerView(a.id).lastVote.reject, 2);
+  assert.equal(room.hostView().groups.find((g) => g.id === giraffe.id).rejected, true);
+});
+
+test('votes close when the last voter who has not voted disconnects, and a tie shows the tally', () => {
+  const { room, players: [a, b, c] } = setup();
+  const d = room.join({ name: 'نوف' });
+  room.connect(d.id, 'socket-d');
+  room.game.start();
+  room.submitAnswer(a.id, { text: 'زرافة', value: 1 });
+  room.submitAnswer(b.id, { text: 'أحمر', value: 1 });
+  room.submitAnswer(c.id, { text: 'أزرق', value: 1 });
+  room.submitAnswer(d.id, { text: 'أصفر', value: 1 });
+  const giraffe = room.hostView().groups.find((g) => g.text === 'زرافة');
+  room.startVote(giraffe.id);
+  room.castVote(b.id, 'keep');
+  room.castVote(c.id, 'reject');
+  room.disconnect(d.id, 'socket-d');
+  const vote = room.hostView().vote;
+  assert.equal(vote.status, 'tie');
+  assert.deepEqual([vote.keep, vote.reject], [1, 1]);
+  assert.equal(room.playerView(b.id).vote.status, 'tie');
 });

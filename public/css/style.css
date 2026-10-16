@@ -81,6 +81,7 @@ p { margin: 0 0 12px; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .btn.primary:not(:disabled):hover { filter: brightness(1.05); }
 .btn.ghost { background: transparent; }
+.btn.danger { background: var(--bad); color: #fff; border-color: transparent; }
 .btn.big { width: 100%; min-height: 56px; font-size: 20px; margin-top: 8px; }
 
 .pill {
@@ -138,7 +139,34 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .field-head { display: flex; align-items: center; gap: 12px; }
 .field-head > span { font-weight: 700; font-size: 14px; color: var(--muted); margin-inline-end: auto; }
 .link-btn.small { font-size: 13px; direction: rtl; }
-.category-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.category-tree { display: flex; flex-direction: column; gap: 8px; }
+.cat-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.expand-btn {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.sub-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px 4px; margin-inline-start: 12px; border-inline-start: 2px solid var(--line); }
+.sub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.sub-chip.picked { border-color: var(--accent); background: rgba(255, 210, 63, 0.14); color: var(--text); }
+.category-chip.partial { border-color: var(--accent); border-style: dashed; color: var(--text); }
 .category-chip {
   display: inline-flex;
   align-items: center;
@@ -398,10 +426,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .group.rejected { opacity: 0.55; border-style: dashed; }
 .group.rejected .group-text { text-decoration: line-through; }
 .rejected-label { margin-top: 8px; font-size: 14px; font-weight: 700; color: var(--bad); }
-.reject-btn {
-  position: absolute;
-  inset-inline-start: 12px;
-  bottom: 12px;
+.card-actions { position: absolute; inset-inline-start: 12px; bottom: 12px; display: flex; gap: 6px; }
+.reject-btn, .vote-btn {
   padding: 4px 12px;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -412,6 +438,26 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
   cursor: pointer;
 }
 .reject-btn:hover { border-color: var(--bad); }
+.vote-btn:hover { border-color: var(--accent); }
+.voting-label { margin-top: 8px; font-size: 14px; font-weight: 700; color: var(--accent); }
+
+.vote-panel {
+  margin: 0 auto 16px;
+  width: 100%;
+  max-width: 640px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 2px solid var(--accent);
+  background: rgba(255, 210, 63, 0.08);
+  text-align: center;
+}
+.vote-panel h3 { margin-bottom: 6px; }
+.vote-panel .actions { margin-top: 8px; }
+.vote-title { font-size: 28px; font-weight: 800; text-align: center; margin-top: 8px; }
+.vote-answer { font-size: 34px; font-weight: 800; text-align: center; margin: 4px 0 16px; color: var(--accent); }
+.vote-choices { display: grid; gap: 10px; margin-bottom: 8px; }
+.vote-choice.keep.picked { background: var(--good); color: #00321f; border-color: transparent; }
+.vote-choice.reject.picked { background: var(--bad); color: #fff; border-color: transparent; }
 .group.winner { border-color: var(--good); background: var(--good-soft); }
 .group.selected { outline: 3px dashed var(--accent); outline-offset: 3px; }
 .group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -510,6 +556,8 @@ details.card[open] summary { margin-bottom: 10px; }
   animation: fall linear infinite;
 }
 .final > :not(.confetti) { position: relative; z-index: 1; }
+
+.calm .group, .calm .chip, .calm .verdict { animation: none; }
 
 @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pulse { 50% { transform: scale(1.08); } }

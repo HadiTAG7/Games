@@ -46,6 +46,7 @@ class Room {
     this.players.delete(playerId);
     this.game.removePlayer(playerId);
     this.maybeAutoReveal();
+    this.maybeFinishVote();
   }
 
   connect(playerId, socketId) {
@@ -54,6 +55,30 @@ class Room {
 
   disconnect(playerId, socketId) {
     this.players.get(playerId)?.sockets.delete(socketId);
+    this.maybeFinishVote();
+  }
+
+  isConnected(playerId) {
+    return (this.players.get(playerId)?.sockets.size ?? 0) > 0;
+  }
+
+  /** Everyone connected may vote; the game leaves out the answer's authors. */
+  startVote(groupId) {
+    const connected = [...this.players.keys()].filter((id) => this.isConnected(id));
+    this.game.startVote(groupId, connected);
+  }
+
+  castVote(playerId, choice) {
+    this.game.castVote(playerId, choice);
+    this.maybeFinishVote();
+  }
+
+  /** Close the vote once every voter who is still connected has voted. */
+  maybeFinishVote() {
+    const vote = this.game.round?.vote;
+    if (!vote || vote.status !== 'open') return;
+    const waiting = [...vote.eligible].some((id) => !vote.votes.has(id) && this.isConnected(id));
+    if (!waiting) this.game.finishVote();
   }
 
   submitAnswer(playerId, payload) {
@@ -101,9 +126,45 @@ class Room {
     return playerId ? this.players.get(playerId)?.name ?? null : null;
   }
 
-  categoryOf(id) {
-    const category = id && this.game.categories.find((c) => c.id === id);
-    return category ? { name: category.name, emoji: category.emoji } : null;
+  categoryOf(round) {
+    const category = round?.category && this.game.categories.find((c) => c.id === round.category);
+    if (!category) return null;
+    const sub = category.subcategories.find((s) => s.id === round.subcategory);
+    return { name: category.name, emoji: category.emoji, sub: sub?.name ?? null };
+  }
+
+  voteViewFor(playerId) {
+    const { vote } = this.game.round ?? {};
+    if (!vote) return null;
+    const group = this.game.round.groups.find((g) => g.id === vote.groupId);
+    return {
+      text: vote.text,
+      status: vote.status,
+      votedCount: vote.votes.size,
+      eligibleCount: vote.eligible.size,
+      canVote: vote.status === 'open' && vote.eligible.has(playerId),
+      isAuthor: Boolean(group?.members.some((m) => m.playerId === playerId)),
+      myVote: vote.votes.get(playerId) ?? null,
+    };
+  }
+
+  /** The host sees who voted but not how, until the vote closes. */
+  hostVoteView() {
+    const { vote } = this.game.round ?? {};
+    if (!vote) return null;
+    return {
+      groupId: vote.groupId,
+      text: vote.text,
+      status: vote.status,
+      votedCount: vote.votes.size,
+      eligibleCount: vote.eligible.size,
+      voters: [...vote.eligible].map((id) => ({
+        name: this.nameOf(id),
+        voted: vote.votes.has(id),
+        connected: this.isConnected(id),
+      })),
+      ...(vote.status === 'tie' ? this.game.voteTally() : {}),
+    };
   }
 
   baseView() {
@@ -117,7 +178,7 @@ class Room {
       totalRounds: game.questions.length || game.settings.rounds,
       isLastRound: game.phase !== 'lobby' && game.isLastRound(),
       question: round?.question ?? null,
-      category: this.categoryOf(round?.category),
+      category: this.categoryOf(round),
       endsAt: round?.endsAt ?? null,
       serverTime: Date.now(),
       answeredCount: round ? round.answers.size : 0,
@@ -140,7 +201,11 @@ class Room {
         id: c.id,
         name: c.name,
         emoji: c.emoji,
-        counts: { same: c.same.length, different: c.different.length },
+        subcategories: c.subcategories.map((sub) => ({
+          id: sub.id,
+          name: sub.name,
+          counts: { same: sub.same.length, different: sub.different.length },
+        })),
       })),
       players: [...this.players.values()]
         .sort((a, b) => a.joinedAt - b.joinedAt)
@@ -155,6 +220,8 @@ class Room {
     if (phase === 'reveal' || phase === 'results') {
       view.groups = this.groupsView();
       view.canUndo = phase === 'reveal' && round.history.length > 0;
+      view.vote = phase === 'reveal' ? this.hostVoteView() : null;
+      view.lastVote = phase === 'reveal' ? round.lastVote : null;
     }
     if (phase === 'results') {
       view.missed = round.missed
@@ -192,6 +259,10 @@ class Room {
     }
     if (phase === 'final') view.isWinner = game.gameWinners().includes(playerId);
     if (phase === 'results') view.groups = this.groupsView();
+    if (phase === 'reveal') {
+      view.vote = this.voteViewFor(playerId);
+      view.lastVote = round.lastVote;
+    }
     return view;
   }
 

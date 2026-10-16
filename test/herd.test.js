@@ -8,11 +8,20 @@ const {
 
 const prompts = (prefix, n) => Array.from({ length: n }, (_, i) => `${prefix} ${i + 1}`);
 const CATEGORIES = [
-  { id: 'food', name: 'أكل', emoji: '🍔', same: prompts('أكل', 20), different: prompts('أكل مختلف', 10) },
-  { id: 'places', name: 'أماكن', emoji: '🏠', same: prompts('مكان', 10), different: prompts('مكان مختلف', 10) },
-  { id: 'tiny', name: 'صغيرة', emoji: '🔤', same: prompts('صغير', 3), different: [] },
+  { id: 'food', name: 'أكل', emoji: '🍔', subcategories: [
+    { id: 'food-a', name: 'أكل أ', same: prompts('أكل أ', 12), different: prompts('أكل أ مختلف', 5) },
+    { id: 'food-b', name: 'أكل ب', same: prompts('أكل ب', 12), different: prompts('أكل ب مختلف', 5) },
+    { id: 'food-c', name: 'أكل ج', same: prompts('أكل ج', 12), different: [] },
+  ] },
+  { id: 'places', name: 'أماكن', emoji: '🏠', subcategories: [
+    { id: 'places-a', name: 'أماكن أ', same: prompts('مكان', 10), different: prompts('مكان مختلف', 10) },
+  ] },
+  { id: 'tiny', name: 'صغيرة', emoji: '🔤', subcategories: [
+    { id: 'tiny-a', name: 'صغيرة أ', same: prompts('صغير', 3), different: [] },
+  ] },
 ];
-const DIFFERENT_BANK = CATEGORIES.flatMap((c) => c.different);
+const SUBS = CATEGORIES.flatMap((c) => c.subcategories);
+const DIFFERENT_BANK = SUBS.flatMap((sub) => sub.different);
 const texts = (questions) => questions.map((q) => q.text);
 
 function newGame(players = ['a', 'b', 'c', 'd']) {
@@ -198,7 +207,10 @@ test('custom questions are used in order, mixed with the bank, or required', () 
   const custom = newGame();
   custom.updateSettings({ source: 'custom', customQuestions: 'سؤالي الأول\n\n  سؤالي الثاني  \n' });
   custom.start();
-  assert.deepEqual(custom.questions, [{ text: 'سؤالي الأول', category: null }, { text: 'سؤالي الثاني', category: null }]);
+  assert.deepEqual(custom.questions, [
+    { text: 'سؤالي الأول', category: null, subcategory: null },
+    { text: 'سؤالي الثاني', category: null, subcategory: null },
+  ]);
 
   const mix = newGame();
   mix.updateSettings({ source: 'mix', rounds: 5, customQuestions: ['خاص'] });
@@ -353,48 +365,149 @@ test('the mode is part of the settings and locked mid-game', () => {
   assert.throws(() => game.updateSettings({ mode: 'same' }), GameError);
 });
 
-test('all categories are picked by default and unknown ids are ignored', () => {
+test('every subcategory is picked by default and unknown ids are ignored', () => {
   const game = newGame();
-  assert.deepEqual(game.settings.categories, ['food', 'places', 'tiny']);
-  game.updateSettings({ categories: ['places', 'nope'] });
-  assert.deepEqual(game.settings.categories, ['places']);
-  assert.equal(game.bankSize(), 10);
+  assert.deepEqual(game.settings.subcategories, ['food-a', 'food-b', 'food-c', 'places-a', 'tiny-a']);
+  game.updateSettings({ subcategories: ['places-a', 'food-b', 'nope'] });
+  assert.deepEqual(game.settings.subcategories, ['food-b', 'places-a'], 'kept in tree order');
+  assert.equal(game.bankSize(), 22);
   game.updateSettings({ mode: 'different' });
-  assert.equal(game.bankSize(), 10);
+  assert.equal(game.bankSize(), 15);
 });
 
-test('questions only come from the picked categories, drawn evenly', () => {
+test('questions are drawn evenly across categories, then across their subcategories', () => {
   const game = newGame();
-  game.updateSettings({ categories: ['food', 'places'], rounds: 10 });
+  game.updateSettings({ subcategories: ['food-a', 'food-b', 'places-a'], rounds: 10 });
   game.start();
-  const counts = {};
-  for (const q of game.questions) counts[q.category] = (counts[q.category] || 0) + 1;
-  assert.deepEqual(counts, { food: 5, places: 5 }, 'a big category does not crowd out a small one');
-  assert.ok(['food', 'places'].includes(game.round.category));
-  const category = CATEGORIES.find((c) => c.id === game.round.category);
-  assert.ok(category.same.includes(game.round.question));
+  const byCategory = {};
+  const bySub = {};
+  for (const q of game.questions) {
+    byCategory[q.category] = (byCategory[q.category] || 0) + 1;
+    bySub[q.subcategory] = (bySub[q.subcategory] || 0) + 1;
+  }
+  assert.deepEqual(byCategory, { food: 5, places: 5 }, 'two food subcategories do not double food');
+  assert.ok(Math.abs(bySub['food-a'] - bySub['food-b']) <= 1, JSON.stringify(bySub));
+  const sub = SUBS.find((x) => x.id === game.round.subcategory);
+  assert.ok(sub.same.includes(game.round.question));
+});
+
+test('picking one subcategory only asks from it', () => {
+  const game = newGame();
+  game.updateSettings({ subcategories: ['food-c'], rounds: 5 });
+  game.start();
+  assert.ok(game.questions.every((q) => q.subcategory === 'food-c' && q.category === 'food'));
 });
 
 test('a small category runs out and the others fill the rest', () => {
   const game = newGame();
-  game.updateSettings({ categories: ['tiny', 'places'], rounds: 9 });
+  game.updateSettings({ subcategories: ['tiny-a', 'places-a'], rounds: 9 });
   game.start();
-  const tiny = game.questions.filter((q) => q.category === 'tiny');
-  assert.equal(tiny.length, 3);
+  assert.equal(game.questions.filter((q) => q.category === 'tiny').length, 3);
   assert.equal(game.questions.length, 9);
 });
 
 test('there must be bank questions for the chosen categories and mode', () => {
   const none = newGame();
-  none.updateSettings({ categories: [] });
-  assert.throws(() => none.start(), /اختر فئة/);
+  none.updateSettings({ subcategories: [] });
+  assert.throws(() => none.start(), /اختر قسم/);
 
   const empty = newGame();
-  empty.updateSettings({ categories: ['tiny'], mode: 'different' });
+  empty.updateSettings({ subcategories: ['tiny-a'], mode: 'different' });
   assert.throws(() => empty.start(), /ما فيه أسئلة/);
 
   const custom = newGame();
-  custom.updateSettings({ categories: [], source: 'mix', customQuestions: 'سؤالي' });
+  custom.updateSettings({ subcategories: [], source: 'mix', customQuestions: 'سؤالي' });
   custom.start();
   assert.deepEqual(texts(custom.questions), ['سؤالي'], 'mix still works with only custom questions');
+});
+
+/* ---------- Voting on a doubtful answer ---------- */
+
+function reviewing(mode = 'same') {
+  const game = newGame(['a', 'b', 'c', 'd', 'e']);
+  game.updateSettings({ mode });
+  game.start();
+  play(game, [['a', 'زرافة', 4], ['b', 'أخضر', 3], ['c', 'أصفر', 2], ['d', 'أحمر', 1], ['e', 'أزرق', 5]]);
+  const giraffe = game.round.groups.find((g) => g.text === 'زرافة');
+  return { game, giraffe };
+}
+
+test('authors cannot vote on their own answer', () => {
+  const { game, giraffe } = reviewing();
+  game.startVote(giraffe.id, ['a', 'b', 'c', 'd', 'e']);
+  assert.deepEqual([...game.round.vote.eligible].sort(), ['b', 'c', 'd', 'e']);
+  assert.throws(() => game.castVote('a', 'keep'), /ما تقدر تصوّت/);
+  assert.throws(() => game.castVote('b', 'maybe'), GameError);
+});
+
+test('a reject majority rejects the answer, and undo brings it back', () => {
+  const { game, giraffe } = reviewing('different');
+  game.startVote(giraffe.id, ['b', 'c', 'd', 'e']);
+  game.castVote('b', 'reject');
+  game.castVote('c', 'reject');
+  game.castVote('d', 'keep');
+  game.castVote('c', 'reject'); // changing your mind is fine
+  game.finishVote();
+  assert.equal(game.round.vote, null);
+  assert.equal(game.round.groups.find((g) => g.id === giraffe.id).rejected, true);
+  assert.deepEqual(game.round.lastVote, { text: 'زرافة', keep: 1, reject: 2, rejected: true, decidedBy: 'players' });
+  game.undo();
+  assert.equal(game.round.groups.find((g) => g.id === giraffe.id).rejected, false);
+  assert.equal(game.round.lastVote, null);
+});
+
+test('a keep majority accepts an answer the host had rejected', () => {
+  const { game, giraffe } = reviewing();
+  game.toggleReject(giraffe.id);
+  game.startVote(giraffe.id, ['b', 'c']);
+  game.castVote('b', 'keep');
+  game.castVote('c', 'keep');
+  game.finishVote();
+  assert.equal(game.round.groups.find((g) => g.id === giraffe.id).rejected, false);
+});
+
+test('a tie waits for the host to decide', () => {
+  const { game, giraffe } = reviewing();
+  game.startVote(giraffe.id, ['b', 'c']);
+  game.castVote('b', 'keep');
+  game.castVote('c', 'reject');
+  game.finishVote();
+  assert.equal(game.round.vote.status, 'tie');
+  assert.throws(() => game.castVote('b', 'reject'), GameError, 'voting is closed');
+  game.decideTie(true);
+  assert.equal(game.round.groups.find((g) => g.id === giraffe.id).rejected, true);
+  assert.equal(game.round.lastVote.decidedBy, 'host');
+  assert.throws(() => game.decideTie(false), GameError);
+});
+
+test('nothing else can change while a vote is open, and it can be cancelled', () => {
+  const { game, giraffe } = reviewing();
+  game.startVote(giraffe.id, ['b']);
+  assert.throws(() => game.startVote(giraffe.id, ['c']), /تصويت شغّال/);
+  assert.throws(() => game.toggleReject(giraffe.id), /تصويت شغّال/);
+  assert.throws(() => game.confirm(), /تصويت شغّال/);
+  game.cancelVote();
+  assert.equal(game.round.vote, null);
+  assert.equal(game.round.history.length, 0, 'a cancelled vote changes nothing');
+  game.confirm();
+});
+
+test('a vote needs someone to vote, and only runs while reviewing', () => {
+  const { game, giraffe } = reviewing();
+  assert.throws(() => game.startVote(giraffe.id, ['a']), /ما فيه أحد يقدر يصوّت/);
+  assert.throws(() => game.startVote('nope', ['b']), GameError);
+  const fresh = newGame();
+  fresh.start();
+  assert.throws(() => fresh.startVote('g1', ['a']), GameError);
+});
+
+test('removing a voter or the answer during a vote', () => {
+  const { game, giraffe } = reviewing();
+  game.startVote(giraffe.id, ['b', 'c']);
+  game.castVote('b', 'reject');
+  game.removePlayer('b');
+  assert.deepEqual([...game.round.vote.eligible], ['c']);
+  assert.equal(game.voteTally().reject, 0);
+  game.removePlayer('a');
+  assert.equal(game.round.vote, null, 'the answer is gone, so is its vote');
 });

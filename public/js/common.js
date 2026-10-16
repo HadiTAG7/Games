@@ -107,6 +107,21 @@ const MODES = {
   },
 };
 
+function categoryTag(category) {
+  if (!category) return null;
+  return h('div', { class: 'category-tag' },
+    `${category.emoji} ${category.name}`, category.sub ? ` · ${category.sub}` : null);
+}
+
+function lastVoteBanner(lastVote) {
+  if (!lastVote) return null;
+  const detail = lastVote.decidedBy === 'host'
+    ? `تعادل ${lastVote.keep}–${lastVote.reject} وقرر المضيف`
+    : `${lastVote.reject} رفض · ${lastVote.keep} قبول`;
+  return h('div', { class: `banner ${lastVote.rejected ? 'bad' : 'good'}` },
+    '🗳️ الجواب «', h('b', {}, lastVote.text), `» ${lastVote.rejected ? 'انرفض' : 'انقبل'} (${detail})`);
+}
+
 function standingsList(rows, { highlightId = null, showGain = true } = {}) {
   return h('ol', { class: 'standings' }, rows.map((row) => h('li', { class: row.id === highlightId ? 'me' : null },
     h('span', { class: 'rank' }, (row.score > 0 && MEDALS[row.rank]) || row.rank),

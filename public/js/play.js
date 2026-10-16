@@ -1,4 +1,4 @@
-/* global io, $, h, range, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES */
+/* global io, $, h, range, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner */
 'use strict';
 
 const socket = io();
@@ -117,7 +117,10 @@ function render() {
     return;
   }
 
-  screenKey = state.phase;
+  // Only animate the screen the first time it appears, not on every update.
+  const key = `${state.phase}:${state.roundNumber}`;
+  app.classList.toggle('calm', screenKey === key);
+  screenKey = key;
   const screens = { lobby: renderLobby, reveal: renderReveal, results: renderResults, final: renderFinal };
   app.replaceChildren(topbar(), screens[state.phase]());
 }
@@ -135,10 +138,6 @@ function topbar() {
 function modePill() {
   const mode = MODES[state.mode];
   return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
-}
-
-function categoryTag() {
-  return state.category ? h('div', { class: 'category-tag' }, `${state.category.emoji} ${state.category.name}`) : null;
 }
 
 function answeredText() {
@@ -208,7 +207,7 @@ function renderAnswerForm() {
     h('form', { class: 'answer-form', onsubmit: submit },
       modePill(),
       timerEl(state.endsAt),
-      categoryTag(),
+      categoryTag(state.category),
       h('h1', { class: 'question' }, state.question),
       h('div', { class: 'step' }, h('span', { class: 'step-num' }, '1'), 'اختر رقم تراهن فيه'),
       bets,
@@ -226,7 +225,7 @@ function renderSent() {
   return h('main', { class: 'stage narrow' },
     modePill(),
     timerEl(state.endsAt),
-    categoryTag(),
+    categoryTag(state.category),
     h('h1', { class: 'question' }, state.question),
     h('div', { class: 'card sent' },
       h('div', { class: 'big-emoji' }, '✅'),
@@ -247,13 +246,55 @@ function renderSent() {
 }
 
 function renderReveal() {
+  if (state.vote) return renderVote(state.vote);
   return h('main', { class: 'stage narrow' },
     h('div', { class: 'spinner', 'aria-hidden': 'true' }),
     h('h2', { class: 'center' }, 'المضيف يراجع الأجوبة…'),
     h('h1', { class: 'question small' }, state.question),
+    lastVoteBanner(state.lastVote),
     state.myAnswer
       ? h('div', { class: 'card center' }, 'جوابك: ', h('b', {}, state.myAnswer.text), ` · راهنت بـ ${state.myAnswer.value}`)
       : h('p', { class: 'muted center' }, 'ما لحقت تجاوب هالمرة'),
+  );
+}
+
+function renderVote(vote) {
+  const progress = h('p', { class: 'muted center' }, `صوّت ${vote.votedCount} من ${vote.eligibleCount}`);
+  const header = [
+    h('div', { class: 'vote-title' }, '🗳️ تصويت'),
+    h('p', { class: 'muted center' }, state.question),
+    h('div', { class: 'vote-answer' }, vote.text),
+  ];
+  if (vote.status === 'tie') {
+    return h('main', { class: 'stage narrow' }, header, h('p', { class: 'center' }, 'تعادل! المضيف بيقرر…'));
+  }
+  if (vote.isAuthor) {
+    return h('main', { class: 'stage narrow' }, header,
+      h('div', { class: 'card center' }, 'هذا جوابك، الباقين يصوّتون عليه 🤞'), progress);
+  }
+  if (!vote.canVote) {
+    return h('main', { class: 'stage narrow' }, header, h('p', { class: 'center' }, 'فيه تصويت على هالجواب، انتظر…'), progress);
+  }
+  const choose = async (choice) => {
+    const res = await emit(socket, 'player:vote', { choice });
+    if (!res.ok) toast(res.error);
+  };
+  return h('main', { class: 'stage narrow' }, header,
+    h('p', { class: 'center' }, 'هل هذا جواب صحيح للسؤال؟'),
+    h('div', { class: 'vote-choices' },
+      h('button', {
+        class: `btn big vote-choice keep${vote.myVote === 'keep' ? ' picked' : ''}`,
+        'aria-pressed': String(vote.myVote === 'keep'),
+        onclick: () => choose('keep'),
+      }, '✅ صحيح، يُقبل'),
+      h('button', {
+        class: `btn big vote-choice reject${vote.myVote === 'reject' ? ' picked' : ''}`,
+        'aria-pressed': String(vote.myVote === 'reject'),
+        onclick: () => choose('reject'),
+      }, '🚫 غلط، ينرفض'),
+    ),
+    vote.myVote ? h('p', { class: 'hint center' }, 'وصل صوتك، تقدر تغيّره لين يخلص التصويت') : null,
+    progress,
   );
 }
 

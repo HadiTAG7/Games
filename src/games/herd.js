@@ -11,8 +11,13 @@
 //   different  «عكس القطيع»: every answer nobody else gave.
 // In both, the host can reject invalid answers so they can't win.
 //
-// Bank questions come from the categories the host picks; each category has
-// its own prompts for each mode, and a game draws evenly from all of them.
+// While reviewing, the host can put a doubtful answer to a vote: everyone
+// except its authors votes to keep or reject it, and a tie goes back to the
+// host.
+//
+// Bank questions come from the subcategories the host picks; each one has
+// its own prompts for each mode, and a game draws evenly across categories
+// and then across the subcategories inside each.
 
 const { normalizeAnswer } = require('../normalize');
 
@@ -25,6 +30,7 @@ const MAX_QUESTION_LENGTH = 140;
 const TIMER_OPTIONS = [0, 20, 30, 45, 60, 90];
 const SOURCES = ['bank', 'custom', 'mix'];
 const MODES = ['same', 'different'];
+const VOTE_CHOICES = ['keep', 'reject'];
 // Answers sent right as the clock hits zero still count.
 const TIMER_GRACE_MS = 750;
 
@@ -106,9 +112,15 @@ function withoutPlayer(groups, playerId) {
   );
 }
 
-function toggleRejected(groups, groupId) {
+function setRejected(groups, groupId, rejected) {
   if (!groups.some((g) => g.id === groupId)) throw new GameError('المجموعة غير موجودة');
-  return sortGroups(groups.map((g) => (g.id === groupId ? { ...g, rejected: !g.rejected } : g)));
+  return sortGroups(groups.map((g) => (g.id === groupId ? { ...g, rejected } : g)));
+}
+
+function toggleRejected(groups, groupId) {
+  const group = groups.find((g) => g.id === groupId);
+  if (!group) throw new GameError('المجموعة غير موجودة');
+  return setRejected(groups, groupId, !group.rejected);
 }
 
 /**
@@ -138,9 +150,12 @@ function freshPlayerState() {
 }
 
 class HerdGame {
-  /** categories: [{ id, name, emoji, same: [prompt], different: [prompt] }] */
+  /**
+   * categories: [{ id, name, emoji, subcategories: [{ id, name, same: [prompt], different: [prompt] }] }]
+   */
   constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
     this.categories = categories;
+    this.subcategories = categories.flatMap((c) => c.subcategories.map((sub) => ({ ...sub, categoryId: c.id })));
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
@@ -150,7 +165,7 @@ class HerdGame {
       timer: 0,
       source: 'bank',
       customQuestions: [],
-      categories: categories.map((c) => c.id),
+      subcategories: this.subcategories.map((sub) => sub.id),
     };
     this.players = new Map();
     this.phase = 'lobby';
@@ -174,6 +189,12 @@ class HerdGame {
     if (this.phase === 'reveal') {
       this.round.groups = withoutPlayer(this.round.groups, id);
       this.round.history = this.round.history.map((groups) => withoutPlayer(groups, id));
+      const { vote } = this.round;
+      if (vote) {
+        vote.eligible.delete(id);
+        vote.votes.delete(id);
+        if (!this.round.groups.some((g) => g.id === vote.groupId)) this.round.vote = null;
+      }
     }
   }
 
@@ -191,65 +212,79 @@ class HerdGame {
       s.customQuestions = parseCustomQuestions(patch.customQuestions);
     }
     if (patch.mode !== undefined && MODES.includes(patch.mode)) s.mode = patch.mode;
-    if (Array.isArray(patch.categories)) {
-      const wanted = new Set(patch.categories);
-      s.categories = this.categories.filter((c) => wanted.has(c.id)).map((c) => c.id);
+    if (Array.isArray(patch.subcategories)) {
+      const wanted = new Set(patch.subcategories);
+      s.subcategories = this.subcategories.filter((sub) => wanted.has(sub.id)).map((sub) => sub.id);
     }
     this.settings = s;
   }
 
-  selectedCategories() {
-    const ids = new Set(this.settings.categories);
-    return this.categories.filter((c) => ids.has(c.id));
+  selectedSubcategories() {
+    const ids = new Set(this.settings.subcategories);
+    return this.subcategories.filter((sub) => ids.has(sub.id));
   }
 
-  /** How many bank questions the current mode and categories offer. */
+  /** How many bank questions the current mode and subcategories offer. */
   bankSize() {
-    return new Set(this.selectedCategories().flatMap((c) => c[this.settings.mode] || [])).size;
+    return new Set(this.selectedSubcategories().flatMap((sub) => sub[this.settings.mode])).size;
   }
 
   /**
-   * Draws round-robin across the chosen categories so a big category doesn't
-   * crowd out the others, avoiding questions this room has already seen.
+   * Draws round-robin across the chosen categories, and inside each category
+   * across its chosen subcategories, so a big pick doesn't crowd out the
+   * others. Skips questions this room has already seen.
    */
   pickFromBank(count) {
     const { mode } = this.settings;
-    const categories = this.selectedCategories().filter((c) => (c[mode] || []).length);
-    const all = categories.flatMap((c) => c[mode]);
+    const leaves = this.selectedSubcategories().filter((sub) => sub[mode].length);
+    const all = leaves.flatMap((sub) => sub[mode]);
     if (all.filter((q) => !this.seenQuestions.has(q)).length < count) {
       for (const q of all) this.seenQuestions.delete(q);
     }
-    const pools = shuffle(categories, this.random).map((c) => ({
-      category: c.id,
-      questions: shuffle(c[mode].filter((q) => !this.seenQuestions.has(q)), this.random),
-    }));
+    const byCategory = new Map();
+    for (const sub of leaves) {
+      if (!byCategory.has(sub.categoryId)) byCategory.set(sub.categoryId, []);
+      byCategory.get(sub.categoryId).push({
+        sub,
+        questions: shuffle(sub[mode].filter((q) => !this.seenQuestions.has(q)), this.random),
+      });
+    }
+    const rotations = shuffle([...byCategory.values()], this.random)
+      .map((pools) => ({ pools: shuffle(pools, this.random), next: 0 }));
     const picks = [];
     const taken = new Set();
-    while (picks.length < count && pools.some((pool) => pool.questions.length)) {
-      for (const pool of pools) {
+    const hasMore = () => rotations.some((r) => r.pools.some((pool) => pool.questions.length));
+    while (picks.length < count && hasMore()) {
+      for (const rotation of rotations) {
         if (picks.length >= count) break;
-        let text = pool.questions.pop();
-        while (text !== undefined && taken.has(text)) text = pool.questions.pop();
-        if (text === undefined) continue;
-        taken.add(text);
-        picks.push({ text, category: pool.category });
+        for (let tries = 0; tries < rotation.pools.length; tries++) {
+          const pool = rotation.pools[rotation.next++ % rotation.pools.length];
+          let text = pool.questions.pop();
+          while (text !== undefined && taken.has(text)) text = pool.questions.pop();
+          if (text === undefined) continue;
+          taken.add(text);
+          picks.push({ text, category: pool.sub.categoryId, subcategory: pool.sub.id });
+          break;
+        }
       }
     }
     for (const q of picks) this.seenQuestions.add(q.text);
     return shuffle(picks, this.random);
   }
 
-  /** [{ text, category }]; host-written questions have no category. */
+  /** [{ text, category, subcategory }]; host-written questions have neither. */
   buildQuestions() {
     const { rounds, source, customQuestions } = this.settings;
-    const custom = source === 'bank' ? [] : customQuestions.slice(0, rounds).map((text) => ({ text, category: null }));
+    const custom = source === 'bank'
+      ? []
+      : customQuestions.slice(0, rounds).map((text) => ({ text, category: null, subcategory: null }));
     if (source === 'custom') {
       if (!custom.length) throw new GameError('اكتب سؤال واحد على الأقل');
       return custom;
     }
     const picks = this.pickFromBank(rounds - custom.length);
     if (!picks.length && !custom.length) {
-      throw new GameError(this.settings.categories.length ? 'ما فيه أسئلة في الفئات اللي اخترتها' : 'اختر فئة وحدة على الأقل');
+      throw new GameError(this.settings.subcategories.length ? 'ما فيه أسئلة في الأقسام اللي اخترتها' : 'اختر قسم واحد على الأقل');
     }
     return source === 'mix' ? shuffle([...custom, ...picks], this.random) : picks;
   }
@@ -268,16 +303,19 @@ class HerdGame {
   startNextRound() {
     this.roundIndex += 1;
     const { timer } = this.settings;
-    const { text, category } = this.questions[this.roundIndex];
+    const { text, category, subcategory } = this.questions[this.roundIndex];
     this.round = {
       question: text,
       category,
+      subcategory,
       answers: new Map(),
       endsAt: timer ? this.now() + timer * 1000 : null,
       groups: [],
       history: [],
       askedIds: new Set(this.players.keys()),
       missed: [],
+      vote: null,
+      lastVote: null,
     };
     for (const p of this.players.values()) p.last = null;
     this.phase = 'question';
@@ -324,12 +362,18 @@ class HerdGame {
     this.phase = 'reveal';
   }
 
+  assertNoVote() {
+    if (this.round?.vote) throw new GameError('فيه تصويت شغّال، خلّصه أو ألغه أول');
+  }
+
   /** Host edits while reviewing answers; each one can be undone. */
   editGroups(change) {
     if (this.phase !== 'reveal') throw new GameError('التعديل بس وقت مراجعة الأجوبة');
+    this.assertNoVote();
     const next = change(this.round.groups);
     this.round.history.push(this.round.groups);
     this.round.groups = next;
+    this.round.lastVote = null;
   }
 
   merge(fromId, toId) {
@@ -344,7 +388,62 @@ class HerdGame {
     if (this.phase !== 'reveal' || !this.round.history.length) {
       throw new GameError('ما فيه شي تتراجع عنه');
     }
+    this.assertNoVote();
     this.round.groups = this.round.history.pop();
+    this.round.lastVote = null;
+  }
+
+  /** eligibleIds: who may vote (the room passes connected players); authors are left out. */
+  startVote(groupId, eligibleIds) {
+    if (this.phase !== 'reveal') throw new GameError('التصويت بس وقت مراجعة الأجوبة');
+    this.assertNoVote();
+    const group = this.round.groups.find((g) => g.id === groupId);
+    if (!group) throw new GameError('المجموعة غير موجودة');
+    const authors = new Set(group.members.map((m) => m.playerId));
+    const eligible = new Set([...eligibleIds].filter((id) => this.players.has(id) && !authors.has(id)));
+    if (!eligible.size) throw new GameError('ما فيه أحد يقدر يصوّت على هذا الجواب');
+    this.round.vote = { groupId, text: group.text, eligible, votes: new Map(), status: 'open' };
+    this.round.lastVote = null;
+  }
+
+  castVote(playerId, choice) {
+    const vote = this.round?.vote;
+    if (this.phase !== 'reveal' || !vote || vote.status !== 'open') throw new GameError('ما فيه تصويت الحين');
+    if (!vote.eligible.has(playerId)) throw new GameError('ما تقدر تصوّت على هذا الجواب');
+    if (!VOTE_CHOICES.includes(choice)) throw new GameError('اختر يُقبل أو ينرفض');
+    vote.votes.set(playerId, choice);
+  }
+
+  voteTally() {
+    const votes = [...(this.round?.vote?.votes.values() ?? [])];
+    return { keep: votes.filter((v) => v === 'keep').length, reject: votes.filter((v) => v === 'reject').length };
+  }
+
+  /** Closes the vote and applies the majority; a tie waits for the host. */
+  finishVote() {
+    const vote = this.round?.vote;
+    if (!vote || vote.status !== 'open') throw new GameError('ما فيه تصويت شغّال');
+    const { keep, reject } = this.voteTally();
+    if (keep === reject) vote.status = 'tie';
+    else this.applyVote(reject > keep, 'players');
+  }
+
+  decideTie(reject) {
+    if (this.round?.vote?.status !== 'tie') throw new GameError('ما فيه تعادل تقرر فيه');
+    this.applyVote(Boolean(reject), 'host');
+  }
+
+  applyVote(rejected, decidedBy) {
+    const { vote } = this.round;
+    const tally = this.voteTally();
+    this.round.vote = null;
+    this.editGroups((groups) => setRejected(groups, vote.groupId, rejected));
+    this.round.lastVote = { text: vote.text, ...tally, rejected, decidedBy };
+  }
+
+  cancelVote() {
+    if (!this.round?.vote) throw new GameError('ما فيه تصويت شغّال');
+    this.round.vote = null;
   }
 
   winners() {
@@ -353,6 +452,7 @@ class HerdGame {
 
   confirm() {
     if (this.phase !== 'reveal') throw new GameError('مو وقت اعتماد النتيجة');
+    this.assertNoVote();
     const winners = this.winners();
     const groupOf = new Map();
     for (const g of this.round.groups) for (const m of g.members) groupOf.set(m.playerId, g);
@@ -437,7 +537,9 @@ module.exports = {
   mergeGroups,
   winningGroupIds,
   toggleRejected,
+  setRejected,
   parseCustomQuestions,
+  VOTE_CHOICES,
   MODES,
   MIN_BET,
   MAX_BET,

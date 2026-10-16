@@ -1,4 +1,4 @@
-/* global io, $, h, range, emit, storage, toast, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES */
+/* global io, $, h, range, emit, storage, toast, connectionBanner, syncClock, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner */
 'use strict';
 
 const socket = io();
@@ -9,6 +9,7 @@ const TIMERS = [[0, 'بدون مؤقت'], [20, '20 ثانية'], [30, '30 ثان
 let state = null;
 let info = null; // { code, hostToken, joinUrl, qrSvg }
 let renderedPhase = null;
+let lastScreenKey = '';
 let selectedGroup = null;
 let forceNew = new URLSearchParams(location.search).has('new');
 if (forceNew) history.replaceState(null, '', location.pathname);
@@ -50,6 +51,10 @@ function render() {
     return;
   }
   renderedPhase = state.phase;
+  // Only animate cards the first time a screen appears, not on every update.
+  const screenKey = `${state.phase}:${state.roundNumber}`;
+  app.classList.toggle('calm', screenKey === lastScreenKey);
+  lastScreenKey = screenKey;
   const screens = { lobby: renderLobby, question: renderQuestion, reveal: renderReveal, results: renderResults, final: renderFinal };
   app.replaceChildren(topbar(), screens[state.phase]());
   if (state.phase === 'lobby') updateLobby();
@@ -69,9 +74,6 @@ function modePill() {
   return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
 }
 
-function categoryTag() {
-  return state.category ? h('div', { class: 'category-tag' }, `${state.category.emoji} ${state.category.name}`) : null;
-}
 
 /* ---------- Lobby ---------- */
 
@@ -102,13 +104,25 @@ function renderLobby() {
     },
   }, [['bank', 'بنك الأسئلة'], ['custom', 'أسئلتي أنا'], ['mix', 'أسئلتي + بنك الأسئلة']]
     .map(([value, label]) => h('option', { value, selected: value === s.source }, label)));
-  const categories = h('div', { class: 'category-picker', role: 'group', 'aria-label': 'فئات الأسئلة' },
-    state.categories.map((c) => h('button', {
-      type: 'button',
-      class: 'category-chip',
-      'data-category': c.id,
-      onclick: () => toggleCategory(c.id),
-    }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }))));
+  const categories = h('div', { class: 'category-tree', role: 'group', 'aria-label': 'فئات الأسئلة' },
+    state.categories.map((c) => h('div', { class: 'cat-row', 'data-category': c.id },
+      h('div', { class: 'cat-head' },
+        h('button', { type: 'button', class: 'category-chip', 'data-category': c.id, onclick: () => toggleCategory(c) },
+          h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' })),
+        h('button', {
+          type: 'button',
+          class: 'expand-btn',
+          'aria-expanded': String(expanded.has(c.id)),
+          onclick: () => toggleExpanded(c.id),
+        }, expanded.has(c.id) ? 'إخفاء الأقسام ▴' : 'الأقسام ▾'),
+      ),
+      h('div', { class: 'sub-chips', hidden: !expanded.has(c.id) }, c.subcategories.map((sub) => h('button', {
+        type: 'button',
+        class: 'sub-chip',
+        'data-sub': sub.id,
+        onclick: () => toggleSub(sub.id),
+      }, h('span', {}, sub.name), h('small', { class: 'category-count' })))),
+    )));
   const custom = h('textarea', {
     id: 'custom',
     rows: 5,
@@ -137,8 +151,8 @@ function renderLobby() {
         h('div', { class: 'field wide', id: 'categories-wrap', hidden: s.source === 'custom' },
           h('div', { class: 'field-head' },
             h('span', {}, 'الفئات'),
-            h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories(state.categories.map((c) => c.id)) }, 'الكل'),
-            h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories([]) }, 'ولا وحدة'),
+            h('button', { type: 'button', class: 'link-btn small', onclick: () => setSubcategories(allSubIds()) }, 'الكل'),
+            h('button', { type: 'button', class: 'link-btn small', onclick: () => setSubcategories([]) }, 'ولا وحدة'),
           ),
           categories,
           h('p', { id: 'bank-size', class: 'hint' }),
@@ -167,16 +181,28 @@ function updateLobby() {
     el.classList.toggle('picked', picked);
     el.setAttribute('aria-checked', String(picked));
   });
-  const picked = new Set(currentCategories());
-  document.querySelectorAll('.category-chip').forEach((el) => {
-    const category = state.categories.find((c) => c.id === el.dataset.category);
-    el.classList.toggle('picked', picked.has(category.id));
-    el.setAttribute('aria-pressed', String(picked.has(category.id)));
-    el.querySelector('.category-count').textContent = category.counts[mode];
+  const picked = new Set(currentSubcategories());
+  document.querySelectorAll('.cat-row').forEach((row) => {
+    const category = state.categories.find((c) => c.id === row.dataset.category);
+    const subs = category.subcategories;
+    const count = subs.filter((sub) => picked.has(sub.id)).length;
+    const chip = row.querySelector('.category-chip');
+    chip.classList.toggle('picked', count === subs.length);
+    chip.classList.toggle('partial', count > 0 && count < subs.length);
+    chip.setAttribute('aria-pressed', count === subs.length ? 'true' : count ? 'mixed' : 'false');
+    chip.querySelector('.category-count').textContent = count > 0 && count < subs.length
+      ? `${count}/${subs.length}`
+      : subs.reduce((total, sub) => total + sub.counts[mode], 0);
+    row.querySelectorAll('.sub-chip').forEach((el) => {
+      const sub = subs.find((x) => x.id === el.dataset.sub);
+      el.classList.toggle('picked', picked.has(sub.id));
+      el.setAttribute('aria-pressed', String(picked.has(sub.id)));
+      el.querySelector('.category-count').textContent = sub.counts[mode];
+    });
   });
   $('#bank-size').textContent = picked.size
-    ? `${state.bankSize} سؤال من ${picked.size} ${picked.size === 1 ? 'فئة' : 'فئات'} لطور «${MODES[mode].name}»`
-    : 'اختر فئة وحدة على الأقل';
+    ? `${state.bankSize} سؤال من ${picked.size} ${picked.size === 1 ? 'قسم' : picked.size <= 10 ? 'أقسام' : 'قسم'} لطور «${MODES[mode].name}»`
+    : 'اختر قسم واحد على الأقل';
   $('#rules-body').replaceChildren(rulesList(mode));
 
   const enough = state.players.length >= 2;
@@ -184,32 +210,59 @@ function updateLobby() {
   $('#start-hint').textContent = enough ? '' : 'تحتاجون لاعبين اثنين على الأقل';
 }
 
-// Category taps apply locally right away and stay authoritative until the
-// server confirms the latest one, so quick taps build on each other even
-// while older updates are still coming back.
-let pendingCategories = null;
-let categoriesSeq = 0;
+// Taps apply locally right away and stay authoritative until the server
+// confirms the latest one, so quick taps build on each other even while
+// older updates are still coming back.
+let pendingSubcategories = null;
+let subcategoriesSeq = 0;
+const expanded = new Set();
 
-function currentCategories() {
-  return pendingCategories ?? state.settings.categories;
+function allSubIds() {
+  return state.categories.flatMap((c) => c.subcategories.map((sub) => sub.id));
 }
 
-async function setCategories(categories) {
-  pendingCategories = categories;
-  const seq = ++categoriesSeq;
+function currentSubcategories() {
+  return pendingSubcategories ?? state.settings.subcategories;
+}
+
+async function setSubcategories(subcategories) {
+  pendingSubcategories = subcategories;
+  const seq = ++subcategoriesSeq;
   updateLobby();
-  await act('host:settings', { categories });
-  if (seq === categoriesSeq) {
-    pendingCategories = null;
+  await act('host:settings', { subcategories });
+  if (seq === subcategoriesSeq) {
+    pendingSubcategories = null;
     if (state.phase === 'lobby') updateLobby();
   }
 }
 
-function toggleCategory(id) {
-  const picked = new Set(currentCategories());
+/** A category tap picks all its subcategories, or clears them if all were picked. */
+function toggleCategory(category) {
+  const picked = new Set(currentSubcategories());
+  const ids = category.subcategories.map((sub) => sub.id);
+  const all = ids.every((id) => picked.has(id));
+  for (const id of ids) {
+    if (all) picked.delete(id);
+    else picked.add(id);
+  }
+  setSubcategories([...picked]);
+}
+
+function toggleSub(id) {
+  const picked = new Set(currentSubcategories());
   if (picked.has(id)) picked.delete(id);
   else picked.add(id);
-  setCategories([...picked]);
+  setSubcategories([...picked]);
+}
+
+function toggleExpanded(id) {
+  if (expanded.has(id)) expanded.delete(id);
+  else expanded.add(id);
+  const row = document.querySelector(`.cat-row[data-category="${id}"]`);
+  row.querySelector('.sub-chips').hidden = !expanded.has(id);
+  const button = row.querySelector('.expand-btn');
+  button.setAttribute('aria-expanded', String(expanded.has(id)));
+  button.textContent = expanded.has(id) ? 'إخفاء الأقسام ▴' : 'الأقسام ▾';
 }
 
 async function startGame() {
@@ -246,7 +299,7 @@ function renderQuestion() {
   return h('main', { class: 'stage' },
     modePill(),
     timerEl(state.endsAt),
-    categoryTag(),
+    categoryTag(state.category),
     h('h1', { class: 'question' }, state.question),
     h('p', { class: 'muted center' }, `جاوب ${state.answeredCount} من ${state.playerCount}`),
     h('ul', { class: 'chips center' }, state.players.map((p) => h('li', {
@@ -288,15 +341,52 @@ function groupCard(group, { editable = false, settled = false } = {}) {
     group.winner ? h('div', { class: 'crown' }, MODES[state.mode].winLabel) : null,
     group.rejected ? h('div', { class: 'rejected-label' }, '🚫 مرفوض') : null,
     editable
-      ? h('button', {
-        type: 'button',
-        class: 'reject-btn',
-        onclick: (e) => {
-          e.stopPropagation();
-          act('host:reject', { groupId: group.id });
-        },
-      }, group.rejected ? '↺ اقبله' : '🚫 رفض')
+      ? h('div', { class: 'card-actions' },
+        h('button', {
+          type: 'button',
+          class: 'reject-btn',
+          onclick: (e) => {
+            e.stopPropagation();
+            act('host:reject', { groupId: group.id });
+          },
+        }, group.rejected ? '↺ اقبله' : '🚫 رفض'),
+        h('button', {
+          type: 'button',
+          class: 'vote-btn',
+          title: 'خل اللاعبين يقررون',
+          onclick: (e) => {
+            e.stopPropagation();
+            act('host:vote-start', { groupId: group.id });
+          },
+        }, '🗳️ تصويت'))
       : null,
+    state.vote?.groupId === group.id ? h('div', { class: 'voting-label' }, '🗳️ عليه تصويت الحين') : null,
+  );
+}
+
+function votePanel() {
+  const { vote } = state;
+  if (!vote) return null;
+  if (vote.status === 'tie') {
+    return h('div', { class: 'vote-panel tie' },
+      h('h3', {}, `🗳️ تعادل على «${vote.text}»: ${vote.keep} يقبلونه و ${vote.reject} يرفضونه`),
+      h('p', { class: 'muted' }, 'القرار لك:'),
+      h('div', { class: 'actions' },
+        h('button', { class: 'btn primary', onclick: () => act('host:vote-decide', { reject: false }) }, '✅ اقبله'),
+        h('button', { class: 'btn danger', onclick: () => act('host:vote-decide', { reject: true }) }, '🚫 ارفضه'),
+      ),
+    );
+  }
+  return h('div', { class: 'vote-panel' },
+    h('h3', {}, `🗳️ تصويت على «${vote.text}»`),
+    h('p', { class: 'muted' }, `صوّت ${vote.votedCount} من ${vote.eligibleCount} · النتيجة تطلع لما يخلص التصويت`),
+    h('ul', { class: 'chips center' }, vote.voters.map((p) => h('li', {
+      class: `chip${p.voted ? ' done' : ''}${p.connected ? '' : ' away'}`,
+    }, p.voted ? '✓ ' : '… ', p.name))),
+    h('div', { class: 'actions' },
+      h('button', { class: 'btn primary', onclick: () => act('host:vote-end') }, 'أنهِ التصويت'),
+      h('button', { class: 'btn ghost', onclick: () => act('host:vote-cancel') }, 'إلغاء التصويت'),
+    ),
   );
 }
 
@@ -312,19 +402,21 @@ function onGroupClick(id) {
 }
 
 function renderReveal() {
-  if (!state.groups.some((g) => g.id === selectedGroup)) selectedGroup = null;
-  const hint = selectedGroup
-    ? 'الحين اضغط على المجموعة الثانية عشان تندمج معها (أو اضغط نفسها للإلغاء)'
-    : 'جوابين بنفس المعنى؟ اضغط على وحدة ثم الثانية عشان تدمجهم. وأي جواب غلط اضغط «رفض».';
+  const voting = Boolean(state.vote);
+  if (voting || !state.groups.some((g) => g.id === selectedGroup)) selectedGroup = null;
+  let hint = 'جوابين بنفس المعنى؟ اضغط على وحدة ثم الثانية عشان تدمجهم. جواب غلط؟ «رفض»، ولو محتار «تصويت».';
+  if (selectedGroup) hint = 'الحين اضغط على المجموعة الثانية عشان تندمج معها (أو اضغط نفسها للإلغاء)';
   return h('main', { class: 'stage' },
     modePill(),
-    categoryTag(),
+    categoryTag(state.category),
     h('h2', { class: 'question small' }, state.question),
-    h('p', { class: 'hint center' }, hint),
+    votePanel(),
+    lastVoteBanner(state.lastVote),
+    voting ? null : h('p', { class: 'hint center' }, hint),
     state.groups.length
-      ? h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { editable: true })))
+      ? h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { editable: !voting })))
       : h('p', { class: 'empty center' }, 'ما أحد جاوب هالسؤال'),
-    h('div', { class: 'actions' },
+    voting ? null : h('div', { class: 'actions' },
       state.canUndo ? h('button', { class: 'btn ghost', onclick: () => act('host:undo') }, '↩︎ تراجع') : null,
       h('button', { class: 'btn primary', onclick: () => act('host:confirm') }, 'اعتمد النتيجة ✅'),
     ),

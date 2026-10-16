@@ -142,6 +142,10 @@ io.on('connection', (socket) => {
   hostAction('host:merge', (room, { from, to }) => room.game.merge(from, to));
   hostAction('host:reject', (room, { groupId }) => room.game.toggleReject(groupId));
   hostAction('host:undo', (room) => room.game.undo());
+  hostAction('host:vote-start', (room, { groupId }) => room.startVote(groupId));
+  hostAction('host:vote-end', (room) => room.game.finishVote());
+  hostAction('host:vote-cancel', (room) => room.game.cancelVote());
+  hostAction('host:vote-decide', (room, { reject }) => room.game.decideTie(reject));
   hostAction('host:confirm', (room) => room.game.confirm());
   hostAction('host:next', (room) => room.game.next());
   hostAction('host:end', (room) => room.game.finish());
@@ -169,6 +173,12 @@ io.on('connection', (socket) => {
   on('player:answer', (answer) => {
     const room = currentRoom('player');
     room.submitAnswer(socket.data.playerId, answer);
+    broadcast(room);
+  });
+
+  on('player:vote', ({ choice }) => {
+    const room = currentRoom('player');
+    room.castVote(socket.data.playerId, choice);
     broadcast(room);
   });
 
