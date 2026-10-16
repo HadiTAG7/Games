@@ -100,3 +100,22 @@ test('idle rooms are cleaned up', () => {
   manager.cleanup(room.lastActivity + ROOM_TTL_MS + 1);
   assert.equal(manager.get(room.code), undefined);
 });
+
+test('views show who holds the pink cow and the final winners', () => {
+  const { room, players: [a, b, c] } = setup();
+  room.game.updateSettings({ rounds: 1 });
+  room.game.start();
+  room.submitAnswer(a.id, { text: 'أحمر', value: 2 });
+  room.submitAnswer(b.id, { text: 'أحمر', value: 3 });
+  room.submitAnswer(c.id, { text: 'أزرق', value: 15 });
+  room.game.confirm();
+  assert.equal(room.hostView().pinkCowTaker, 'فهد');
+  assert.equal(room.hostView().players.find((p) => p.id === c.id).pinkCow, true);
+  assert.equal(room.playerView(c.id).me.pinkCow, true);
+  assert.equal(room.playerView(c.id).last.pinkCow, true);
+  room.game.next();
+  assert.deepEqual(room.hostView().winners, ['سارة']);
+  assert.equal(room.playerView(b.id).isWinner, true);
+  assert.equal(room.playerView(c.id).isWinner, false);
+  assert.equal(room.hostView().pinkCowTaker, null);
+});

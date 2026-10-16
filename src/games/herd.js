@@ -1,9 +1,11 @@
 'use strict';
 
-// «وش في بالك؟» — everyone answers the same prompt and tries to match the
-// majority. Before answering, each player bets one of their numbers 1..15;
-// every number can be bet once per game. Players in the biggest group (ties
-// all win, groups need 2+ people) gain their bet; everyone else gets nothing.
+// «عقلية القطيع» (Herd Mentality) — everyone answers the same prompt and
+// tries to match the majority. Before answering, each player bets one of their
+// numbers 1..15; every number can be bet once per game. Players in the biggest
+// group (ties all win, groups need 2+ people) gain their bet; everyone else
+// gets nothing. Whoever is the single odd one out takes the pink cow, and
+// can't win the game while holding it.
 
 const { normalizeAnswer } = require('../normalize');
 
@@ -101,6 +103,13 @@ function winningGroupIds(groups) {
   return new Set(groups.filter((g) => g.members.length === top).map((g) => g.id));
 }
 
+/** The one player whose answer nobody shared, if there is exactly one. */
+function loneAnswerer(groups) {
+  if (groups.length < 2) return null;
+  const singles = groups.filter((g) => g.members.length === 1);
+  return singles.length === 1 ? singles[0].members[0].playerId : null;
+}
+
 function freshPlayerState() {
   return { score: 0, used: new Set(), last: null };
 }
@@ -111,8 +120,9 @@ class HerdGame {
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
-    this.settings = { rounds: MAX_ROUNDS, timer: 0, source: 'bank', customQuestions: [] };
+    this.settings = { rounds: MAX_ROUNDS, timer: 0, source: 'bank', customQuestions: [], pinkCow: true };
     this.players = new Map();
+    this.pinkCowHolder = null;
     this.phase = 'lobby';
     this.questions = [];
     this.roundIndex = -1;
@@ -127,6 +137,7 @@ class HerdGame {
 
   removePlayer(id) {
     this.players.delete(id);
+    if (this.pinkCowHolder === id) this.pinkCowHolder = null;
     if (!this.round) return;
     this.round.answers.delete(id);
     if (this.phase === 'reveal') {
@@ -148,6 +159,7 @@ class HerdGame {
     if (patch.customQuestions !== undefined) {
       s.customQuestions = parseCustomQuestions(patch.customQuestions);
     }
+    if (patch.pinkCow !== undefined) s.pinkCow = Boolean(patch.pinkCow);
     this.settings = s;
   }
 
@@ -180,6 +192,7 @@ class HerdGame {
     if (!questions.length) throw new GameError('ما فيه أسئلة');
     this.questions = questions;
     for (const id of this.players.keys()) this.players.set(id, freshPlayerState());
+    this.pinkCowHolder = null;
     this.roundIndex = -1;
     this.startNextRound();
   }
@@ -193,6 +206,7 @@ class HerdGame {
       endsAt: timer ? this.now() + timer * 1000 : null,
       groups: [],
       history: [],
+      pinkCowTaker: null,
     };
     for (const p of this.players.values()) p.last = null;
     this.phase = 'question';
@@ -260,6 +274,9 @@ class HerdGame {
   confirm() {
     if (this.phase !== 'reveal') throw new GameError('مو وقت اعتماد النتيجة');
     const winners = this.winners();
+    const cowTaker = this.settings.pinkCow ? loneAnswerer(this.round.groups) : null;
+    if (cowTaker) this.pinkCowHolder = cowTaker;
+    this.round.pinkCowTaker = cowTaker;
     const groupOf = new Map();
     for (const g of this.round.groups) for (const m of g.members) groupOf.set(m.playerId, g);
     for (const [id, player] of this.players) {
@@ -273,7 +290,7 @@ class HerdGame {
       const gained = won ? answer.value : 0;
       player.used.add(answer.value);
       player.score += gained;
-      player.last = { answered: true, won, value: answer.value, gained, text: answer.text };
+      player.last = { answered: true, won, value: answer.value, gained, text: answer.text, pinkCow: id === cowTaker };
     }
     this.phase = 'results';
   }
@@ -300,17 +317,29 @@ class HerdGame {
     this.questions = [];
     this.roundIndex = -1;
     this.round = null;
+    this.pinkCowHolder = null;
     for (const id of this.players.keys()) this.players.set(id, freshPlayerState());
   }
 
-  /** [{ id, score, rank }] best first; equal scores share a rank. */
-  standings() {
-    const rows = [...this.players].map(([id, p]) => ({ id, score: p.score }));
-    rows.sort((a, b) => b.score - a.score);
+  /**
+   * [{ id, score, rank, pinkCow }] best first; equal scores share a rank.
+   * With cowLast the pink cow holder drops to the bottom, since they can't win.
+   */
+  standings({ cowLast = false } = {}) {
+    const rows = [...this.players].map(([id, p]) => ({ id, score: p.score, pinkCow: id === this.pinkCowHolder }));
+    const key = (row) => (cowLast && row.pinkCow ? -1 : row.score);
+    rows.sort((a, b) => key(b) - key(a));
     rows.forEach((row, i) => {
-      row.rank = i > 0 && rows[i - 1].score === row.score ? rows[i - 1].rank : i + 1;
+      row.rank = i > 0 && key(rows[i - 1]) === key(row) ? rows[i - 1].rank : i + 1;
     });
     return rows;
+  }
+
+  /** Top scorers, never the pink cow holder. */
+  gameWinners() {
+    return this.standings({ cowLast: true })
+      .filter((row) => row.rank === 1 && !row.pinkCow)
+      .map((row) => row.id);
   }
 
   dispose() {
@@ -324,6 +353,7 @@ module.exports = {
   groupAnswers,
   mergeGroups,
   winningGroupIds,
+  loneAnswerer,
   parseCustomQuestions,
   MIN_BET,
   MAX_BET,

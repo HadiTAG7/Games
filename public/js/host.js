@@ -58,7 +58,7 @@ function render() {
 function topbar() {
   const playing = state.phase !== 'lobby' && state.phase !== 'final';
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'وش في بالك؟'),
+    h('div', { class: 'brand' }, `${GAME_NAME} 🐄`),
     playing ? h('div', { class: 'pill' }, `سؤال ${state.roundNumber} من ${state.totalRounds}`) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
@@ -84,6 +84,9 @@ function renderLobby() {
     },
   }, [['bank', `بنك الأسئلة (${state.bankSize} سؤال)`], ['custom', 'أسئلتي أنا'], ['mix', 'أسئلتي + بنك الأسئلة']]
     .map(([value, label]) => h('option', { value, selected: value === s.source }, label)));
+  const pinkCow = h('select', { id: 'pink-cow', onchange: (e) => act('host:settings', { pinkCow: e.target.value === 'on' }) },
+    h('option', { value: 'on', selected: s.pinkCow }, 'مفعّلة 🐮'),
+    h('option', { value: 'off', selected: !s.pinkCow }, 'بدونها'));
   const custom = h('textarea', {
     id: 'custom',
     rows: 5,
@@ -106,6 +109,7 @@ function renderLobby() {
       h('div', { class: 'settings' },
         field('عدد الأسئلة', rounds),
         field('المؤقت', timer),
+        field('البقرة الوردية', pinkCow),
         h('label', { class: 'field wide' }, h('span', {}, 'الأسئلة'), source),
         h('label', { class: 'field wide', id: 'custom-wrap', hidden: s.source === 'bank' }, h('span', {}, 'أسئلتك'), custom),
       ),
@@ -136,6 +140,7 @@ async function startGame() {
     timer: Number($('#timer').value),
     source: $('#source').value,
     customQuestions: $('#custom').value,
+    pinkCow: $('#pink-cow').value === 'on',
   });
   if (res.ok) act('host:start');
 }
@@ -166,7 +171,7 @@ function renderQuestion() {
     h('p', { class: 'muted center' }, `جاوب ${state.answeredCount} من ${state.playerCount}`),
     h('ul', { class: 'chips center' }, state.players.map((p) => h('li', {
       class: `chip${p.answered ? ' done' : ''}${p.connected ? '' : ' away'}`,
-    }, p.answered ? '✓ ' : '… ', p.name))),
+    }, p.answered ? '✓ ' : '… ', p.name, p.pinkCow ? cowBadge() : null))),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary', onclick: () => act('host:reveal') }, 'اكشف الأجوبة 👀'),
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
@@ -190,7 +195,7 @@ function groupCard(group, { selectable = false, settled = false } = {}) {
       h('span', { class: 'size', title: 'عدد اللي جاوبوا' }, group.size),
     ),
     h('ul', { class: 'members' }, group.members.map((m) => h('li', {},
-      h('span', { class: 'member-name' }, m.name),
+      h('span', { class: 'member-name' }, m.name, m.pinkCow ? cowBadge() : null),
       m.text !== group.text ? h('em', { class: 'member-text' }, m.text) : null,
       h('span', { class: `bet${settled ? (group.winner ? ' won' : ' lost') : ''}` },
         settled && group.winner ? `+${m.value}` : m.value),
@@ -234,6 +239,10 @@ function renderResults() {
     winners.length
       ? h('div', { class: 'banner good' }, 'جواب الأغلبية: ', h('b', {}, winners.map((g) => g.text).join(' / ')))
       : h('div', { class: 'banner bad' }, 'ما فيه أغلبية هالمرة 😅'),
+    state.pinkCowTaker
+      ? h('div', { class: 'banner pink' }, cowBadge(), ' البقرة الوردية راحت لـ ', h('b', {}, state.pinkCowTaker),
+        ' — واللي معه البقرة ما يفوز لين تنتقل لغيره')
+      : null,
     h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { settled: true }))),
     h('h2', { class: 'center' }, 'الترتيب'),
     standingsList(state.standings),
@@ -248,12 +257,18 @@ function renderResults() {
 /* ---------- Final ---------- */
 
 function renderFinal() {
-  const top = state.standings.filter((row) => row.rank === 1);
+  const { winners } = state;
+  const best = state.standings.find((row) => !row.pinkCow);
+  const cowRow = state.standings.find((row) => row.pinkCow);
+  const cowBlocked = cowRow && best && cowRow.score > best.score;
   return h('main', { class: 'stage final' },
     confetti(),
     h('div', { class: 'trophy' }, '🏆'),
-    top.length ? h('h1', { class: 'winner-name' }, top.map((row) => row.name).join(' و ')) : null,
-    top.length ? h('p', { class: 'muted center' }, `${top.length > 1 ? 'فازوا' : 'فاز'} بـ ${top[0].score} نقطة`) : null,
+    winners.length ? h('h1', { class: 'winner-name' }, winners.join(' و ')) : null,
+    winners.length ? h('p', { class: 'muted center' }, `بـ ${best.score} نقطة`) : null,
+    cowBlocked
+      ? h('div', { class: 'banner pink' }, cowBadge(), ' أعلى نقاط كانت عند ', h('b', {}, cowRow.name), ` (${cowRow.score})، بس البقرة الوردية منعت الفوز!`)
+      : null,
     standingsList(state.standings, { showGain: false }),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁'),

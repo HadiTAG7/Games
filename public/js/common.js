@@ -84,23 +84,30 @@ setInterval(() => {
 }, 250);
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
+const GAME_NAME = 'عقلية القطيع';
+
+function cowBadge() {
+  return h('span', { class: 'cow', title: 'البقرة الوردية', 'aria-label': 'البقرة الوردية' }, '🐮');
+}
 
 function standingsList(rows, { highlightId = null, showGain = true } = {}) {
   return h('ol', { class: 'standings' }, rows.map((row) => h('li', { class: row.id === highlightId ? 'me' : null },
     h('span', { class: 'rank' }, (row.score > 0 && MEDALS[row.rank]) || row.rank),
-    h('span', { class: 'name' }, row.name),
+    h('span', { class: 'name' }, row.name, row.pinkCow ? cowBadge() : null),
     showGain && row.gained ? h('span', { class: 'gain' }, `+${row.gained}`) : null,
     h('span', { class: 'score' }, row.score),
   )));
 }
 
-function rulesList() {
+function rulesList({ pinkCow = true } = {}) {
   return h('ul', { class: 'rules-list' },
     h('li', {}, 'يطلع سؤال للكل، مثل: «اذكر لون من ألوان قوس قزح».'),
     h('li', {}, 'اكتب الجواب اللي تتوقع أغلب الشلة بيكتبونه.'),
     h('li', {}, 'قبل ما ترسل، اختر رقم من 1 إلى 15 تراهن فيه. كل رقم تستخدمه مرة وحدة بس في اللعبة.'),
     h('li', {}, 'أكبر مجموعة جاوبت نفس الجواب تفوز وكل واحد فيها ياخذ نقاط رقمه. لو تعادلت أكبر مجموعتين، الكل يفوز.'),
     h('li', {}, 'اللي خسر يروح عليه رقمه. والجواب اللي ما قاله إلا شخص واحد ما يفوز.'),
+    pinkCow ? h('li', {}, cowBadge(), ' البقرة الوردية: لو كنت الوحيد اللي جوابه مختلف عن الكل، تاخذ البقرة الوردية. '
+      + 'وهي معك ما تقدر تفوز باللعبة حتى لو نقاطك أعلى، لين ياخذها منك واحد ثاني يكون هو الوحيد المختلف.') : null,
   );
 }
 

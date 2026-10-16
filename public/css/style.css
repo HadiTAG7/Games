@@ -11,6 +11,8 @@
   --good-soft: rgba(47, 224, 160, 0.14);
   --bad: #ff5d7d;
   --bad-soft: rgba(255, 93, 125, 0.14);
+  --pink: #ff8fc7;
+  --pink-soft: rgba(255, 143, 199, 0.16);
   --radius: 18px;
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
   color-scheme: dark;
@@ -110,6 +112,20 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .banner { padding: 12px 16px; border-radius: 14px; text-align: center; font-size: 18px; margin-bottom: 16px; }
 .banner.good { background: var(--good-soft); border: 1px solid var(--good); }
 .banner.bad { background: var(--bad-soft); border: 1px solid var(--bad); }
+.banner.pink { background: var(--pink-soft); border: 1px solid var(--pink); }
+
+.cow {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6em;
+  height: 1.6em;
+  margin-inline: 4px;
+  border-radius: 50%;
+  background: var(--pink);
+  font-size: 0.85em;
+  line-height: 1;
+  vertical-align: middle;
+}
 
 .toast {
   position: fixed;
@@ -151,6 +167,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .logo { font-size: 64px; }
 .home .card { max-width: 520px; margin: 0 auto 16px; }
 .game-card h2 { font-size: 26px; }
+.pink-text { color: var(--pink); }
 
 /* ---------- Top bar ---------- */
 

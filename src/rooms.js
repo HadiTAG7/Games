@@ -72,7 +72,7 @@ class Room {
   }
 
   standings() {
-    return this.game.standings().map((row) => {
+    return this.game.standings({ cowLast: this.game.phase === 'final' }).map((row) => {
       const state = this.game.players.get(row.id);
       return { ...row, name: this.players.get(row.id).name, gained: state.last?.gained ?? 0 };
     });
@@ -92,14 +92,19 @@ class Room {
         name: this.players.get(m.playerId)?.name ?? '؟',
         text: m.text,
         value: m.value,
+        pinkCow: m.playerId === round.pinkCowTaker,
       })),
     }));
   }
 
+  nameOf(playerId) {
+    return playerId ? this.players.get(playerId)?.name ?? null : null;
+  }
+
   baseView() {
     const { game } = this;
-    const { round } = game;
-    return {
+    const { phase, round } = game;
+    const view = {
       code: this.code,
       phase: game.phase,
       roundNumber: game.roundIndex + 1,
@@ -111,7 +116,12 @@ class Room {
       answeredCount: round ? round.answers.size : 0,
       playerCount: this.players.size,
       maxBet: MAX_BET,
+      pinkCow: game.settings.pinkCow,
+      pinkCowHolder: this.nameOf(game.pinkCowHolder),
+      pinkCowTaker: phase === 'results' ? this.nameOf(round.pinkCowTaker) : null,
     };
+    if (phase === 'final') view.winners = game.gameWinners().map((id) => this.nameOf(id));
+    return view;
   }
 
   hostView() {
@@ -130,6 +140,7 @@ class Room {
           connected: p.sockets.size > 0,
           score: game.players.get(p.id).score,
           answered: Boolean(round && round.answers.has(p.id)),
+          pinkCow: game.pinkCowHolder === p.id,
         })),
     };
     if (phase === 'reveal' || phase === 'results') {
@@ -154,6 +165,7 @@ class Room {
         name: player.name,
         score: state.score,
         used: [...state.used].sort((a, b) => a - b),
+        pinkCow: game.pinkCowHolder === playerId,
       },
       myAnswer: answer && (phase === 'question' || phase === 'reveal')
         ? { text: answer.text, value: answer.value }
@@ -165,6 +177,7 @@ class Room {
       view.standings = standings;
       view.me.rank = standings.find((row) => row.id === playerId)?.rank ?? null;
     }
+    if (phase === 'final') view.isWinner = game.gameWinners().includes(playerId);
     if (phase === 'results') view.groups = this.groupsView();
     return view;
   }

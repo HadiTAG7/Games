@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  HerdGame, GameError, groupAnswers, mergeGroups, winningGroupIds, parseCustomQuestions,
+  HerdGame, GameError, groupAnswers, mergeGroups, winningGroupIds, loneAnswerer, parseCustomQuestions,
 } = require('../src/games/herd');
 
 const BANK = Array.from({ length: 30 }, (_, i) => `سؤال ${i + 1}`);
@@ -90,7 +90,7 @@ test('a full round: winners gain their bet, every bet is burned', () => {
   assert.deepEqual([...p('a').used], [5]);
   assert.deepEqual([...p('c').used], [15], 'losing burns the bet too');
   assert.deepEqual([...p('d').used], [], 'no answer, nothing burned');
-  assert.deepEqual(p('c').last, { answered: true, won: false, value: 15, gained: 0, text: 'أزرق' });
+  assert.deepEqual(p('c').last, { answered: true, won: false, value: 15, gained: 0, text: 'أزرق', pinkCow: true });
   assert.equal(p('d').last.answered, false);
 });
 
@@ -245,4 +245,72 @@ test('the timer reveals automatically', async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(game.phase, 'reveal');
   assert.ok(notified);
+});
+
+test('the pink cow goes only to a single odd one out', () => {
+  const lone = groupAnswers([
+    { playerId: 'a', text: 'أحمر', value: 1 },
+    { playerId: 'b', text: 'أحمر', value: 1 },
+    { playerId: 'c', text: 'أزرق', value: 1 },
+  ]);
+  assert.equal(loneAnswerer(lone), 'c');
+  const twoLoners = groupAnswers([
+    { playerId: 'a', text: 'أحمر', value: 1 },
+    { playerId: 'b', text: 'أحمر', value: 1 },
+    { playerId: 'c', text: 'أزرق', value: 1 },
+    { playerId: 'd', text: 'أخضر', value: 1 },
+  ]);
+  assert.equal(loneAnswerer(twoLoners), null);
+  assert.equal(loneAnswerer(groupAnswers([{ playerId: 'a', text: 'x', value: 1 }])), null, 'a lone answer in an empty round');
+});
+
+test('the pink cow moves to the next lone answerer and blocks the win', () => {
+  const game = newGame(['a', 'b', 'c']);
+  game.updateSettings({ rounds: 2 });
+  game.start();
+  play(game, [['a', 'x', 15], ['b', 'x', 14], ['c', 'y', 1]]);
+  game.confirm();
+  assert.equal(game.pinkCowHolder, 'c');
+  assert.equal(game.round.pinkCowTaker, 'c');
+  game.next();
+  play(game, [['a', 'z', 1], ['b', 'w', 2], ['c', 'w', 3]]);
+  game.confirm();
+  assert.equal(game.pinkCowHolder, 'a', 'a was the only one alone this time');
+  game.next();
+  assert.equal(game.phase, 'final');
+  // a has the most points (15+0) but holds the cow, so b (14+2) wins.
+  assert.deepEqual(game.gameWinners(), ['b']);
+  const final = game.standings({ cowLast: true });
+  assert.deepEqual(final.map((r) => r.id), ['b', 'c', 'a']);
+  assert.equal(final[2].pinkCow, true);
+});
+
+test('a round without a single loner keeps the pink cow where it is', () => {
+  const game = newGame(['a', 'b', 'c', 'd']);
+  game.start();
+  play(game, [['a', 'x', 1], ['b', 'x', 1], ['c', 'x', 1], ['d', 'y', 1]]);
+  game.confirm();
+  game.next();
+  play(game, [['a', 'x', 2], ['b', 'x', 2], ['c', 'y', 2], ['d', 'y', 2]]);
+  game.confirm();
+  assert.equal(game.pinkCowHolder, 'd');
+  assert.equal(game.round.pinkCowTaker, null);
+});
+
+test('the pink cow can be switched off, and leaves with its holder', () => {
+  const off = newGame(['a', 'b', 'c']);
+  off.updateSettings({ pinkCow: false });
+  off.start();
+  play(off, [['a', 'x', 1], ['b', 'x', 1], ['c', 'y', 1]]);
+  off.confirm();
+  assert.equal(off.pinkCowHolder, null);
+
+  const game = newGame(['a', 'b', 'c']);
+  game.start();
+  play(game, [['a', 'x', 1], ['b', 'x', 1], ['c', 'y', 1]]);
+  game.confirm();
+  game.removePlayer('c');
+  assert.equal(game.pinkCowHolder, null);
+  game.restart();
+  assert.equal(game.pinkCowHolder, null);
 });

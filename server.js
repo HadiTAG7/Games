@@ -43,9 +43,11 @@ function lanAddress() {
 /**
  * The address phones should open. A host browsing on localhost gets the
  * machine's Wi-Fi address instead, since "localhost" on a phone is the phone.
+ * Render provides RENDER_EXTERNAL_URL with the service's public address.
  */
 function publicBaseUrl(handshake) {
-  if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/+$/, '');
+  const configured = process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL;
+  if (configured) return configured.replace(/\/+$/, '');
   const { headers } = handshake;
   const first = (value) => String(value).split(',')[0].trim();
   const host = first(headers['x-forwarded-host'] || headers.host || `localhost:${PORT}`);

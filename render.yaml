@@ -1,8 +1,10 @@
 services:
   - type: web
-    name: games
+    name: herd-game
     runtime: node
     plan: free
+    # The closest Render region to Saudi Arabia.
+    region: frankfurt
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /healthz
