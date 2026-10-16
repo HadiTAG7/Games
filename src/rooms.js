@@ -5,9 +5,11 @@ const { GameError } = require('./errors');
 const { HerdGame } = require('./games/herd');
 const { TimeGame } = require('./games/time');
 const { SeenGame } = require('./games/seen');
+const { LettersGame } = require('./games/letters');
 const herdViews = require('./games/herd-views');
 const timeViews = require('./games/time-views');
 const seenViews = require('./games/seen-views');
+const lettersViews = require('./games/letters-views');
 const { normalizeAnswer } = require('./normalize');
 
 const MAX_PLAYERS = 40;
@@ -18,15 +20,15 @@ const GAMES = {
   herd: { Game: HerdGame, views: herdViews, name: 'عقلية القطيع', emoji: '🐄' },
   time: { Game: TimeGame, views: timeViews, name: 'تحدي الوقت', emoji: '⏱️' },
   seen: { Game: SeenGame, views: seenViews, name: 'سين جيم', emoji: '❓' },
+  letters: { Game: LettersGame, views: lettersViews, name: 'حروف', emoji: '🔤' },
 };
-const GAME_LIST = Object.entries(GAMES).map(([id, g]) => ({ id, name: g.name, emoji: g.emoji }));
 
 function cleanName(name) {
   return typeof name === 'string' ? name.trim().replace(/\s+/g, ' ').slice(0, MAX_NAME_LENGTH) : '';
 }
 
 class Room {
-  /** content: { herd: herd categories, time: time-challenge cards, seen: سين جيم questions } */
+  /** content: { herd, time, seen, letters }: each game's questions or cards */
   constructor({ code, content, random }) {
     this.code = code;
     this.content = content;
@@ -47,8 +49,15 @@ class Room {
   }
 
   /** Switch games between games; everyone stays in the room. */
+  /** The games this room can play: the ones whose questions are loaded. */
+  games() {
+    return Object.entries(GAMES)
+      .filter(([id]) => (this.content[id] ?? []).length > 0)
+      .map(([id, g]) => ({ id, name: g.name, emoji: g.emoji }));
+  }
+
   setGameType(type) {
-    if (!Object.hasOwn(GAMES, type ?? '')) throw new GameError('لعبة غير معروفة');
+    if (!this.games().some((g) => g.id === type)) throw new GameError('لعبة غير معروفة');
     if (type === this.gameType) return;
     if (!['lobby', 'final'].includes(this.game.phase)) throw new GameError('خلّص اللعبة الحالية أول');
     this.game.dispose();
@@ -158,7 +167,7 @@ class Room {
       role,
       code: this.code,
       gameType: this.gameType,
-      games: GAME_LIST,
+      games: this.games(),
       serverTime: Date.now(),
       playerCount: this.players.size,
     };
@@ -178,9 +187,9 @@ class Room {
 }
 
 class RoomManager {
-  /** categories: the «عقلية القطيع» bank; timeCategories: the «تحدي الوقت» cards; seenCategories: «سين جيم» questions. */
-  constructor({ categories = [], timeCategories = [], seenCategories = [], random = Math.random } = {}) {
-    this.content = { herd: categories, time: timeCategories, seen: seenCategories };
+  /** categories: «عقلية القطيع»; timeCategories: «تحدي الوقت»; seenCategories: «سين جيم»; letters: «حروف». */
+  constructor({ categories = [], timeCategories = [], seenCategories = [], letters = [], random = Math.random } = {}) {
+    this.content = { herd: categories, time: timeCategories, seen: seenCategories, letters };
     this.random = random;
     this.rooms = new Map();
   }

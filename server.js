@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const path = require('path');
@@ -11,6 +12,9 @@ const { GameError } = require('./src/errors');
 const { categories } = require('./data/questions.json');
 const timeCategories = require('./data/time-challenge.json').categories;
 const seenCategories = require('./data/seen-jeem.json').categories;
+// A game whose question file isn't there yet stays hidden from the game picker.
+const optional = (file, key) => (fs.existsSync(path.join(__dirname, file)) ? require(`./${file}`)[key] : []);
+const letters = optional('data/letters.json', 'letters');
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0']);
@@ -25,7 +29,7 @@ app.get('/healthz', (req, res) => res.send('ok'));
 
 const server = http.createServer(app);
 const io = new Server(server);
-const rooms = new RoomManager({ categories, timeCategories, seenCategories });
+const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters });
 
 const hostChannel = (code) => `${code}:host`;
 const playerChannel = (code, playerId) => `${code}:player:${playerId}`;
@@ -131,7 +135,7 @@ io.on('connection', (socket) => {
 
   on('host:create', ({ gameType }) => {
     const room = rooms.create();
-    if (Object.hasOwn(GAMES, gameType ?? '')) room.setGameType(gameType);
+    if (room.games().some((g) => g.id === gameType)) room.setGameType(gameType);
     room.onChange = () => broadcast(room);
     return attachHost(room);
   });
@@ -197,6 +201,16 @@ io.on('connection', (socket) => {
   hostAction('host:sj-undo', (room, { step }) => seen(room).undo(step));
   hostAction('host:sj-next', (room, { step }) => seen(room).next(step));
 
+  // «حروف»
+  const hr = (room) => room.gameOf('letters');
+  hostAction('host:hr-pick', (room, { cell, step }) => hr(room).pick(Number(cell), step));
+  hostAction('host:hr-buzz', (room, { team, step }) => hr(room).hostBuzz(team, step));
+  hostAction('host:hr-judge', (room, { correct, step }) => hr(room).judge(Boolean(correct), step));
+  hostAction('host:hr-new', (room, { step }) => hr(room).newQuestion(step));
+  hostAction('host:hr-release', (room, { step }) => hr(room).release(step));
+  hostAction('host:hr-undo', (room, { step }) => hr(room).undo(step));
+  hostAction('host:hr-next', (room, { step }) => hr(room).next(step));
+
   on('player:join', ({ code, name, playerId }) => {
     const room = rooms.get(code);
     if (!room) throw new GameError('ما لقينا الغرفة، تأكد من الرقم');
@@ -214,6 +228,13 @@ io.on('connection', (socket) => {
     const room = currentRoom('player');
     room.submitAnswer(socket.data.playerId, answer);
     broadcast(room);
+  });
+
+  on('player:buzz', () => {
+    const room = currentRoom('player');
+    const first = room.gameOf('letters').buzz(socket.data.playerId);
+    if (first) broadcast(room);
+    return { first };
   });
 
   on('player:vote', ({ choice }) => {

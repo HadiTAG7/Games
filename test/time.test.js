@@ -291,7 +291,7 @@ test('cards seen this game come back only when a category runs low', () => {
 /* ---------- In a room ---------- */
 
 function roomWithTime() {
-  const manager = new RoomManager({ categories: [], timeCategories: CATEGORIES });
+  const manager = new RoomManager({ categories: require('../data/questions.json').categories, timeCategories: CATEGORIES });
   const room = manager.create();
   const players = ['أحمد', 'سارة', 'فهد', 'نورة'].map((name, i) => {
     const p = room.join({ name });
