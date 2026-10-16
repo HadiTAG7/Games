@@ -125,6 +125,83 @@ test('the mafia win once they match the rest', () => {
   assert.deepEqual(game.nightPoints(), { a: 3 });
 });
 
+const EIGHT = { ...SEVEN, h: 'mafia' };
+
+test('two mafia: they point, see each other, and only an agreed and confirmed victim dies', () => {
+  const game = dealt(EIGHT);
+  game.startNight();
+  game.pick('d', null);
+  game.pick('a', 'f');
+  assert.deepEqual(game.mafiaPlan(), { team: true, pointed: ['a'], agreed: 'f', confirmed: [], locked: false, victim: null });
+  assert.throws(() => game.confirmPick('b'), /للمافيا/);
+  assert.throws(() => game.confirmPick('h'), /اتفقوا/, 'h hasn\'t pointed at f');
+  game.pick('h', 'g');
+  assert.throws(() => game.confirmPick('a'), /اتفقوا/, 'f and g: no agreement');
+  game.endNight();
+  assert.deepEqual(game.announcement.deaths, [], 'no agreement, nobody dies');
+
+  game.phase = 'verdict';
+  game.startNight();
+  game.pick('a', 'f');
+  game.pick('h', 'f');
+  game.confirmPick('a');
+  assert.equal(game.mafiaPlan().locked, false, 'h still to confirm');
+  game.endNight();
+  assert.deepEqual(game.announcement.deaths, [], 'agreed but not confirmed by both');
+
+  game.phase = 'verdict';
+  game.startNight();
+  game.pick('a', 'f');
+  game.confirmPick('a');
+  assert.equal(game.mafiaPlan().locked, true, 'alone so far: h hasn\'t pointed');
+  game.pick('h', 'f');
+  assert.deepEqual(game.mafiaPlan().confirmed, ['a'], 'pointing at the agreed one keeps a\'s confirmation');
+  game.pick('h', 'g');
+  assert.deepEqual(game.mafiaPlan().confirmed, [], 'pointing elsewhere undoes everyone\'s');
+  game.pick('h', 'f');
+  assert.equal(game.mafiaPlan().confirmed.length, 0, 'back on f, both confirm again');
+  game.confirmPick('a');
+  game.confirmPick('h');
+  assert.equal(game.mafiaPlan().victim, 'f');
+  game.endNight();
+  assert.deepEqual(game.announcement.deaths, ['f']);
+});
+
+test('two mafia: the doctor still saves their victim; the night waits for their «اعتمد»', () => {
+  const game = dealt(EIGHT);
+  game.startNight();
+  const online = game.alive();
+  for (const id of online) {
+    if (id === 'a' || id === 'h') game.pick(id, 'g');
+    else if (id === 'b') game.pick(id, 'g');
+    else if (id === 'd') game.pick(id, null);
+    else game.pick(id, 'a');
+  }
+  game.maybeEndNight(online);
+  assert.equal(game.night.ending, false, 'everyone picked, the mafia haven\'t confirmed');
+  assert.equal(game.hasActed('a'), false);
+  game.confirmPick('a');
+  game.maybeEndNight(online);
+  assert.equal(game.night.ending, false);
+  game.confirmPick('h');
+  game.maybeEndNight(online);
+  assert.equal(game.night.ending, true);
+  game.endNight();
+  assert.deepEqual([game.announcement.deaths, game.announcement.saved], [[], true]);
+  game.dispose();
+});
+
+test('a lone mafia (the other one out) picks with one tap', () => {
+  const game = dealt(EIGHT);
+  game.players.get('h').alive = false;
+  game.startNight();
+  game.pick('a', 'f');
+  assert.equal(game.hasActed('a'), true);
+  game.confirmPick('a'); // harmless
+  game.endNight();
+  assert.deepEqual(game.announcement.deaths, ['f']);
+});
+
 test('the night ends a few seconds after everyone online has picked', async () => {
   const game = new MafiaGame({ random: () => 0 });
   let woke = 0;
@@ -170,12 +247,23 @@ test('screens: roles go to their owner, the mafia see each other, the big screen
   const theirs = room.playerView(citizen.id);
   assert.equal(theirs.me.team, null);
   assert.ok(theirs.players.every((row) => row.role === null || row.role === 'mayor' || row.id === citizen.id));
-  // Night: the room waits for everyone, then the host screen still shows no roles.
+  // Night: the room waits for everyone, the mafia's «اعتمد» too, then the host screen still shows no roles.
   room.game.startNight();
   for (const p of ps) {
     const target = ps.find((t) => t !== p && (roleOf(p) !== 'mafia' || roleOf(t) !== 'mafia'));
     room.mafiaPick(p.id, target.id);
   }
+  assert.equal(room.game.night.ending, false, 'the mafia agree but haven\'t confirmed');
+  // Each mafia sees the other's pointing; nobody else does.
+  const plan = room.playerView(mafia[0].id).me;
+  const target = room.game.night.picks.get(mafia[1].id);
+  assert.deepEqual(plan.team[0].pick, { id: target, name: room.nameOf(target) });
+  assert.deepEqual(plan.plan, { team: true, agreed: { id: target, name: room.nameOf(target) }, confirmed: false, locked: false });
+  assert.equal(room.playerView(citizen.id).me.plan, null);
+  assert.ok(!JSON.stringify(room.hostView()).includes('"plan"'));
+  room.mafiaConfirm(mafia[0].id);
+  assert.equal(room.playerView(mafia[1].id).me.team[0].confirmed, true);
+  for (const p of mafia) room.mafiaConfirm(p.id);
   assert.equal(room.game.night.ending, true);
   room.game.endNight();
   const dead = room.game.announcement.deaths;

@@ -1509,6 +1509,17 @@ button.hr-cell:hover { filter: brightness(1.1); transform: scale(0.98); }
 .mf-tally { list-style: none; padding: 0; margin: 4px auto; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 6px; }
 .mf-tally li { display: flex; justify-content: space-between; padding: 8px 14px; border-radius: 12px; background: var(--card); }
 .mf-team { color: var(--accent) !important; font-weight: 700; }
+.mf-plan { margin: 4px 0 2px; padding: 12px 14px; border-color: rgba(244, 63, 94, 0.45); background: rgba(244, 63, 94, 0.08); }
+.mf-plan .verdict { margin: 0 0 4px; }
+.mf-plan .hint { margin: 0; }
+.mf-plan-wait { margin: 0; font-weight: 700; }
+.mf-plan-team { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; color: var(--muted); font-size: 15px; }
+.mf-plan-team b { color: var(--text); }
+.mf-confirm { width: 100%; margin: 0; }
+.os-vote-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.os-vote-btn.pointed:not(.picked) { border-color: #ff8a9b; box-shadow: inset 0 0 0 1px #ff8a9b; }
+.mf-pointers { font-size: 13px; font-weight: 700; color: #ff8a9b; }
+.os-vote-btn.picked .mf-pointers { color: inherit; opacity: 0.85; }
 .mf-card .os-card-word { color: var(--accent); }
 .btn.ghost.picked { border-color: var(--accent); color: var(--accent); }
 

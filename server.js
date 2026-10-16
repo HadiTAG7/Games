@@ -510,6 +510,12 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
+  on('player:mf-confirm', () => {
+    const room = currentRoom('player');
+    room.mafiaConfirm(socket.data.playerId);
+    broadcast(room);
+  });
+
   on('player:mf-vote', ({ target }) => {
     const room = currentRoom('player');
     room.mafiaVote(socket.data.playerId, target);

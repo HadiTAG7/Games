@@ -231,12 +231,17 @@ class Room {
     this.maybeMoveMafia();
   }
 
+  mafiaConfirm(playerId) {
+    this.gameOf('mafia').confirmPick(playerId);
+    this.maybeMoveMafia();
+  }
+
   mafiaVote(playerId, target) {
     this.gameOf('mafia').castVote(playerId, target);
     this.maybeMoveMafia();
   }
 
-  /** The night ends once everyone still connected has picked; the vote once they've voted. */
+  /** The night ends once everyone still connected is done; the vote once they've voted. */
   maybeMoveMafia() {
     if (this.gameType !== 'mafia') return;
     const { game } = this;

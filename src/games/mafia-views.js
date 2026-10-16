@@ -1,9 +1,9 @@
 'use strict';
 
 // What each screen sees of «مافيا». Roles go only to their owner; the mafia
-// see each other; the mayor is known to all; the dead see everyone. The big
-// screen sees a role only once its player is out (if the host chose that)
-// or when the game is over.
+// see each other (and, at night, who each points at); the mayor is known to
+// all; the dead see everyone. The big screen sees a role only once its
+// player is out (if the host chose that) or when the game is over.
 
 const { MIN_PLAYERS, DISCUSS_OPTIONS, NIGHT_SECONDS } = require('./mafia');
 
@@ -65,7 +65,9 @@ function playerView(room, playerId) {
   const role = me?.role ?? null;
   const dead = Boolean(role) && !me.alive;
   const view = baseView(room, { all: game.phase === 'final' || dead });
-  const name = (id) => (id && id !== 'none' ? room.nameOf(id) : id);
+  const mafia = role === 'mafia';
+  const plan = mafia && game.night ? game.mafiaPlan() : null;
+  const person = (id) => (id ? { id, name: room.nameOf(id) } : null);
   return {
     ...view,
     me: {
@@ -74,12 +76,13 @@ function playerView(room, playerId) {
       role,
       inGame: Boolean(role),
       alive: Boolean(role) && me.alive,
-      // The mafia see each other, and each other's picks tonight.
-      team: role === 'mafia'
+      // The mafia see each other, and tonight who each points at and whether they've confirmed.
+      team: mafia
         ? [...game.players].filter(([id, p]) => p.role === 'mafia' && id !== playerId).map(([id, p]) => ({
-          id, name: room.nameOf(id), alive: p.alive, pick: name(game.night?.picks.get(id) ?? null),
+          id, name: room.nameOf(id), alive: p.alive, pick: person(game.night?.picks.get(id) ?? null), confirmed: Boolean(plan?.confirmed.includes(id)),
         }))
         : null,
+      plan: plan ? { team: plan.team, agreed: person(plan.agreed), confirmed: plan.confirmed.includes(playerId), locked: plan.locked } : null,
       picked: game.night ? game.night.picks.has(playerId) : false,
       pick: game.night ? game.night.picks.get(playerId) ?? null : null,
       vote: game.vote ? game.vote.votes.get(playerId) ?? null : null,

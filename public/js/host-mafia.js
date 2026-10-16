@@ -106,7 +106,7 @@ function renderNight() {
   return h('main', { class: 'stage narrow mf-stage mf-night' },
     h('div', { class: 'mf-big' }, '🌙'),
     h('h1', { class: 'center' }, `الليلة ${state.dayNumber}… الكل يختار من جواله`),
-    h('p', { class: 'center muted' }, 'المافيا يختارون ضحية، والدكتور ينقذ، والشرطي يسأل… والباقين يختارون مين يشكّون فيه.'),
+    h('p', { class: 'center muted' }, 'المافيا يتفقون على ضحية، والدكتور ينقذ، والشرطي يسأل… والباقين يختارون مين يشكّون فيه.'),
     timerEl(state.endsAt),
     h('p', { class: 'center' }, h('b', {}, `${night.acted} من ${night.total}`), ' اختاروا'),
     mfPlayers(state.players),

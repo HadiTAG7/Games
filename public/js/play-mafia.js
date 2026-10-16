@@ -4,7 +4,9 @@
 
 // Player screens for «مافيا». Your role card shows only while you press on
 // it. At night every phone shows a list of names to pick from, whatever the
-// role, so nobody can tell who's doing what from across the room.
+// role, so nobody can tell who's doing what from across the room. Two or
+// more mafia point at a victim (each sees the others' pointing) and confirm
+// it together.
 (() => {
 function topbar() {
   return h('header', { class: 'topbar' },
@@ -92,6 +94,32 @@ async function pick(target) {
   if (!res.ok) toast(res.error);
 }
 
+async function confirmPick() {
+  const res = await emit(socket, 'player:mf-confirm', {});
+  if (!res.ok) toast(res.error);
+}
+
+/** Two or more mafia: where each points, and «🔪 اعتمد» once they all point at the same person. */
+function mafiaPlanBox() {
+  const { me } = state;
+  const { plan } = me;
+  const mates = me.team.filter((t) => t.alive);
+  let main;
+  if (plan.locked) {
+    main = [h('div', { class: 'verdict good' }, `✅ اتفقتوا: الضحية ${plan.agreed.name}`), h('p', { class: 'hint' }, 'تقدرون تغيّرون لين يخلص الليل')];
+  } else if (plan.agreed && me.pick === plan.agreed.id) {
+    main = plan.confirmed
+      ? h('p', { class: 'mf-plan-wait' }, '✅ اعتمدت، ننتظر ربعك')
+      : h('button', { type: 'button', class: 'btn big danger mf-confirm', onclick: confirmPick }, `🔪 اعتمد ${plan.agreed.name}`);
+  } else {
+    main = h('p', { class: 'mf-plan-wait' }, me.pick ? '👉 ربعك يشوفون إشارتك. أشّروا كلكم على نفس الشخص' : '👉 أشّر على اللي تبيه، وربعك يشوفون إشارتك');
+  }
+  return h('div', { class: 'card mf-plan' }, main,
+    h('ul', { class: 'mf-plan-team' }, mates.map((t) => h('li', {},
+      h('b', {}, t.name), t.pick ? ` 👉 ${t.pick.name}` : ' … لسا ما أشّر',
+      plan.agreed && t.pick?.id === plan.agreed.id ? (t.confirmed ? ' ✅' : ' ⏳') : ''))));
+}
+
 function renderNight() {
   const { me } = state;
   const role = me.role === 'sniper' && me.bulletUsed ? 'citizen' : me.role;
@@ -99,25 +127,34 @@ function renderNight() {
   const choices = others.filter((p) => !(role === 'mafia' && me.team.some((t) => t.id === p.id)));
   const police = me.role === 'police' && me.picked;
   const lastCheck = police ? me.checks.at(-1) : null;
+  const team = role === 'mafia' && me.plan?.team;
+  /** Who points at this name: me, and my teammates. */
+  const pointers = (p) => (team ? [me.pick === p.id ? 'أنا' : null, ...me.team.filter((t) => t.alive && t.pick?.id === p.id).map((t) => t.name)].filter(Boolean) : []);
   return h('main', { class: 'stage narrow mf-stage mf-night' },
     h('h1', { class: 'center' }, `🌙 الليلة ${state.dayNumber}`),
-    h('p', { class: 'center mf-prompt' }, NIGHT_PROMPTS[role]),
-    role === 'mafia' && me.team.length ? h('p', { class: 'center hint' }, me.team.map((t) => `${t.name}: ${t.pick ?? '…'}`).join(' · ')) : null,
+    h('p', { class: 'center mf-prompt' }, team ? '🔪 أشّروا على الضحية، ولما تتفقون اعتمدوا' : NIGHT_PROMPTS[role]),
+    team ? mafiaPlanBox() : null,
     lastCheck ? h('div', { class: `verdict ${lastCheck.mafia ? 'bad' : 'good'}` },
       `${lastCheck.name} ${lastCheck.mafia ? 'مافيا! 🔪' : 'مو مافيا ✅'}`) : null,
-    police ? null : h('div', { class: 'os-vote-grid' }, choices.map((p) => h('button', {
-      type: 'button',
-      class: `btn big os-vote-btn${me.pick === p.id ? ' picked' : ''}`,
-      disabled: role === 'doctor' && p.id === me.lastSaved,
-      onclick: () => pick(p.id),
-    }, p.id === me.id ? 'نفسي' : p.name, me.pick === p.id ? ' ✅' : ''))),
+    police ? null : h('div', { class: 'os-vote-grid' }, choices.map((p) => {
+      const marks = pointers(p);
+      return h('button', {
+        type: 'button',
+        class: `btn big os-vote-btn${me.pick === p.id ? ' picked' : ''}${marks.some((m) => m !== 'أنا') ? ' pointed' : ''}`,
+        disabled: role === 'doctor' && p.id === me.lastSaved,
+        onclick: () => pick(p.id),
+      }, h('span', {}, p.id === me.id ? 'نفسي' : p.name, !team && me.pick === p.id ? ' ✅' : ''),
+      marks.length ? h('small', { class: 'mf-pointers' }, `👉 ${marks.join(' · ')}`) : null);
+    })),
     role === 'sniper' ? h('button', {
       type: 'button',
       class: `btn big ghost${me.picked && me.pick === null ? ' picked' : ''}`,
       onclick: () => pick(null),
     }, me.picked && me.pick === null ? '✋ خلّيت الطلقة ✅' : '✋ خلّ الطلقة لليلة ثانية') : null,
     timerEl(state.endsAt),
-    h('p', { class: 'hint center' }, me.picked ? 'اخترت. ننتظر الباقين…' : 'اختر قبل لا يخلص الوقت'),
+    h('p', { class: 'hint center' }, team
+      ? (me.plan.locked ? 'ننتظر الباقين…' : 'اتفقوا واعتمدوا قبل لا يخلص الوقت، وإلا محد يموت')
+      : (me.picked ? 'اخترت. ننتظر الباقين…' : 'اختر قبل لا يخلص الوقت')),
     roleCard(),
   );
 }

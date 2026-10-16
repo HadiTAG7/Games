@@ -2,9 +2,10 @@
 
 // «مافيا»: secret roles on the phones, and the big screen is the narrator.
 // At night everyone picks someone on their phone (so nobody can tell who has
-// a role); the mafia pick a victim, the doctor saves someone, the police ask
-// about someone, the sniper may fire their one bullet. By day the room
-// talks, then votes someone out; the mayor's vote counts twice.
+// a role); the mafia point at a victim and confirm it together (no agreement,
+// no victim), the doctor saves someone, the police ask about someone, the
+// sniper may fire their one bullet. By day the room talks, then votes
+// someone out; the mayor's vote counts twice.
 //
 // Phases: lobby → roles → night → morning → discuss → vote → verdict → night … → final
 
@@ -68,6 +69,7 @@ class MafiaGame {
     this.players.delete(id);
     if (!player?.role || ['lobby', 'final'].includes(this.phase)) return;
     this.night?.picks.delete(id);
+    this.night?.confirmed.delete(id);
     this.vote?.votes.delete(id);
     this.step += 1;
     this.checkWinner();
@@ -139,7 +141,7 @@ class MafiaGame {
     if (this.isStale(step)) return;
     if (!['roles', 'verdict'].includes(this.phase) || this.winner) throw new GameError('مو وقت الليل');
     this.dayNumber += 1;
-    this.night = { picks: new Map(), ending: false };
+    this.night = { picks: new Map(), confirmed: new Set(), ending: false };
     this.announcement = null;
     this.vote = null;
     this.phase = 'night';
@@ -174,36 +176,71 @@ class MafiaGame {
       if (this.night.picks.has(playerId)) throw new GameError('سألت عن أحد الليلة خلاص');
       this.checks.push({ night: this.dayNumber, target, mafia: this.isMafia(target) });
     }
+    // Pointing somewhere else than what the mafia agreed on undoes everyone's «اعتمد».
+    if (this.isMafia(playerId) && target !== this.mafiaPlan().agreed) this.night.confirmed.clear();
     this.night.picks.set(playerId, target);
   }
 
-  /** Once everyone still online has picked, the night ends a few seconds later. */
+  /** The mafia alive tonight. */
+  mafiaAlive() {
+    return this.alive().filter((id) => this.isMafia(id));
+  }
+
+  /**
+   * Where the mafia stand tonight. With two or more alive, each points at
+   * someone (the others see it); once all who pointed point at the same
+   * person, each confirms, and only then is that person the victim. A lone
+   * mafia's pick counts straight away.
+   */
+  mafiaPlan() {
+    const mafia = this.mafiaAlive();
+    const picks = this.night?.picks ?? new Map();
+    const pointed = mafia.filter((id) => picks.get(id));
+    const targets = new Set(pointed.map((id) => picks.get(id)));
+    const agreed = targets.size === 1 ? [...targets][0] : null;
+    const team = mafia.length > 1;
+    const confirmed = agreed ? pointed.filter((id) => !team || this.night.confirmed.has(id)) : [];
+    const locked = Boolean(agreed) && confirmed.length === pointed.length;
+    return { team, pointed, agreed, confirmed, locked, victim: locked ? agreed : null };
+  }
+
+  /** «🔪 اعتمد»: a mafia confirms the person they all point at. */
+  confirmPick(playerId) {
+    if (this.phase !== 'night') throw new GameError('مو وقت الليل');
+    if (!this.isMafia(playerId) || !this.players.get(playerId).alive) throw new GameError('هذا للمافيا بس');
+    const plan = this.mafiaPlan();
+    if (!plan.team) return; // alone, the pick already counts
+    if (!plan.agreed || this.night.picks.get(playerId) !== plan.agreed) throw new GameError('اتفقوا على نفس الشخص أول');
+    this.night.confirmed.add(playerId);
+  }
+
+  /** Done for tonight: picked, or for a mafia with a team, confirmed the agreed victim. */
+  hasActed(id) {
+    if (!this.night.picks.has(id)) return false;
+    if (!this.isMafia(id)) return true;
+    const plan = this.mafiaPlan();
+    return !plan.team || (plan.locked && plan.confirmed.includes(id));
+  }
+
+  /** Once everyone still online is done, the night ends a few seconds later. */
   maybeEndNight(connected) {
     if (this.phase !== 'night' || this.night.ending) return;
     const online = new Set(connected);
-    const waiting = this.alive().some((id) => online.has(id) && !this.night.picks.has(id));
+    const waiting = this.alive().some((id) => online.has(id) && !this.hasActed(id));
     if (waiting) return;
     this.night.ending = true;
     const [min, max] = NIGHT_END_DELAY;
     this.schedule(min + this.random() * (max - min), () => this.endNight());
   }
 
-  /** Morning: the mafia's victim and the sniper's shot fall, unless the doctor saved them. */
+  /** Morning: the mafia's victim (if they agreed) and the sniper's shot fall, unless the doctor saved them. */
   endNight(step) {
     if (this.isStale(step)) return;
     if (this.phase !== 'night') throw new GameError('مو وقت الليل');
     this.clearTimer();
     const { picks } = this.night;
     const byRole = (role) => this.alive().filter((id) => this.roleOf(id) === role);
-    // The mafia's victim: the most picked; a tie is settled by chance.
-    const counts = new Map();
-    for (const id of byRole('mafia')) {
-      const target = picks.get(id);
-      if (target) counts.set(target, (counts.get(target) ?? 0) + 1);
-    }
-    const top = Math.max(0, ...counts.values());
-    const tied = [...counts].filter(([, n]) => n === top && top > 0).map(([id]) => id);
-    const victim = tied.length ? tied[Math.floor(this.random() * tied.length)] : null;
+    const { victim } = this.mafiaPlan();
     const [doctor] = byRole('doctor');
     const saved = doctor ? picks.get(doctor) ?? null : null;
     const [sniper] = byRole('sniper');
