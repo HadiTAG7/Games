@@ -1,5 +1,5 @@
 /* global $, h, act, state, app, field, joinCard, gamePicker, kickButton, endGame, confetti, timerEl, standingsList,
-   HOST_GAMES, sfx, osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle */
+   HOST_GAMES, sfx, osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle, customBox */
 'use strict';
 
 // Host screens for «برا السالفة». This screen is for everyone in the room,
@@ -60,6 +60,15 @@ function toggleCategory(id) {
   setCategories(picked.includes(id) ? picked.filter((c) => c !== id) : [...picked, id]);
 }
 
+function categoryChips() {
+  return state.categories.map((c) => h('button', {
+    type: 'button',
+    class: `category-chip${c.id === 'custom' ? ' custom' : ''}`,
+    'data-category': c.id,
+    onclick: () => toggleCategory(c.id),
+  }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
+}
+
 function renderLobby() {
   const s = state.settings;
   const select = (id, key, options) => h('select', { id, onchange: (e) => act('host:settings', { [key]: Number(e.target.value) }) },
@@ -83,15 +92,22 @@ function renderLobby() {
             h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories(state.categories.map((c) => c.id)) }, 'الكل'),
             h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories([]) }, 'ولا وحدة'),
           ),
-          h('div', { class: 'chips os-categories', role: 'group', 'aria-label': 'الفئات' },
-            state.categories.map((c) => h('button', {
-              type: 'button',
-              class: 'category-chip',
-              'data-category': c.id,
-              onclick: () => toggleCategory(c.id),
-            }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)))),
+          h('div', { class: 'chips os-categories', role: 'group', 'aria-label': 'الفئات' }, categoryChips()),
         ),
       ),
+      customBox({
+        game: 'outsider',
+        open: Boolean(state.custom.text),
+        help: `فئة خاصة فيكم: أماكنكم، أصحابكم، سوالفكم. كل كلمة في سطر (أو بينها فاصلة)، وتحتاج ${state.custom.min} كلمات على الأقل.`,
+        inputs: [
+          h('div', { class: 'settings' },
+            field('اسم الفئة', h('input', { id: 'os-custom-name', maxlength: 30, value: state.custom.name, placeholder: 'كلماتنا' })),
+            field('إيموجي', h('input', { id: 'os-custom-emoji', maxlength: 8, value: state.custom.emoji, placeholder: '✍️' }))),
+          h('textarea', { id: 'os-custom-text', rows: 4, value: state.custom.text, placeholder: 'استراحة أبو فهد\nمخيم البر\nديوانية' }),
+        ],
+        save: () => act('host:settings', { custom: { name: $('#os-custom-name').value, emoji: $('#os-custom-emoji').value, text: $('#os-custom-text').value } }),
+        items: () => state.custom.words.map((word) => ({ category: '__new', newName: state.custom.name, newEmoji: state.custom.emoji, word })),
+      }),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 🤫'),
       h('p', { id: 'start-hint', class: 'hint center' }),
@@ -104,6 +120,11 @@ function updateLobby() {
   list.replaceChildren(...state.players.map((p) => h('li', { class: `chip${p.connected ? '' : ' away'}` }, h('span', {}, p.name), kickButton(p))));
   if (!state.players.length) list.append(h('li', { class: 'empty' }, 'لسا ما أحد دخل… امسحوا الباركود'));
   $('#player-count').textContent = state.players.length;
+  // The host's own category comes and goes, so redraw the chips when the list changes.
+  const box = $('.os-categories');
+  const shown = [...box.children].map((el) => `${el.dataset.category}:${el.textContent}`).join('|');
+  const fresh = categoryChips();
+  if (fresh.map((el) => `${el.dataset.category}:${el.textContent}`).join('|') !== shown) box.replaceChildren(...fresh);
   const picked = currentCategories();
   document.querySelectorAll('.os-categories .category-chip').forEach((el) => {
     const on = picked.includes(el.dataset.category);
@@ -112,6 +133,10 @@ function updateLobby() {
   });
   $('#os-category-count').textContent = `اخترت ${picked.length} من ${state.categories.length}`;
   $('#rules-body').replaceChildren(osRulesList(state.settings, state.rules));
+  const { custom } = state;
+  $('#custom-status').textContent = custom.words.length
+    ? `${custom.words.length} كلمة · ${custom.ready ? '✅ الفئة جاهزة وانضافت للفئات' : `تحتاج ${custom.min} كلمات على الأقل`}`
+    : '';
   const enough = state.players.length >= state.rules.minPlayers;
   $('#start').disabled = !enough || !picked.length;
   let hint = '';

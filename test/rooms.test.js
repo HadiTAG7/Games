@@ -241,3 +241,36 @@ test('«بطل السهرة» adds each finished game once, across games', () =>
   room.night.reset();
   assert.deepEqual(room.hostView().night, { standings: [], crowned: false });
 });
+
+test('«أسئلتكم الخاصة»: the host\'s own category, letter questions and words', () => {
+  const { SeenGame } = require('../src/games/seen');
+  const { LettersGame } = require('../src/games/letters');
+  const { OutsiderGame } = require('../src/games/outsider');
+  const { letterOf } = require('../src/custom');
+  assert.deepEqual(['الأسد', 'إبل', 'هدهد', 'تمر', 'ال', '123'].map(letterOf), ['أ', 'أ', 'هـ', 'ت', 'أ', null]);
+
+  const seen = new SeenGame({ categories: require('../data/seen-jeem.json').categories });
+  const text = [200, 200, 400, 400, 600].map((v, i) => `${v} | سؤال ${i} | جواب ${i}`).join('\n') + '\nخطأ بدون قيمة';
+  seen.updateSettings({ custom: { name: 'سوالفنا', emoji: '🔥', text } });
+  assert.equal(seen.custom.items.length, 5);
+  assert.equal(seen.custom.bad, 1);
+  assert.ok(!seen.categories.some((c) => c.id === 'custom'), 'needs two 600s');
+  seen.updateSettings({ custom: { name: 'سوالفنا', emoji: '🔥', text: `${text}\n600 | آخر | جواب` } });
+  assert.equal(seen.category('custom').name, 'سوالفنا');
+  seen.updateSettings({ categories: ['custom', ...seen.settings.categories.slice(0, 5)] });
+  assert.ok(seen.settings.categories.includes('custom'));
+
+  const letters = new LettersGame({ categories: require('../data/letters.json').letters });
+  letters.updateSettings({ custom: 'وش اسم صغير الأسد؟ | شبل\nبدون جواب\nسؤال | 99' });
+  assert.deepEqual(letters.custom.items.map((i) => i.letter), ['ش']);
+  assert.equal(letters.custom.bad, 2);
+  const index = letters.drawQuestion('ش');
+  assert.equal(letters.letters.find((l) => l.letter === 'ش').questions[index].a, 'شبل', 'the host\'s question comes first');
+
+  const outsider = new OutsiderGame({ categories: require('../data/outsider.json').categories });
+  outsider.updateSettings({ custom: { name: 'شلتنا', text: 'استراحة أبو فهد، مخيم البر\nديوانية\nسطح البيت' } });
+  assert.ok(outsider.settings.categories.includes('custom'));
+  assert.equal(outsider.category('custom').words.length, 4);
+  outsider.updateSettings({ custom: { name: 'شلتنا', text: 'وحدة' } });
+  assert.ok(!outsider.settings.categories.includes('custom'));
+});

@@ -9,6 +9,8 @@ const QRCode = require('qrcode');
 const { Server } = require('socket.io');
 const { RoomManager, GAMES } = require('./src/rooms');
 const { GameError } = require('./src/errors');
+const { openStore } = require('./src/community');
+const contrib = require('./src/contrib');
 const { categories } = require('./data/questions.json');
 const timeCategories = require('./data/time-challenge.json').categories;
 const seenCategories = require('./data/seen-jeem.json').categories;
@@ -20,7 +22,10 @@ const outsiderCategories = optional('data/outsider.json', 'categories');
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0']);
 
+const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters, outsiderCategories });
+
 const app = express();
+app.set('trust proxy', 1); // Render sits in front, so req.ip is the visitor's address
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 // Country flags for «تحدي الوقت» (flag-icons, MIT).
 app.use('/flags', express.static(path.join(path.dirname(require.resolve('flag-icons/package.json')), 'flags'), { maxAge: '7d' }));
@@ -28,9 +33,153 @@ app.use('/flags', express.static(path.join(path.dirname(require.resolve('flag-ic
 app.get('/time-challenge.json', (req, res) => res.json({ categories: timeCategories }));
 app.get('/healthz', (req, res) => res.send('ok'));
 
+/* ---------- «أضف أسئلة»: questions people send, approved by the owner ---------- */
+
+// The banks as shipped; approved questions are added on top of these.
+const BASE = { herd: categories, seen: seenCategories, letters, outsider: outsiderCategories };
+let store = null;
+let storeError = null;
+
+async function refreshCommunity() {
+  const approved = await store.list('approved');
+  for (const [game, spec] of Object.entries(contrib.SPECS)) {
+    const entries = approved.filter((a) => a.game === game).map((a) => a.payload);
+    rooms.setContent(game, spec.merge(BASE[game], entries));
+  }
+}
+
+async function openCommunity() {
+  const file = process.env.COMMUNITY_FILE || path.join(__dirname, 'data', 'community.local.json');
+  try {
+    store = await openStore({ file });
+  } catch (err) {
+    console.error('Question database unavailable, using a local file:', err.message);
+    storeError = 'ما قدرنا نتصل بقاعدة البيانات، والأسئلة تنحفظ مؤقتاً في ملف';
+    store = await openStore({ databaseUrl: '', file });
+  }
+  await refreshCommunity();
+}
+const communityReady = openCommunity();
+
+/** At most `limit` hits per key in each window. */
+function limiter(limit, windowMs) {
+  const hits = new Map();
+  return (keyName, cost = 1) => {
+    const now = Date.now();
+    const recent = (hits.get(keyName) ?? []).filter((t) => now - t < windowMs);
+    if (recent.length + cost > limit) return false;
+    for (let i = 0; i < cost; i++) recent.push(now);
+    hits.set(keyName, recent);
+    return true;
+  };
+}
+const submitLimit = limiter(50, 60 * 60 * 1000);
+const loginLimit = limiter(10, 15 * 60 * 1000);
+const MAX_ITEMS = 50;
+
+const api = express.Router();
+const wrap = (fn) => (req, res, next) => fn(req, res).catch(next);
+api.use(express.json({ limit: '64kb' }));
+api.use((req, res, next) => {
+  communityReady.then(() => next(), next);
+});
+
+api.get('/contrib/spec', (req, res) => res.json({ games: contrib.formSpec(rooms.content) }));
+
+api.post('/contrib', wrap(async (req, res) => {
+  const { game, items, submitter } = req.body ?? {};
+  const spec = contrib.SPECS[game];
+  if (!spec) return res.status(400).json({ error: 'لعبة غير معروفة' });
+  if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'ما فيه أسئلة' });
+  if (items.length > MAX_ITEMS) return res.status(400).json({ error: `بالكثير ${MAX_ITEMS} سؤال في المرة` });
+  const valid = [];
+  const errors = [];
+  const seen = new Set();
+  items.forEach((item, index) => {
+    try {
+      const payload = spec.validate(item ?? {}, rooms.content[game] ?? []);
+      const sig = JSON.stringify(payload);
+      if (seen.has(sig)) throw new GameError('مكرر في نفس الإرسال');
+      seen.add(sig);
+      valid.push(payload);
+    } catch (err) {
+      if (!(err instanceof GameError)) throw err;
+      errors.push({ index, error: err.message });
+    }
+  });
+  if (valid.length && !submitLimit(req.ip, valid.length)) {
+    return res.status(429).json({ error: 'أرسلت أسئلة كثير، جرّب بعد ساعة' });
+  }
+  const name = String(submitter ?? '').trim().slice(0, 30) || null;
+  await store.add(valid.map((payload) => ({ game, payload, submitter: name })));
+  return res.json({ ok: true, added: valid.length, errors });
+}));
+
+// The review page: everything below needs the owner's password (ADMIN_PASSWORD).
+const sha = (text) => require('crypto').createHash('sha256').update(String(text)).digest();
+api.use('/admin', (req, res, next) => {
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) return res.status(503).json({ error: 'صفحة المراجعة مقفلة: حط ADMIN_PASSWORD في إعدادات السيرفر' });
+  let given = '';
+  try {
+    given = decodeURIComponent(req.get('x-admin-password') ?? ''); // sent encoded, so Arabic passwords work
+  } catch {
+    given = '';
+  }
+  if (require('crypto').timingSafeEqual(sha(given), sha(password))) return next();
+  if (!loginLimit(req.ip)) return res.status(429).json({ error: 'محاولات كثير، جرّب بعد ربع ساعة' });
+  return res.status(401).json({ error: 'كلمة السر غلط' });
+});
+
+api.get('/admin/status', wrap(async (req, res) => {
+  const all = await store.list();
+  const count = (status) => all.filter((i) => i.status === status).length;
+  res.json({ storage: store.kind, persistent: store.persistent, error: storeError, pending: count('pending'), approved: count('approved') });
+}));
+
+api.get('/admin/submissions', wrap(async (req, res) => {
+  const status = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'pending';
+  const items = (await store.list(status)).filter((i) => contrib.SPECS[i.game]);
+  res.json({ items, games: contrib.formSpec(rooms.content) });
+}));
+
+api.post('/admin/submissions/:id/approve', wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const item = (await store.list('pending')).find((i) => i.id === id);
+  if (!item) return res.status(404).json({ error: 'ما لقينا السؤال' });
+  let payload;
+  try {
+    payload = contrib.SPECS[item.game].validate(req.body?.payload ?? item.payload, rooms.content[item.game] ?? []);
+  } catch (err) {
+    if (!(err instanceof GameError)) throw err;
+    return res.status(400).json({ error: err.message });
+  }
+  await store.decide(id, 'approved', payload);
+  await refreshCommunity();
+  return res.json({ ok: true });
+}));
+
+api.post('/admin/submissions/:id/reject', wrap(async (req, res) => {
+  const done = await store.decide(Number(req.params.id), 'rejected');
+  if (!done) return res.status(404).json({ error: 'ما لقينا السؤال' });
+  return res.json({ ok: true });
+}));
+
+api.post('/admin/submissions/:id/delete', wrap(async (req, res) => {
+  const done = await store.remove(Number(req.params.id));
+  if (!done) return res.status(404).json({ error: 'ما لقينا السؤال' });
+  await refreshCommunity();
+  return res.json({ ok: true });
+}));
+
+api.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+  console.error('[api]', err);
+  res.status(500).json({ error: 'صار خطأ، جرّب مرة ثانية' });
+});
+app.use('/api', api);
+
 const server = http.createServer(app);
 const io = new Server(server);
-const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters, outsiderCategories });
 
 const hostChannel = (code) => `${code}:host`;
 const playerChannel = (code, playerId) => `${code}:player:${playerId}`;

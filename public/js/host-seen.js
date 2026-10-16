@@ -1,6 +1,6 @@
 /* global $, h, storage, toast, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, SJ_LIFELINES, sjAnswering, sjScoreboard, sjBoard,
-   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx */
+   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox */
 'use strict';
 
 // Host screens for «سين جيم». The host picks the categories, taps the
@@ -115,6 +115,15 @@ function toggleCategory(id) {
   else setCategories([...picked, id]);
 }
 
+function categoryChips() {
+  return state.categories.map((c) => h('button', {
+    type: 'button',
+    class: `category-chip${c.id === 'custom' ? ' custom' : ''}`,
+    'data-category': c.id,
+    onclick: () => toggleCategory(c.id),
+  }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
+}
+
 function renderLobby() {
   const s = state.settings;
   const select = (id, key, options, value) => h('select', {
@@ -145,15 +154,22 @@ function renderLobby() {
             }, '🎲 اختيار عشوائي'),
             h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories([]) }, 'ولا وحدة'),
           ),
-          h('div', { class: 'chips sj-categories', role: 'group', 'aria-label': 'الفئات' },
-            state.categories.map((c) => h('button', {
-              type: 'button',
-              class: 'category-chip',
-              'data-category': c.id,
-              onclick: () => toggleCategory(c.id),
-            }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)))),
+          h('div', { class: 'chips sj-categories', role: 'group', 'aria-label': 'الفئات' }, categoryChips()),
         ),
       ),
+      customBox({
+        game: 'seen',
+        open: Boolean(state.custom.text),
+        help: 'فئة خاصة فيكم تطلع مع الفئات. كل سطر: القيمة | السؤال | الجواب، مثل: 200 | مين أطول واحد فينا؟ | فهد. وتحتاج سؤالين على الأقل من كل قيمة.',
+        inputs: [
+          h('div', { class: 'settings' },
+            field('اسم الفئة', h('input', { id: 'sj-custom-name', maxlength: 30, value: state.custom.name, placeholder: 'أسئلتنا' })),
+            field('إيموجي', h('input', { id: 'sj-custom-emoji', maxlength: 8, value: state.custom.emoji, placeholder: '✍️' }))),
+          h('textarea', { id: 'sj-custom-text', rows: 5, value: state.custom.text, placeholder: '200 | السؤال | الجواب\n400 | السؤال | الجواب\n600 | السؤال | الجواب' }),
+        ],
+        save: () => act('host:settings', { custom: { name: $('#sj-custom-name').value, emoji: $('#sj-custom-emoji').value, text: $('#sj-custom-text').value } }),
+        items: () => state.custom.items.map((i) => ({ category: '__new', newName: state.custom.name, newEmoji: state.custom.emoji, value: i.value, q: i.q, a: i.a })),
+      }),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ❓'),
       h('p', { id: 'start-hint', class: 'hint center' }),
@@ -163,6 +179,11 @@ function renderLobby() {
 
 function updateLobby() {
   updateTeamsSection();
+  // The host's own category comes and goes, so redraw the chips when the list changes.
+  const box = $('.sj-categories');
+  const shown = [...box.children].map((el) => `${el.dataset.category}:${el.textContent}`).join('|');
+  const fresh = categoryChips();
+  if (fresh.map((el) => `${el.dataset.category}:${el.textContent}`).join('|') !== shown) box.replaceChildren(...fresh);
   const picked = currentCategories();
   document.querySelectorAll('.sj-categories .category-chip').forEach((el) => {
     const n = picked.indexOf(el.dataset.category);
@@ -172,6 +193,11 @@ function updateLobby() {
   });
   $('#sj-category-count').textContent = `اخترت ${picked.length} من ${BOARD_SIZE}`;
   $('#rules-body').replaceChildren(sjRulesList(state.settings));
+  const { custom } = state;
+  const per = [200, 400, 600].map((v) => `${v}: ${custom.items.filter((i) => i.value === v).length}`).join('، ');
+  $('#custom-status').textContent = custom.items.length
+    ? `${custom.items.length} سؤال (${per})${custom.bad ? ` · ${custom.bad} سطر ما فهمناه` : ''} · ${custom.ready ? '✅ الفئة جاهزة، اخترها من الفئات فوق' : 'تحتاج سؤالين من كل قيمة'}`
+    : '';
 
   const teamsReady = state.teams.red.length > 0 && state.teams.blue.length > 0;
   $('#start').disabled = !teamsReady || picked.length !== BOARD_SIZE;

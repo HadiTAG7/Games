@@ -181,6 +181,54 @@ function endGame() {
   if (confirm('تنهي اللعبة الحين وتطلع النتيجة النهائية؟')) act('host:end');
 }
 
+/* ---------- «أسئلتكم الخاصة» ---------- */
+
+/** Sends questions to the site, where they wait for the owner's approval. */
+async function sendToSite(game, items) {
+  if (!items.length) {
+    toast('ما فيه أسئلة صالحة ترسلها');
+    return;
+  }
+  try {
+    const res = await fetch('/api/contrib', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ game, items: items.slice(0, 50) }),
+    });
+    const out = await res.json();
+    if (!res.ok) toast(out.error);
+    else toast(`وصلت ${out.added} للموقع وتنتظر الموافقة${out.errors.length ? ` (${out.errors.length} موجودة أو ناقصة)` : ''} ✅`, 'ok');
+  } catch {
+    toast('ما قدرنا نرسل، تأكد من النت');
+  }
+}
+
+/**
+ * The lobby box where the host writes questions just for this room. Saving
+ * puts them in the room; ticking 📤 also sends them to the site.
+ * items(): the saved questions, as entries for «أضف أسئلة».
+ */
+function customBox({ game, help, inputs, save, items, open = false }) {
+  const share = h('input', { type: 'checkbox', id: `${game}-share` });
+  return h('details', { class: 'custom-box', open },
+    h('summary', {}, '✍️ أسئلتكم الخاصة'),
+    h('p', { class: 'hint' }, help),
+    ...inputs,
+    h('p', { class: 'hint custom-status', id: 'custom-status' }),
+    h('label', { class: 'check' }, share, ' 📤 أرسلها للموقع كمان، عشان تطلع للكل (بعد موافقة صاحب الموقع)'),
+    h('button', {
+      type: 'button',
+      class: 'btn',
+      onclick: async () => {
+        const res = await save();
+        if (!res?.ok) return;
+        toast('انحفظت لهالغرفة ✅', 'ok');
+        if (share.checked) await sendToSite(game, items());
+      },
+    }, '💾 احفظ'),
+  );
+}
+
 /* ---------- Teams (the team games' lobbies) ---------- */
 
 function teamsSection() {

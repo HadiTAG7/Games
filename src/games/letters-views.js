@@ -49,6 +49,7 @@ function hostView(room) {
     players: room.playerList(),
     canUndo: room.game.history.length > 0,
     letterCount: room.game.letters.length,
+    custom: room.game.custom,
   };
 }
 

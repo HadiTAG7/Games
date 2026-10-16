@@ -258,6 +258,11 @@ class RoomManager {
     this.rooms = new Map();
   }
 
+  /** Swap in a game's bank (say, after approving questions people sent); games started from now on use it. */
+  setContent(type, list) {
+    this.content[type] = list;
+  }
+
   newCode() {
     for (let i = 0; i < 1000; i++) {
       const code = String(crypto.randomInt(1000, 10000));

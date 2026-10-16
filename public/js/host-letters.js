@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, teamLabel, teamShort, scoreboardEl, roundsText, hrBoard, hrSides, hrLetter,
-   hrBuzzStatus, hrRulesList, hrRoundTitle, sfx */
+   hrBuzzStatus, hrRulesList, hrRoundTitle, sfx, customBox */
 'use strict';
 
 // Host screens for «حروف». The host taps the letter a team picks, reads the
@@ -92,6 +92,14 @@ function renderLobby() {
         }, [1, 2, 3, 4].map((n) => h('option', { value: n, selected: n === state.settings.roundsToWin }, roundsText(n))))),
       ),
       h('p', { class: 'hint' }, `${state.letterCount} حرف، والأسئلة ما تتكرر في نفس الغرفة. اللاعبين يضغطون البازر من جوالاتهم.`),
+      customBox({
+        game: 'letters',
+        open: Boolean(state.custom.text),
+        help: 'كل سطر: السؤال | الجواب. الحرف ينحسب من أول حرف في الجواب، وأسئلتكم تطلع قبل أسئلة البنك لنفس الحرف.',
+        inputs: [h('textarea', { id: 'hr-custom-text', rows: 5, value: state.custom.text, placeholder: 'وش اسم استراحتنا؟ | الوناسة\nمين أكثر واحد يتأخر؟ | فهد' })],
+        save: () => act('host:settings', { custom: $('#hr-custom-text').value }),
+        items: () => state.custom.items.map(({ q, a }) => ({ q, a })),
+      }),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 🔤'),
       h('p', { id: 'start-hint', class: 'hint center' }),
@@ -102,6 +110,11 @@ function renderLobby() {
 function updateLobby() {
   updateTeamsSection();
   $('#rules-body').replaceChildren(hrRulesList(state.settings));
+  const { custom } = state;
+  const letters = [...new Set(custom.items.map((i) => i.letter))];
+  $('#custom-status').textContent = custom.items.length
+    ? `✅ ${custom.items.length} سؤال على الحروف: ${letters.join(' ')}${custom.bad ? ` · ${custom.bad} سطر ما فهمناه (لازم «السؤال | الجواب» والجواب يبدأ بحرف عربي)` : ''}`
+    : '';
   const ready = state.teams.red.length > 0 && state.teams.blue.length > 0;
   $('#start').disabled = !ready;
   $('#start-hint').textContent = !state.players.length

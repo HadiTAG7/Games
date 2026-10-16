@@ -5,3 +5,5 @@ npm-debug.log*
 scripts/.wikidata-cache.json
 scripts/.commons-cache.json
 __pycache__/
+data/community.local.json
+data/community.local.json.tmp

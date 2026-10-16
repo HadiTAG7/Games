@@ -1,4 +1,4 @@
-/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES, sfx */
+/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES, sfx, sendToSite */
 'use strict';
 
 // Host screens for «عقلية القطيع».
@@ -96,7 +96,27 @@ function renderLobby() {
           categories,
           h('p', { id: 'bank-size', class: 'hint' }),
         ),
-        h('label', { class: 'field wide', id: 'custom-wrap', hidden: s.source === 'bank' }, h('span', {}, 'أسئلتك'), custom),
+        h('div', { class: 'field wide', id: 'custom-wrap', hidden: s.source === 'bank' },
+          h('label', { class: 'field' }, h('span', {}, 'أسئلتك'), custom),
+          h('div', { class: 'custom-share' },
+            h('select', { id: 'herd-share-sub', 'aria-label': 'القسم' },
+              h('option', { value: '' }, '📤 تبي ترسلها للموقع للكل؟ اختر قسمها…'),
+              state.categories.flatMap((c) => c.subcategories.map((sub) => h('option', { value: sub.id }, `${c.emoji} ${c.name} · ${sub.name}`)))),
+            h('button', {
+              type: 'button',
+              class: 'btn small',
+              onclick: () => {
+                const subcategory = $('#herd-share-sub').value;
+                if (!subcategory) {
+                  toast('اختر القسم أول');
+                  return;
+                }
+                sendToSite('herd', state.settings.customQuestions.map((q) => ({ subcategory, mode: state.settings.mode, q })));
+              },
+            }, '📤 أرسل'),
+          ),
+          h('p', { class: 'hint' }, 'تنرسل بطور اللعبة المختار فوق، وتطلع للكل بعد موافقة صاحب الموقع.'),
+        ),
       ),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: startGame }, 'ابدأ اللعبة 🎉'),

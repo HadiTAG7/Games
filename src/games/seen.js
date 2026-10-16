@@ -10,6 +10,7 @@
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
 const { teamPoints } = require('../night');
+const custom = require('../custom');
 const { otherTeam, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
 
 const VALUES = [200, 400, 600];
@@ -30,7 +31,9 @@ const questionKey = (categoryId, value, index) => `${categoryId}:${value}:${inde
 class SeenGame {
   /** categories: [{ id, name, emoji, questions: { 200: [{ q, a, img? }], 400: […], 600: […] } }] */
   constructor({ categories = [], random = Math.random, now = Date.now } = {}) {
-    this.categories = categories.filter((c) => VALUES.every((v) => (c.questions[v] ?? []).length >= PER_VALUE));
+    this.bank = categories.filter((c) => VALUES.every((v) => (c.questions[v] ?? []).length >= PER_VALUE));
+    this.categories = this.bank;
+    this.custom = { name: '', emoji: '', text: '', items: [], bad: 0 }; // «أسئلتكم الخاصة»
     this.random = random;
     this.now = now;
     this.settings = { turnSeconds: 60, stealSeconds: 30, categories: this.randomCategories() };
@@ -80,12 +83,39 @@ class SeenGame {
     const s = { ...this.settings };
     if (TURN_SECONDS_OPTIONS.includes(Number(patch.turnSeconds))) s.turnSeconds = Number(patch.turnSeconds);
     if (STEAL_SECONDS_OPTIONS.includes(Number(patch.stealSeconds))) s.stealSeconds = Number(patch.stealSeconds);
+    if (patch.custom !== undefined) this.setCustom(patch.custom, s);
     if (patch.randomCategories) s.categories = this.randomCategories();
     else if (Array.isArray(patch.categories)) {
       const known = new Set(this.categories.map((c) => c.id));
       s.categories = [...new Set(patch.categories)].filter((id) => known.has(id)).slice(0, BOARD_SIZE);
     }
     this.settings = s;
+  }
+
+  /**
+   * The host's own category: a name, an emoji, and lines of «القيمة | السؤال | الجواب».
+   * It joins the categories once it has two questions of each value.
+   */
+  setCustom(input, s) {
+    const items = [];
+    let bad = 0;
+    for (const line of custom.lines(input?.text)) {
+      const parts = custom.splitLine(line);
+      const value = parts && Number(parts[0]);
+      if (!parts || parts.length !== 3 || !VALUES.includes(value)) {
+        bad += 1;
+        continue;
+      }
+      items.push({ value, q: custom.clean(parts[1], custom.MAX_QUESTION), a: custom.clean(parts[2], custom.MAX_ANSWER) });
+    }
+    const name = custom.clean(input?.name, custom.MAX_NAME) || 'أسئلتنا';
+    const emoji = custom.clean(input?.emoji, 8) || '✍️';
+    this.custom = { name, emoji, text: String(input?.text ?? '').slice(0, 20000), items, bad };
+    const questions = Object.fromEntries(VALUES.map((v) => [v, items.filter((i) => i.value === v).map(({ q, a }) => ({ q, a }))]));
+    const ready = VALUES.every((v) => questions[v].length >= PER_VALUE);
+    this.categories = ready ? [...this.bank, { id: 'custom', name, emoji, questions, custom: true }] : this.bank;
+    if (!ready) s.categories = s.categories.filter((id) => id !== 'custom');
+    for (const key of [...this.seen]) if (key.startsWith('custom:')) this.seen.delete(key);
   }
 
   /* ---------- Game flow ---------- */

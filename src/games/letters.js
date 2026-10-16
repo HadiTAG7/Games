@@ -9,6 +9,7 @@
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
 const { teamPoints } = require('../night');
+const custom = require('../custom');
 const { otherTeam, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
 
 const SIZE = 5; // 5 × 5 cells
@@ -54,7 +55,9 @@ function winningPath(owners, team) {
 class LettersGame {
   /** letters: [{ letter, questions: [{ q, a }] }] */
   constructor({ categories = [], random = Math.random, now = Date.now } = {}) {
-    this.letters = categories.filter((l) => l.questions.length);
+    this.bank = categories.filter((l) => l.questions.length);
+    this.letters = this.bank;
+    this.custom = { text: '', items: [], bad: 0 }; // «أسئلتكم الخاصة»
     this.random = random;
     this.now = now;
     this.settings = { roundsToWin: 2 };
@@ -99,6 +102,7 @@ class LettersGame {
   updateSettings(patch = {}) {
     if (!['lobby', 'final'].includes(this.phase)) throw new GameError('ما تقدر تغيّر الإعدادات أثناء اللعب');
     if (ROUNDS_TO_WIN_OPTIONS.includes(Number(patch.roundsToWin))) this.settings = { ...this.settings, roundsToWin: Number(patch.roundsToWin) };
+    if (patch.custom !== undefined) this.setCustom(patch.custom);
   }
 
   /* ---------- Game flow ---------- */
@@ -125,10 +129,37 @@ class LettersGame {
     return step !== undefined && step !== this.step;
   }
 
-  /** A question for the letter that nobody in this room has had yet, while there are any. */
+  /** Lines of «السؤال | الجواب»; each goes to the letter its answer starts with. */
+  setCustom(text) {
+    const items = [];
+    let bad = 0;
+    for (const line of custom.lines(text)) {
+      const parts = custom.splitLine(line);
+      const letter = parts?.length === 2 ? custom.letterOf(parts[1]) : null;
+      if (!letter) {
+        bad += 1;
+        continue;
+      }
+      items.push({ letter, q: custom.clean(parts[0], custom.MAX_QUESTION), a: custom.clean(parts[1], custom.MAX_ANSWER) });
+    }
+    this.custom = { text: String(text ?? '').slice(0, 20000), items, bad };
+    this.letters = this.bank.map((l) => {
+      const mine = items.filter((i) => i.letter === l.letter).map(({ q, a }) => ({ q, a, custom: true }));
+      return mine.length ? { ...l, questions: [...mine, ...l.questions] } : l;
+    });
+    this.seen.clear(); // question numbers moved
+  }
+
+  /** A question for the letter that nobody in this room has had yet, while there are any; the host's own first. */
   drawQuestion(letter, avoid = null) {
     const { questions } = this.letters.find((l) => l.letter === letter);
     const seen = this.seen.get(letter) ?? new Set();
+    const mine = questions.map((q, i) => (q.custom && !seen.has(i) && i !== avoid ? i : -1)).filter((i) => i >= 0);
+    if (mine.length) {
+      seen.add(mine[0]);
+      this.seen.set(letter, seen);
+      return mine[0];
+    }
     let pool = questions.map((_, i) => i).filter((i) => !seen.has(i) && i !== avoid);
     if (!pool.length) {
       seen.clear();

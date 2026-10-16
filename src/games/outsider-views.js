@@ -4,7 +4,7 @@
 // or who is out of the loop until the vote is in, since everyone can see it.
 // Each phone sees only its own card.
 
-const { MIN_PLAYERS, ROUNDS_OPTIONS, FREE_SECONDS_OPTIONS, TWO_OUTSIDERS_FROM, POINTS } = require('./outsider');
+const { MIN_PLAYERS, ROUNDS_OPTIONS, FREE_SECONDS_OPTIONS, TWO_OUTSIDERS_FROM, POINTS, MIN_CUSTOM_WORDS } = require('./outsider');
 
 const named = (room, id) => ({ id, name: room.nameOf(id) });
 
@@ -66,6 +66,7 @@ function hostView(room) {
     roundsOptions: ROUNDS_OPTIONS,
     freeSecondsOptions: FREE_SECONDS_OPTIONS,
     categories: room.game.categories.map((c) => ({ id: c.id, name: c.name, emoji: c.emoji, count: c.words.length })),
+    custom: { ...room.game.custom, ready: room.game.categories.some((c) => c.id === 'custom'), min: MIN_CUSTOM_WORDS },
   };
 }
 

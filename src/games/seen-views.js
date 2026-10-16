@@ -60,6 +60,7 @@ function hostView(room) {
     })),
     players: room.playerList(),
     canUndo: game.history.length > 0,
+    custom: { ...game.custom, ready: game.categories.some((c) => c.id === 'custom') },
   };
 }
 

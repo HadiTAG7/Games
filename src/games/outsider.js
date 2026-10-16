@@ -10,6 +10,7 @@
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
 const { rankedPoints } = require('../night');
+const custom = require('../custom');
 
 const MIN_PLAYERS = 3;
 const ROUNDS_OPTIONS = [3, 5, 7, 10];
@@ -18,11 +19,14 @@ const TWO_OUTSIDERS_FROM = 7; // players needed before two outsiders are allowed
 const GUESS_CHOICES = 8;
 const POINTS = { vote: 1, escape: 3, guess: 2 };
 const TIMER_GRACE_MS = 400;
+const MIN_CUSTOM_WORDS = 4;
 
 class OutsiderGame {
   /** categories: [{ id, name, emoji, words: [word] }] */
   constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+    this.bank = categories;
     this.categories = categories;
+    this.custom = { name: '', emoji: '', text: '', words: [] }; // «أسئلتكم الخاصة»
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
@@ -75,11 +79,25 @@ class OutsiderGame {
     if (ROUNDS_OPTIONS.includes(Number(patch.rounds))) s.rounds = Number(patch.rounds);
     if (FREE_SECONDS_OPTIONS.includes(Number(patch.freeSeconds))) s.freeSeconds = Number(patch.freeSeconds);
     if ([1, 2].includes(Number(patch.outsiders))) s.outsiders = Number(patch.outsiders);
+    if (patch.custom !== undefined) this.setCustom(patch.custom, s);
     if (Array.isArray(patch.categories)) {
       const wanted = new Set(patch.categories);
       s.categories = this.categories.filter((c) => wanted.has(c.id)).map((c) => c.id);
     }
     this.settings = s;
+  }
+
+  /** The host's own category: a name and words (one per line, or split by «،»). Picked as soon as it's ready. */
+  setCustom(input, s) {
+    const words = [...new Set(String(input?.text ?? '').split(/[\n،,]/).map((w) => custom.clean(w, 30)).filter(Boolean))].slice(0, 200);
+    const name = custom.clean(input?.name, custom.MAX_NAME) || 'كلماتنا';
+    const emoji = custom.clean(input?.emoji, 8) || '✍️';
+    this.custom = { name, emoji, text: String(input?.text ?? '').slice(0, 20000), words };
+    const ready = words.length >= MIN_CUSTOM_WORDS;
+    this.categories = ready ? [...this.bank, { id: 'custom', name, emoji, words, custom: true }] : this.bank;
+    for (const key of [...this.used]) if (key.startsWith('custom:')) this.used.delete(key);
+    if (ready && !s.categories.includes('custom')) s.categories = [...s.categories, 'custom'];
+    if (!ready) s.categories = s.categories.filter((id) => id !== 'custom');
   }
 
   /** How many outsiders this round really gets: two only with enough players. */
@@ -329,4 +347,5 @@ module.exports = {
   TWO_OUTSIDERS_FROM,
   GUESS_CHOICES,
   POINTS,
+  MIN_CUSTOM_WORDS,
 };
