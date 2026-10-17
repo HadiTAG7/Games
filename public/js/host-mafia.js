@@ -47,12 +47,14 @@ function renderLobby() {
         field('وقت النقاش', h('select', { id: 'mf-discuss', onchange: (e) => act('host:settings', { discussSeconds: Number(e.target.value) }) },
           state.rules.discussOptions.map((v) => h('option', { value: v, selected: v === s.discussSeconds },
             v ? `${v / 60} دقايق`.replace('2 دقايق', 'دقيقتين') : 'بدون وقت')))),
+        field('وقت الليل', h('select', { id: 'mf-night', onchange: (e) => act('host:settings', { nightSeconds: Number(e.target.value) }) },
+          state.rules.nightOptions.map((v) => h('option', { value: v, selected: v === s.nightSeconds }, v === 60 ? 'دقيقة' : `${v} ثانية`)))),
         field('لما أحد يطلع', h('select', { id: 'mf-reveal', onchange: (e) => act('host:settings', { revealOnDeath: e.target.value === 'yes' }) },
           [['yes', 'ينكشف دوره'], ['no', 'دوره يبقى سر']].map(([v, label]) => h('option', { value: v, selected: (v === 'yes') === s.revealOnDeath }, label)))),
         h('div', { class: 'field wide' },
           h('span', {}, 'الأدوار'),
           h('div', { class: 'chips mf-role-toggles', role: 'group', 'aria-label': 'الأدوار' },
-            ['doctor', 'police', 'sniper', 'mayor'].map((role) => h('button', {
+            ['doctor', 'police', 'sniper', 'mayor', 'jester'].map((role) => h('button', {
               type: 'button',
               class: 'category-chip',
               'data-role': role,
@@ -132,7 +134,7 @@ function renderMorning() {
     h('div', { class: 'mf-big' }, '☀️'),
     h('h1', { class: 'center' }, 'صباح الخير!'),
     mfAnnouncement(state.announcement),
-    state.winner ? h('div', { class: `verdict ${state.winner === 'mafia' ? 'bad' : 'good'}` }, mfWinnerText(state.winner)) : null,
+    state.winner ? h('div', { class: `verdict ${state.winner === 'town' ? 'good' : 'bad'}` }, mfWinnerText(state.winner)) : null,
     mfPlayers(state.players),
     nextButtons(),
   );
@@ -164,7 +166,7 @@ function renderVerdict() {
   return h('main', { class: 'stage narrow mf-stage' },
     h('h1', { class: 'center' }, 'نتيجة التصويت'),
     mfAnnouncement(state.announcement),
-    state.winner ? h('div', { class: `verdict ${state.winner === 'mafia' ? 'bad' : 'good'}` }, mfWinnerText(state.winner)) : null,
+    state.winner ? h('div', { class: `verdict ${state.winner === 'town' ? 'good' : 'bad'}` }, mfWinnerText(state.winner)) : null,
     mfPlayers(state.players),
     nextButtons(),
   );
@@ -174,7 +176,7 @@ function renderFinal() {
   const { winner } = state;
   return h('main', { class: 'stage narrow final mf-stage' },
     winner ? confetti() : null,
-    h('div', { class: 'trophy' }, winner === 'mafia' ? '🔪' : winner ? '🏆' : '🎭'),
+    h('div', { class: 'trophy' }, { mafia: '🔪', jester: '🃏', town: '🏆' }[winner] ?? '🎭'),
     h('h1', { class: 'winner-name' }, winner ? mfWinnerText(winner) : 'انتهت اللعبة'),
     h('h2', { class: 'center' }, 'الأدوار كانت'),
     mfPlayers(state.players),

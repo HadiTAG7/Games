@@ -5,7 +5,7 @@
 // all; the dead see everyone. The big screen sees a role only once its
 // player is out (if the host chose that) or when the game is over.
 
-const { MIN_PLAYERS, DISCUSS_OPTIONS, NIGHT_SECONDS } = require('./mafia');
+const { MIN_PLAYERS, DISCUSS_OPTIONS, NIGHT_OPTIONS } = require('./mafia');
 
 function playersView(room, { all }) {
   const { game } = room;
@@ -51,7 +51,7 @@ function baseView(room, { all }) {
     nightProgress: game.night ? { acted: alive.filter((id) => game.night.picks.has(id)).length, total: alive.length } : null,
     voted: game.vote ? alive.filter((id) => game.vote.votes.has(id)) : null,
     announcement: announcementView(room, { all }),
-    rules: { minPlayers: MIN_PLAYERS, discussOptions: DISCUSS_OPTIONS, nightSeconds: NIGHT_SECONDS },
+    rules: { minPlayers: MIN_PLAYERS, discussOptions: DISCUSS_OPTIONS, nightOptions: NIGHT_OPTIONS },
   };
 }
 

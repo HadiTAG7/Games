@@ -36,6 +36,11 @@ test('the lineup: mafia by player count, special roles while a citizen is left',
   assert.deepEqual(game.lineup(), { mafia: 1, doctor: 1, police: 1, mayor: 1, citizen: 1 });
   game.addPlayer('f');
   assert.deepEqual(game.lineup(), { mafia: 1, doctor: 1, police: 1, mayor: 1, sniper: 1, citizen: 1 });
+  game.addPlayer('g');
+  assert.deepEqual(game.lineup(), { mafia: 1, doctor: 1, police: 1, mayor: 1, sniper: 1, jester: 1, citizen: 1 }, 'the jester from 7 players');
+  game.updateSettings({ roles: { jester: false } });
+  assert.deepEqual(game.lineup(), { mafia: 1, doctor: 1, police: 1, mayor: 1, sniper: 1, citizen: 2 });
+  game.removePlayer('g');
   game.updateSettings({ roles: { sniper: false, mayor: false }, mafia: 3 });
   assert.deepEqual(game.lineup(), { mafia: 1, doctor: 1, police: 1, citizen: 3 }, 'mafia capped below a third');
   game.start();
@@ -200,6 +205,54 @@ test('a lone mafia (the other one out) picks with one tap', () => {
   game.confirmPick('a'); // harmless
   game.endNight();
   assert.deepEqual(game.announcement.deaths, ['f']);
+});
+
+const WITH_JESTER = { a: 'mafia', b: 'doctor', c: 'police', d: 'sniper', e: 'mayor', f: 'jester', g: 'citizen' };
+
+test('the jester voted out wins alone and the game ends', () => {
+  const game = dealt(WITH_JESTER);
+  game.startNight();
+  assert.equal(game.endsAt - Date.now() > 55000, true, 'a minute by default');
+  game.endNight();
+  game.startVote();
+  for (const id of ['a', 'b', 'c', 'd', 'g']) game.castVote(id, 'f');
+  game.castVote('f', 'a');
+  game.endVote();
+  assert.equal(game.winner, 'jester');
+  assert.deepEqual(game.nightPoints(), { f: 3 });
+  game.next();
+  assert.equal(game.phase, 'final');
+  game.dispose();
+});
+
+test('the jester killed at night just loses; a town win gives him nothing', () => {
+  const game = dealt(WITH_JESTER);
+  night(game, { a: 'f', b: 'g' });
+  assert.deepEqual(game.announcement.deaths, ['f']);
+  assert.equal(game.winner, null);
+  game.startVote();
+  for (const id of game.alive()) game.castVote(id, id === 'a' ? 'b' : 'a');
+  game.endVote();
+  assert.equal(game.winner, 'town');
+  const points = game.nightPoints();
+  assert.equal(points.f, undefined);
+  assert.equal(points.g, 3);
+  game.dispose();
+});
+
+test('the night lasts 15, 30 or 60 seconds, set in the lobby', () => {
+  const game = new MafiaGame();
+  IDS.slice(0, 5).forEach((id) => game.addPlayer(id));
+  game.updateSettings({ nightSeconds: 45 });
+  assert.equal(game.settings.nightSeconds, 60, 'only the offered lengths');
+  game.updateSettings({ nightSeconds: '15' });
+  assert.equal(game.settings.nightSeconds, 15);
+  game.start();
+  assert.throws(() => game.updateSettings({ nightSeconds: 30 }), /أثناء اللعب/);
+  game.startNight();
+  const left = game.endsAt - Date.now();
+  assert.ok(left > 14000 && left <= 15000, String(left));
+  game.dispose();
 });
 
 test('the night ends a few seconds after everyone online has picked', async () => {

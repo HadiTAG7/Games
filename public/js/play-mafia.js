@@ -1,5 +1,5 @@
 /* global $, h, emit, toast, socket, app, state, screenKey: writable, confetti, timerEl, PLAY_GAMES, sfx,
-   MF_ROLES, mfRole, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText */
+   MF_ROLES, mfRole, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText, mfWon */
 'use strict';
 
 // Player screens for «مافيا». Your role card shows only while you press on
@@ -86,6 +86,7 @@ const NIGHT_PROMPTS = {
   police: '👮 مين تسأل عنه؟',
   sniper: '🎯 تطلق على أحد؟',
   mayor: '🤔 مين تشك فيه؟',
+  jester: '🤔 مين تشك فيه؟',
   citizen: '🤔 مين تشك فيه؟',
 };
 
@@ -213,12 +214,12 @@ function renderVerdict() {
 
 function renderFinal() {
   const { me, winner } = state;
-  const mine = me.role && winner && (me.role === 'mafia') === (winner === 'mafia');
+  const mine = mfWon(me.role, winner);
   return h('main', { class: 'stage narrow final mf-stage' },
     mine ? confetti() : null,
     h('div', { class: 'trophy' }, mine ? '🏆' : '🎭'),
     h('h1', { class: 'center' }, winner ? mfWinnerText(winner) : 'انتهت اللعبة'),
-    me.role ? h('p', { class: 'center' }, `كنت ${mfRole(me.role)}${mine ? '، وفريقك فاز!' : ''}`) : null,
+    me.role ? h('p', { class: 'center' }, `كنت ${mfRole(me.role)}${mine ? (me.role === 'jester' ? '، وضحكت عليهم!' : '، وفريقك فاز!') : ''}`) : null,
     h('h2', { class: 'center' }, 'الأدوار كانت'),
     mfPlayers(state.players, { meId: me.id }),
     h('p', { class: 'hint center' }, 'المضيف يقدر يبدأ لعبة جديدة'),
@@ -257,7 +258,7 @@ function sounds(prev, next) {
   else if (next.phase === 'morning' && prev.me.alive && !next.me.alive) sfx.play('lose');
 }
 
-const won = (s) => Boolean(s.me.role && s.winner && (s.me.role === 'mafia') === (s.winner === 'mafia'));
+const won = (s) => mfWon(s.me.role, s.winner);
 
 PLAY_GAMES.mafia = { render, sounds, won };
 })();

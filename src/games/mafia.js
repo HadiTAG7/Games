@@ -5,7 +5,8 @@
 // a role); the mafia point at a victim and confirm it together (no agreement,
 // no victim), the doctor saves someone, the police ask about someone, the
 // sniper may fire their one bullet. By day the room talks, then votes
-// someone out; the mayor's vote counts twice.
+// someone out; the mayor's vote counts twice. «الانتحاري» plays for himself:
+// voted out, he wins alone and the game ends.
 //
 // Phases: lobby → roles → night → morning → discuss → vote → verdict → night … → final
 
@@ -14,9 +15,9 @@ const { shuffle } = require('../shuffle');
 const { WIN_POINTS } = require('../night');
 
 const MIN_PLAYERS = 5;
-const SPECIAL_ROLES = ['doctor', 'police', 'mayor', 'sniper']; // handed out in this order while there's room
+const SPECIAL_ROLES = ['doctor', 'police', 'mayor', 'sniper', 'jester']; // handed out in this order while there's room
 const DISCUSS_OPTIONS = [0, 120, 180, 300];
-const NIGHT_SECONDS = 60;
+const NIGHT_OPTIONS = [15, 30, 60];
 const NIGHT_END_DELAY = [2000, 4000]; // after the last pick, so timing doesn't give anyone away
 const TIMER_GRACE_MS = 400;
 
@@ -27,6 +28,12 @@ function autoMafia(count) {
   return 1;
 }
 
+/** Did this role win? The jester is on nobody's side. */
+function wonWith(role, winner) {
+  if (role === 'jester' || winner === 'jester') return role === winner;
+  return (role === 'mafia') === (winner === 'mafia');
+}
+
 class MafiaGame {
   constructor({ random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
     this.random = random;
@@ -34,9 +41,10 @@ class MafiaGame {
     this.onTimeout = onTimeout;
     this.settings = {
       mafia: 0, // 0 = automatic by player count
-      roles: { doctor: true, police: true, sniper: true, mayor: true },
+      roles: { doctor: true, police: true, sniper: true, mayor: true, jester: true },
       revealOnDeath: true,
       discussSeconds: 180,
+      nightSeconds: 60,
     };
     this.players = new Map(); // id → { role, alive }
     this.timer = null;
@@ -80,6 +88,7 @@ class MafiaGame {
     const s = { ...this.settings, roles: { ...this.settings.roles } };
     if ([0, 1, 2, 3].includes(Number(patch.mafia))) s.mafia = Number(patch.mafia);
     if (DISCUSS_OPTIONS.includes(Number(patch.discussSeconds))) s.discussSeconds = Number(patch.discussSeconds);
+    if (NIGHT_OPTIONS.includes(Number(patch.nightSeconds))) s.nightSeconds = Number(patch.nightSeconds);
     if (typeof patch.revealOnDeath === 'boolean') s.revealOnDeath = patch.revealOnDeath;
     if (patch.roles && typeof patch.roles === 'object') {
       for (const role of SPECIAL_ROLES) if (typeof patch.roles[role] === 'boolean') s.roles[role] = patch.roles[role];
@@ -145,7 +154,7 @@ class MafiaGame {
     this.announcement = null;
     this.vote = null;
     this.phase = 'night';
-    this.endsAt = this.now() + NIGHT_SECONDS * 1000;
+    this.endsAt = this.now() + this.settings.nightSeconds * 1000;
     this.schedule(this.endsAt - this.now() + TIMER_GRACE_MS, () => this.endNight());
     this.step += 1;
   }
@@ -311,15 +320,19 @@ class MafiaGame {
     this.announcement = { kind: 'verdict', out, tally, votes: [...this.vote.votes].map(([voter, target]) => ({ voter, target })) };
     this.phase = 'verdict';
     this.step += 1;
-    this.checkWinner();
+    this.checkWinner(out && this.roleOf(out) === 'jester');
   }
 
-  /** The mafia win once they match the rest; the town wins once the mafia are gone. */
-  checkWinner() {
+  /**
+   * The jester wins once voted out; otherwise the mafia win once they match
+   * the rest (the jester counts with the rest), the town once the mafia are gone.
+   */
+  checkWinner(jesterOut = false) {
     if (['lobby', 'roles', 'final'].includes(this.phase)) return;
     const alive = this.alive();
     const mafia = alive.filter((id) => this.isMafia(id)).length;
-    if (mafia === 0) this.winner = 'town';
+    if (jesterOut) this.winner = 'jester';
+    else if (mafia === 0) this.winner = 'town';
     else if (mafia >= alive.length - mafia) this.winner = 'mafia';
     if (!this.winner) return;
     this.clearTimer();
@@ -371,9 +384,7 @@ class MafiaGame {
   nightPoints() {
     if (!this.winner) return {};
     const points = {};
-    for (const [id, p] of this.players) {
-      if (p.role && (p.role === 'mafia') === (this.winner === 'mafia')) points[id] = WIN_POINTS;
-    }
+    for (const [id, p] of this.players) if (p.role && wonWith(p.role, this.winner)) points[id] = WIN_POINTS;
     return points;
   }
 
@@ -382,4 +393,4 @@ class MafiaGame {
   }
 }
 
-module.exports = { MafiaGame, MIN_PLAYERS, SPECIAL_ROLES, DISCUSS_OPTIONS, NIGHT_SECONDS, autoMafia };
+module.exports = { MafiaGame, MIN_PLAYERS, SPECIAL_ROLES, DISCUSS_OPTIONS, NIGHT_OPTIONS, autoMafia, wonWith };

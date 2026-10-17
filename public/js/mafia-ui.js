@@ -9,9 +9,10 @@ const MF_ROLES = {
   police: { emoji: '👮', name: 'شرطي', goal: 'كل ليلة تسأل عن واحد، وجوالك يقول لك بالسر إذا هو مافيا أو لا.' },
   sniper: { emoji: '🎯', name: 'قنّاص', goal: 'عندك طلقة وحدة طول اللعبة. تطلقها بالليل على أي أحد، أو تخليها لليلة ثانية.' },
   mayor: { emoji: '🎩', name: 'العمدة', goal: 'مواطن والكل يعرفك. صوتك في التصويت يحسب بصوتين.' },
+  jester: { emoji: '🃏', name: 'الانتحاري', goal: 'هدفك يصوّتون عليك ويطلعونك! خلّ الكل يشك فيك بدون ما يبان إنك تبيها. لو طلعت بالتصويت تفوز لحالك، ولو متّ بالليل أو خلصت اللعبة وأنت موجود تخسر.' },
   citizen: { emoji: '👤', name: 'مواطن', goal: 'ما عندك شي بالليل. ركّز بالنقاش واكشف المافيا بالتصويت.' },
 };
-const MF_ROLE_ORDER = ['mafia', 'doctor', 'police', 'sniper', 'mayor', 'citizen'];
+const MF_ROLE_ORDER = ['mafia', 'doctor', 'police', 'sniper', 'mayor', 'jester', 'citizen'];
 
 const mfRole = (role) => `${MF_ROLES[role].emoji} ${MF_ROLES[role].name}`;
 
@@ -28,6 +29,7 @@ function mfRulesList(lineup) {
     MF_ROLE_ORDER.filter((r) => lineup[r]).map((r) => h('li', {}, h('b', {}, `${mfRole(r)}: `), MF_ROLES[r].goal)),
     h('li', {}, 'الصبح الشاشة تعلن مين مات. بعدها تتناقشون وتصوّتون من الجوالات، واللي ياخذ أصوات أكثر يطلع. ولو فيه تعادل محد يطلع.'),
     h('li', {}, 'المواطنين يفوزون لو طلّعوا كل المافيا، والمافيا يفوزون لو صار عددهم يساوي الباقين.'),
+    lineup.jester ? h('li', {}, 'وانتبهوا من الانتحاري 🃏: لو طلّعتوه بالتصويت يفوز لحاله وتخلص اللعبة.') : null,
   );
 }
 
@@ -65,5 +67,13 @@ function mfAnnouncement(a) {
 }
 
 function mfWinnerText(winner) {
+  if (winner === 'jester') return 'الانتحاري فاز! 🃏 انخدعتوا فيه';
   return winner === 'mafia' ? 'المافيا فازوا! 🔪' : 'المواطنين فازوا! 🎉';
+}
+
+/** Did this role win? The jester is on nobody's side (same rule as the server's wonWith). */
+function mfWon(role, winner) {
+  if (!role || !winner) return false;
+  if (role === 'jester' || winner === 'jester') return role === winner;
+  return (role === 'mafia') === (winner === 'mafia');
 }

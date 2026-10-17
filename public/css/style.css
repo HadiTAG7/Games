@@ -1498,6 +1498,8 @@ button.hr-cell:hover { filter: brightness(1.1); transform: scale(0.98); }
 .mf-badge.mafia { color: #ff8a9b; }
 .mf-lineup { justify-content: center; }
 .mf-chip.mafia { border-color: rgba(244, 63, 94, 0.6); background: rgba(244, 63, 94, 0.14); }
+.mf-badge.jester { color: #c4a1ff; }
+.mf-chip.jester { border-color: rgba(167, 120, 255, 0.6); background: rgba(167, 120, 255, 0.14); }
 .mf-lineup-box { margin: 14px 0; text-align: center; }
 .mf-lineup-box b { display: block; margin-bottom: 8px; }
 .mf-announce { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 560px; margin: 8px auto; animation: pop 0.35s ease; }
