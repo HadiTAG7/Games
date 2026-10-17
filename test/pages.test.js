@@ -17,6 +17,7 @@ const COUNTS = {
     .reduce((n, c) => n + Object.values(c.questions).reduce((m, list) => m + list.length, 0), 0),
   letters: () => require('../data/letters.json').letters.reduce((n, l) => n + l.questions.length, 0),
   outsider: () => require('../data/outsider.json').categories.reduce((n, c) => n + c.words.length, 0),
+  feud: () => require('../data/feud.json').questions.length,
 };
 
 test('every game has its own themed page with a create-room button', () => {

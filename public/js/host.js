@@ -10,6 +10,7 @@ const socket = io({ autoConnect: false });
 document.addEventListener('DOMContentLoaded', () => socket.connect());
 const app = $('#app');
 const SESSION_KEY = 'herd:host';
+const REMOTE_KEY = 'host:remote'; // this device is the host's phone («📱 تحكم من جوالك»)
 const HOST_GAMES = {};
 
 let state = null;
@@ -20,6 +21,15 @@ const params = new URLSearchParams(location.search);
 let forceNew = params.has('new');
 let initialGame = forceNew ? params.get('game') : null;
 if (forceNew) history.replaceState(null, '', location.pathname);
+// «📱 تحكم من جوالك»: this device joins the host's room as a second host screen, answers showing.
+const remoteLink = params.get('code') && params.get('token') ? { code: params.get('code'), hostToken: params.get('token') } : null;
+if (remoteLink) {
+  storage(SESSION_KEY, remoteLink);
+  if (params.has('remote')) storage(REMOTE_KEY, true);
+  history.replaceState(null, '', location.pathname); // don't leave the host key in the address bar
+}
+/** Is this the host's own phone (answers can show), rather than the screen everyone watches? */
+const isRemote = () => Boolean(storage(REMOTE_KEY));
 if (initialGame) setTheme(initialGame); // the game page's colours carry on while the room opens
 
 connectionBanner(socket);
@@ -170,6 +180,50 @@ function kickButton(player) {
     'aria-label': `طرد ${player.name}`,
     onclick: (e) => { e.stopPropagation(); kick(player); },
   }, '×');
+}
+
+/** In place of the QR code when nobody plays on a phone («📺 بدون جوالات»): the two teams' names. */
+function noPhonesCard(text) {
+  const names = state.settings.teamNames;
+  return h('section', { class: 'card join-card sj-nophones' },
+    h('h2', {}, '📺 بدون جوالات'),
+    h('p', { class: 'muted' }, text),
+    TEAM_ORDER.map((team, i) => h('label', { class: `field sj-team-name ${team}` },
+      h('span', {}, `${TEAM_INFO[team].emoji} اسم الفريق ${i ? 'الثاني' : 'الأول'}`),
+      h('input', {
+        id: `team-name-${team}`,
+        maxlength: 20,
+        value: names[team],
+        placeholder: TEAM_INFO[team].name,
+        onchange: (e) => act('host:settings', { teamNames: { [team]: e.target.value } }),
+      }))),
+    h('button', { type: 'button', class: 'link-btn', onclick: () => act('host:settings', { phones: true }) }, '📱 نلعب بالجوالات'),
+  );
+}
+
+/**
+ * «📱 تحكم من جوالك»: a QR code that opens this host screen on the host's
+ * own phone, where the answers can show while the big screen hides them. It
+ * carries the host key, so it hides itself after a minute.
+ */
+function remoteButton() {
+  return h('button', {
+    type: 'button',
+    class: 'btn small remote-btn',
+    onclick: () => {
+      document.getElementById('remote-modal')?.remove();
+      const close = () => modal.remove();
+      const modal = h('div', { id: 'remote-modal', class: 'remote-modal', onclick: (e) => { if (e.target === modal) close(); } },
+        h('div', { class: 'card remote-card' },
+          h('h2', {}, '📱 تحكم من جوالك'),
+          h('p', { class: 'muted' }, 'امسحه بجوالك أنت بس: تشوف الأجوبة وتتحكم باللعبة، والشاشة الكبيرة تبقى مخفية.'),
+          h('div', { class: 'qr', html: info.remoteQrSvg }),
+          h('p', { class: 'hint' }, '⚠️ اللي يمسحه يصير يتحكم بالغرفة، فخلّه لك. يختفي بعد دقيقة.'),
+          h('button', { type: 'button', class: 'btn', onclick: close }, 'تم')));
+      document.body.append(modal);
+      setTimeout(close, 60 * 1000);
+    },
+  }, '📱 تحكم من جوالك');
 }
 
 async function copyLink() {

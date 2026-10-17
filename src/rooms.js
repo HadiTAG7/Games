@@ -8,12 +8,14 @@ const { SeenGame } = require('./games/seen');
 const { LettersGame } = require('./games/letters');
 const { OutsiderGame } = require('./games/outsider');
 const { MafiaGame } = require('./games/mafia');
+const { FeudGame } = require('./games/feud');
 const herdViews = require('./games/herd-views');
 const timeViews = require('./games/time-views');
 const seenViews = require('./games/seen-views');
 const lettersViews = require('./games/letters-views');
 const outsiderViews = require('./games/outsider-views');
 const mafiaViews = require('./games/mafia-views');
+const feudViews = require('./games/feud-views');
 const { normalizeAnswer } = require('./normalize');
 const { NightBoard } = require('./night');
 
@@ -29,6 +31,7 @@ const GAMES = {
   outsider: { Game: OutsiderGame, views: outsiderViews, name: 'برا السالفة', emoji: '🤫' },
   // «مافيا» needs no question file.
   mafia: { Game: MafiaGame, views: mafiaViews, name: 'مافيا', emoji: '🎭', needsContent: false },
+  feud: { Game: FeudGame, views: feudViews, name: 'فاميلي فيود', emoji: '👪' },
 };
 
 function cleanName(name) {
@@ -37,10 +40,11 @@ function cleanName(name) {
 
 class Room {
   /** content: { herd, time, seen, letters }: each game's questions or cards */
-  constructor({ code, content, random }) {
+  constructor({ code, content, random, onSurvey = () => {} }) {
     this.code = code;
     this.content = content;
     this.random = random;
+    this.onSurvey = onSurvey;
     this.hostToken = crypto.randomBytes(16).toString('hex');
     this.players = new Map(); // id → { id, name, sockets: Set<socketId>, joinedAt }
     this.onChange = () => {};
@@ -58,7 +62,9 @@ class Room {
 
   createGame(type) {
     const { Game } = GAMES[type];
-    const game = new Game({ categories: this.content[type] ?? [], random: this.random, onTimeout: () => this.onChange() });
+    const game = new Game({
+      categories: this.content[type] ?? [], random: this.random, onTimeout: () => this.onChange(), onSurvey: (r) => this.onSurvey(r),
+    });
     for (const id of this.players.keys()) game.addPlayer(id);
     return game;
   }
@@ -290,14 +296,18 @@ class Room {
 class RoomManager {
   /**
    * categories: «عقلية القطيع»; timeCategories: «تحدي الوقت»; seenCategories: «سين جيم»; letters: «حروف»;
-   * outsiderCategories: «برا السالفة».
+   * outsiderCategories: «برا السالفة»; feudQuestions: «فاميلي فيود».
    */
   constructor({
-    categories = [], timeCategories = [], seenCategories = [], letters = [], outsiderCategories = [], random = Math.random,
+    categories = [], timeCategories = [], seenCategories = [], letters = [], outsiderCategories = [], feudQuestions = [],
+    random = Math.random,
   } = {}) {
-    this.content = { herd: categories, time: timeCategories, seen: seenCategories, letters, outsider: outsiderCategories };
+    this.content = {
+      herd: categories, time: timeCategories, seen: seenCategories, letters, outsider: outsiderCategories, feud: feudQuestions,
+    };
     this.random = random;
     this.rooms = new Map();
+    this.onSurvey = () => {}; // «استبيانكم»: the server stores confirmed «عقلية القطيع» rounds
   }
 
   /** Swap in a game's bank (say, after approving questions people sent); games started from now on use it. */
@@ -314,7 +324,7 @@ class RoomManager {
   }
 
   create() {
-    const room = new Room({ code: this.newCode(), content: this.content, random: this.random });
+    const room = new Room({ code: this.newCode(), content: this.content, random: this.random, onSurvey: (r) => this.onSurvey(r) });
     this.rooms.set(room.code, room);
     return room;
   }

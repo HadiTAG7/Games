@@ -11,6 +11,7 @@ const { RoomManager, GAMES } = require('./src/rooms');
 const { GameError } = require('./src/errors');
 const { openStore } = require('./src/community');
 const contrib = require('./src/contrib');
+const { openSurvey, roundRecord, toFeudQuestions } = require('./src/survey');
 const { limiter } = require('./src/limits');
 const { openAccounts, hashPassword } = require('./src/accounts');
 const { accountRouter, pictureRoute, accountFromCookie } = require('./src/web-accounts');
@@ -24,11 +25,12 @@ const seenCategories = require('./data/seen-jeem.json').categories;
 const optional = (file, key) => (fs.existsSync(path.join(__dirname, file)) ? require(`./${file}`)[key] : []);
 const letters = optional('data/letters.json', 'letters');
 const outsiderCategories = optional('data/outsider.json', 'categories');
+const feudQuestions = optional('data/feud.json', 'questions');
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0']);
 
-const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters, outsiderCategories });
+const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters, outsiderCategories, feudQuestions });
 
 const app = express();
 app.set('trust proxy', 1); // Render sits in front, so req.ip is the visitor's address
@@ -66,6 +68,40 @@ async function openCommunity() {
   await refreshCommunity();
 }
 const communityReady = openCommunity();
+
+/* ---------- «استبيانكم»: «عقلية القطيع» answers become «فاميلي فيود» questions ---------- */
+
+let survey = null;
+let surveyReady = 0; // questions with enough answers to play
+let surveyTimer = null;
+async function refreshFeud() {
+  const ready = toFeudQuestions(await survey.all());
+  surveyReady = ready.length;
+  rooms.setContent('feud', [...feudQuestions, ...ready]);
+}
+const surveyOpen = (async () => {
+  const file = process.env.SURVEY_FILE || path.join(__dirname, 'data', 'local', 'survey.json');
+  try {
+    survey = await openSurvey({ file });
+  } catch (err) {
+    console.error('Survey database unavailable, using a local file:', err.message);
+    survey = await openSurvey({ databaseUrl: '', file });
+  }
+  await refreshFeud();
+})().catch((err) => console.error('[survey]', err.message));
+rooms.onSurvey = (round) => {
+  const record = roundRecord(round.question, round.groups);
+  if (!record) return;
+  surveyOpen
+    .then(() => survey.record(record))
+    .then(() => {
+      // A batch of rounds finishing together refreshes the questions once.
+      clearTimeout(surveyTimer);
+      surveyTimer = setTimeout(() => refreshFeud().catch((err) => console.error('[survey]', err.message)), 3000);
+      surveyTimer.unref?.();
+    })
+    .catch((err) => console.error('[survey]', err.message));
+};
 
 const submitLimit = limiter(50, 60 * 60 * 1000);
 const loginLimit = limiter(10, 15 * 60 * 1000);
@@ -132,7 +168,11 @@ api.use('/admin', (req, res, next) => {
 api.get('/admin/status', wrap(async (req, res) => {
   const all = await store.list();
   const count = (status) => all.filter((i) => i.status === status).length;
-  res.json({ storage: store.kind, persistent: store.persistent, error: storeError, pending: count('pending'), approved: count('approved') });
+  const surveyQuestions = survey ? (await survey.all()).length : 0;
+  res.json({
+    storage: store.kind, persistent: store.persistent, error: storeError, pending: count('pending'), approved: count('approved'),
+    survey: { questions: surveyQuestions, ready: surveyReady },
+  });
 }));
 
 api.get('/admin/submissions', wrap(async (req, res) => {
@@ -325,8 +365,11 @@ io.on('connection', (socket) => {
     socket.data = { role: 'host', code: room.code };
     socket.join(hostChannel(room.code));
     const info = await joinInfo(room, socket.handshake);
+    // «📱 تحكم من جوالك»: the same host screen on the host's own phone (it carries the host key).
+    const remoteUrl = `${publicBaseUrl(socket.handshake)}/host?code=${room.code}&token=${room.hostToken}&remote=1`;
+    const remoteQrSvg = await QRCode.toString(remoteUrl, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
     socket.emit('host:state', room.hostView());
-    return { code: room.code, hostToken: room.hostToken, ...info };
+    return { code: room.code, hostToken: room.hostToken, ...info, remoteUrl, remoteQrSvg };
   }
 
   function currentRoom(role) {
@@ -452,6 +495,17 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
+  // «فاميلي فيود»
+  const ff = (room) => room.gameOf('feud');
+  hostAction('host:ff-buzz', (room, { team, step }) => ff(room).hostBuzz(team, step));
+  hostAction('host:ff-reveal', (room, { slot, step }) => ff(room).reveal(slot, step));
+  hostAction('host:ff-miss', (room, { step }) => ff(room).miss(step));
+  hostAction('host:ff-choose', (room, { play, step }) => ff(room).choose(Boolean(play), step));
+  hostAction('host:ff-undo', (room, { step }) => ff(room).undo(step));
+  hostAction('host:ff-fast-player', (room, { index, playerId, step }) => ff(room).setFastPlayer(index, playerId, step));
+  hostAction('host:ff-fast-start', (room, { step }) => ff(room).startFast(step));
+  hostAction('host:ff-fast-mark', (room, { stage, index, slot, step }) => ff(room).fastMark(stage, index, slot ?? null, step));
+
   // «برا السالفة»
   const os = (room) => room.gameOf('outsider');
   hostAction('host:os-begin', (room, { step }) => os(room).begin(step));
@@ -492,6 +546,22 @@ io.on('connection', (socket) => {
     const { code, role, playerId } = socket.data ?? {};
     if (role !== 'player' || !draftLimit(`${code}:${playerId}`)) return;
     rooms.get(code)?.saveDraft(playerId, draft && typeof draft === 'object' ? draft : {});
+  });
+
+  on('player:ff-buzz', () => {
+    const room = currentRoom('player');
+    room.gameOf('feud').buzz(socket.data.playerId);
+    broadcast(room);
+  });
+
+  // «المال السريع»: the player's five answers as they type (the ack says which repeat the first player's).
+  on('player:ff-fast', ({ answers, done } = {}) => {
+    const room = currentRoom('player');
+    const game = room.gameOf('feud');
+    const out = game.fastUpdate(socket.data.playerId, answers);
+    if (done) game.fastDone(socket.data.playerId);
+    if (done || out.duplicates.length) broadcast(room);
+    return out;
   });
 
   on('player:buzz', () => {

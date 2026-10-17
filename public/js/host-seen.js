@@ -1,6 +1,6 @@
 /* global $, h, storage, toast, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, SJ_LIFELINES, sjAnswering, sjScoreboard, sjBoard,
-   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox, TEAM_ORDER, TEAM_INFO */
+   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox, noPhonesCard */
 'use strict';
 
 // Host screens for «سين جيم». The host picks the categories, taps the
@@ -125,25 +125,6 @@ function categoryChips() {
   }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
 }
 
-/** In place of the QR code when nobody plays on a phone: the two teams' names. */
-function noPhonesCard() {
-  const names = state.settings.teamNames;
-  return h('section', { class: 'card join-card sj-nophones' },
-    h('h2', {}, '📺 بدون جوالات'),
-    h('p', { class: 'muted' }, 'قسّموا أنفسكم فريقين، والمضيف يختار الأسئلة ويحكم من هالشاشة.'),
-    TEAM_ORDER.map((team, i) => h('label', { class: `field sj-team-name ${team}` },
-      h('span', {}, `${TEAM_INFO[team].emoji} اسم الفريق ${i ? 'الثاني' : 'الأول'}`),
-      h('input', {
-        id: `sj-name-${team}`,
-        maxlength: 20,
-        value: names[team],
-        placeholder: TEAM_INFO[team].name,
-        onchange: (e) => act('host:settings', { teamNames: { [team]: e.target.value } }),
-      }))),
-    h('button', { type: 'button', class: 'link-btn', onclick: () => act('host:settings', { phones: true }) }, '📱 نلعب بالجوالات'),
-  );
-}
-
 function renderLobby() {
   const s = state.settings;
   const select = (id, key, options, value) => h('select', {
@@ -152,7 +133,7 @@ function renderLobby() {
   }, options.map((n) => h('option', { value: n, selected: n === value }, `${n} ثانية`)));
 
   return h('main', { class: 'lobby' },
-    s.phones ? joinCard() : noPhonesCard(),
+    s.phones ? joinCard() : noPhonesCard('قسّموا أنفسكم فريقين، والمضيف يختار الأسئلة ويحكم من هالشاشة.'),
     h('section', { class: 'card' },
       gamePicker(),
       s.phones ? teamsSection() : null,

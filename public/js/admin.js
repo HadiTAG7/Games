@@ -70,9 +70,14 @@ async function start() {
 }
 
 function storageBanner() {
-  if (status.persistent) return h('p', { class: 'banner good' }, '✅ الأسئلة محفوظة في قاعدة البيانات، وما تنمسح مع التحديثات.');
-  return h('p', { class: 'banner bad' }, status.error ?? '',
-    '⚠️ الأسئلة محفوظة في ملف مؤقت على السيرفر، وتنمسح مع كل تحديث. جهّز قاعدة البيانات (DATABASE_URL) عشان تنحفظ للأبد.');
+  const survey = status.survey
+    ? h('p', { class: 'hint center' }, `📊 استبيان «فاميلي فيود» من أجوبة «عقلية القطيع»: ${status.survey.ready} سؤال جاهز من ${status.survey.questions}`)
+    : null;
+  const banner = status.persistent
+    ? h('p', { class: 'banner good' }, '✅ الأسئلة محفوظة في قاعدة البيانات، وما تنمسح مع التحديثات.')
+    : h('p', { class: 'banner bad' }, status.error ?? '',
+      '⚠️ الأسئلة محفوظة في ملف مؤقت على السيرفر، وتنمسح مع كل تحديث. جهّز قاعدة البيانات (DATABASE_URL) عشان تنحفظ للأبد.');
+  return h('div', {}, banner, survey);
 }
 
 async function act(path, body, done) {

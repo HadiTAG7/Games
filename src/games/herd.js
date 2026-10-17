@@ -146,7 +146,9 @@ class HerdGame {
   /**
    * categories: [{ id, name, emoji, subcategories: [{ id, name, same: [prompt], different: [prompt] }] }]
    */
-  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+  /** onSurvey({ question, groups: [{ text, count }] }): a confirmed round for «استبيانكم». */
+  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {}, onSurvey = () => {} } = {}) {
+    this.onSurvey = onSurvey;
     this.baseCategories = categories;
     this.categories = categories;
     this.subcategories = categories.flatMap((c) => c.subcategories.map((sub) => ({ ...sub, categoryId: c.id })));
@@ -523,6 +525,19 @@ class HerdGame {
       };
     }
     this.phase = 'results';
+    this.surveyRound();
+  }
+
+  /**
+   * «استبيانكم»: a «مع القطيع» round on one of the site's own questions goes
+   * to the survey as answer counts, with no names (not the host's own
+   * questions or banks, and rejected answers left out).
+   */
+  surveyRound() {
+    const { round } = this;
+    if (this.settings.mode !== 'same' || !round.category || String(round.subcategory).startsWith('bank-')) return;
+    const groups = round.groups.filter((g) => !g.rejected).map((g) => ({ text: g.text, count: g.members.length }));
+    this.onSurvey({ question: round.question, groups });
   }
 
   isLastRound() {
