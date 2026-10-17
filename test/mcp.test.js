@@ -34,6 +34,7 @@ async function startServer(t) {
       COMMUNITY_FILE: path.join(dir, 'c.json'),
       ADMIN_PASSWORD: ADMIN,
       IMAGE_ALLOW_PRIVATE: '1',
+      OAUTH_REFRESH_GRACE_MS: '1500',
       PUBLIC_URL: '',
       RENDER_EXTERNAL_URL: '',
     },
@@ -192,6 +193,7 @@ test('MCP: an AI app registers, the user allows it, and its tools fill the accou
   const first = new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider });
   await first.finishAuth(saved.code);
   assert.ok(saved.tokens.access_token && saved.tokens.refresh_token);
+  assert.equal(saved.client.client_secret_expires_at, 0, 'the app\'s secret never expires');
   await client.connect(new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider }));
   t.after(() => client.close());
 
@@ -237,7 +239,7 @@ test('MCP: an AI app registers, the user allows it, and its tools fill the accou
   assert.equal((await sharp(Buffer.from(await img.arrayBuffer())).metadata()).width, 640);
   assert.deepEqual((await user.get('/api/account/connections')).json.connections.map((c) => c.name), ['Test AI']);
 
-  // Refresh tokens work once: each use hands out a new pair.
+  // Each use of a refresh token hands out a new pair; a retry soon after still works, later it doesn't.
   const refresh = (token) => fetch(`${base}/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -248,7 +250,9 @@ test('MCP: an AI app registers, the user allows it, and its tools fill the accou
   assert.equal(fresh.status, 200);
   const pair = await fresh.json();
   assert.notEqual(pair.refresh_token, old);
-  assert.equal((await refresh(old)).status, 400, 'the old refresh token is spent');
+  assert.equal((await refresh(old)).status, 200, 'a retried refresh (a lost reply) still works');
+  await new Promise((r) => setTimeout(r, 1700));
+  assert.equal((await refresh(old)).status, 400, 'after the grace period the old refresh token is spent');
 
   // «إلغاء الربط» on the account page cuts the app off.
   const call = (token) => fetch(`${base}/mcp`, {

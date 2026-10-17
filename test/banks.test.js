@@ -51,6 +51,33 @@ test('each game checks its items; duplicates and bad letters are refused', () =>
   assert.ok(isEmojiOnly('👨‍👩‍👧‍👦🏠') && !isEmojiOnly('🦁 أسد'));
 });
 
+test('text copied from an AI chat: list marks, bold and headings go', () => {
+  const reply = [
+    '# القطيع القطيفي',
+    '',
+    'جاوب بالإجابة اللي تتوقع أغلب الشلة تختارها!',
+    '',
+    ...Array.from({ length: 30 }, (_, i) => `${i + 1}. ${i === 1 ? '**سمّ أكلة**' : 'سؤال'} رقم ${i + 1} عن القطيف؟`),
+  ].join('\n');
+  const items = GAMES.herd.parseText(reply);
+  assert.equal(items.length, 30);
+  assert.deepEqual(items[0], { mode: 'same', q: 'سؤال رقم 1 عن القطيف؟' });
+  assert.equal(items[1].q, 'سمّ أكلة رقم 2 عن القطيف؟');
+  assert.deepEqual(GAMES.letters.parseText('١- وش صغير الأسد؟ | شبل\n٢- سفينة الصحراء؟ | جمل\n• عاصمة اليابان؟ | طوكيو').map((i) => i.a), ['شبل', 'جمل', 'طوكيو']);
+  assert.deepEqual(GAMES.seen.parseText('1) 200 | سؤال | جواب\n2) 400 | سؤال ثاني | جواب\n3) 600 | سؤال ثالث | جواب').map((i) => i.value), ['200', '400', '600']);
+  assert.deepEqual(GAMES.outsider.parseText('1. مخيم، استراحة\n2. شاليه\n3. مزرعة').map((i) => i.word), ['مخيم', 'استراحة', 'شاليه', 'مزرعة']);
+  assert.deepEqual(GAMES.herd.parseText('3.5 مليون وش تسوي فيها؟\nاذكر لون').map((i) => i.q), ['3.5 مليون وش تسوي فيها؟', 'اذكر لون'], 'a number that isn\'t a list mark stays');
+});
+
+test('apps registered when secrets still expired keep working', async () => {
+  const { createOAuth } = require('../src/oauth');
+  const store = new FileAccounts(tmp());
+  await store.saveClient({ client_id: 'old', client_secret: 's', client_secret_expires_at: 1, client_name: 'ChatGPT' });
+  const { provider } = createOAuth({ accountsReady: Promise.resolve(store), baseUrl: 'http://localhost:1' });
+  assert.equal((await provider.clientsStore.getClient('old')).client_secret_expires_at, 0);
+  assert.equal(await provider.clientsStore.getClient('nope'), undefined);
+});
+
 test('pasted text: one line per item in each game\'s format', () => {
   assert.deepEqual(GAMES.seen.parseText('200 | سؤال | جواب'), [{ value: '200', q: 'سؤال', a: 'جواب', image_url: undefined }]);
   assert.deepEqual(GAMES.herd.parseText('عكس | يوم من أيام الأسبوع\nاذكر لون'), [{ mode: 'different', q: 'يوم من أيام الأسبوع' }, { mode: 'same', q: 'اذكر لون' }]);

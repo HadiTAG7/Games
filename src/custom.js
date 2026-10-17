@@ -13,9 +13,19 @@ const LETTERS = 'أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق 
 
 const clean = (text, max) => String(text ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
 
-/** Non-empty lines, tidied. */
+// «1.», «١-», «(3)», «•», «- » at the start of a line: list marks an AI chat puts on what it writes.
+const LIST_MARK = /^(?:\(?[0-9٠-٩]{1,3}[.)\-–:،](?![0-9٠-٩])\s*|[-•*▪◦·]\s+)/;
+
+/**
+ * Non-empty lines, tidied. Text copied from an AI chat works as is: list
+ * marks, **bold** and # headings go, and when most lines are a numbered or
+ * bulleted list, the lines around it (a title, «جاوب بالإجابة…») are left out.
+ */
 function lines(text) {
-  return String(text ?? '').split('\n').map((l) => clean(l, 400)).filter(Boolean).slice(0, MAX_LINES);
+  const raw = String(text ?? '').split('\n').map((l) => l.replace(/\*\*|__/g, '').trim()).filter((l) => l && !l.startsWith('#'));
+  const listed = raw.filter((l) => LIST_MARK.test(l));
+  const keep = listed.length >= 3 && listed.length * 2 >= raw.length ? listed : raw;
+  return keep.map((l) => clean(l.replace(LIST_MARK, ''), 400)).filter(Boolean).slice(0, MAX_LINES);
 }
 
 /** «السؤال | الجواب», or «200 | السؤال | الجواب» when a value comes first. Returns null for a bad line. */

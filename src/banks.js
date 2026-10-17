@@ -131,7 +131,7 @@ const GAMES = {
     publicKeys: () => [],
     playable: (items) => items.length >= 4,
     toContent: (bank) => ({ id: `bank-${bank.id}`, name: bank.name, emoji: bank.emoji, bank: true, words: bank.items.map((i) => i.word) }),
-    parseText: (text) => String(text ?? '').split(/[\n،,]/).map((w) => custom.clean(w, 30)).filter(Boolean).map((word) => ({ word })),
+    parseText: (text) => custom.lines(text).flatMap((line) => line.split(/[،,]/)).map((w) => custom.clean(w, 30)).filter(Boolean).map((word) => ({ word })),
   },
 
   time: {

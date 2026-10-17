@@ -17,6 +17,9 @@ const PENDING_MS = 10 * 60 * 1000; // to log in and allow
 const CODE_MS = 5 * 60 * 1000;
 const ACCESS_SECONDS = 60 * 60;
 const REFRESH_MS = 90 * 24 * 60 * 60 * 1000;
+// A used refresh token keeps working this long, so a retried request (say the
+// reply got lost) doesn't cut the app off. Tests shorten it.
+const REFRESH_GRACE_MS = Number(process.env.OAUTH_REFRESH_GRACE_MS) || 2 * 60 * 1000;
 const SCOPE = 'banks';
 
 function createOAuth({ accountsReady, baseUrl }) {
@@ -40,7 +43,12 @@ function createOAuth({ accountsReady, baseUrl }) {
 
   const provider = {
     clientsStore: {
-      getClient: async (id) => (await (await accountsReady).getClient(id)) ?? undefined,
+      // Secrets don't expire (apps registered while they did get the same), or the app is cut off after a month.
+      getClient: async (id) => {
+        const client = await (await accountsReady).getClient(id);
+        if (!client) return undefined;
+        return client.client_secret ? { ...client, client_secret_expires_at: 0 } : client;
+      },
       registerClient: async (client) => (await accountsReady).saveClient(client),
     },
 
@@ -73,12 +81,13 @@ function createOAuth({ accountsReady, baseUrl }) {
       return issue(c.accountId, client.client_id, c.scopes, c.resource);
     },
 
-    /** A refresh token works once; each use hands out a new pair. */
+    /** Each use of a refresh token hands out a new pair; the used one dies after a short grace period. */
     async exchangeRefreshToken(client, refreshToken) {
       const store = await accountsReady;
       const t = await store.getToken(sha256(refreshToken));
       if (!t || t.kind !== 'refresh' || t.clientId !== client.client_id) throw new InvalidGrantError('Invalid refresh token');
-      await store.deleteTokens({ hash: t.hash });
+      const graceEnd = new Date(Date.now() + REFRESH_GRACE_MS);
+      if (t.expiresAt > graceEnd) await store.setTokenExpiry(t.hash, graceEnd);
       return issue(t.accountId, client.client_id, t.scopes, t.resource);
     },
 
@@ -159,6 +168,7 @@ function createOAuth({ accountsReady, baseUrl }) {
     scopesSupported: [SCOPE],
     resourceName: 'ألعاب الشلة',
     serviceDocumentationUrl: new URL('/account', baseUrl),
+    clientRegistrationOptions: { clientSecretExpirySeconds: 0 }, // 0 = never
   });
   const bearer = requireBearerAuth({
     verifier: provider,

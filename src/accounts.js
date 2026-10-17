@@ -140,6 +140,12 @@ class FileAccounts {
     return t && new Date(t.expiresAt) > new Date() ? { ...t, expiresAt: new Date(t.expiresAt) } : null;
   }
 
+  async setTokenExpiry(hash, expiresAt) {
+    const t = this.d.tokens.find((x) => x.hash === hash);
+    if (t) t.expiresAt = expiresAt.toISOString();
+    this.save();
+  }
+
   async deleteTokens({ hash, accountId, clientId }) {
     this.d.tokens = this.d.tokens.filter((t) => {
       if (hash) return t.hash !== hash;
@@ -366,6 +372,10 @@ class PgAccounts {
     const { rows } = await this.q('SELECT * FROM oauth_tokens WHERE token_hash = $1 AND expires_at > now()', [hash]);
     const r = rows[0];
     return r ? { hash: r.token_hash, kind: r.kind, accountId: r.account_id, clientId: r.client_id, scopes: r.scopes, resource: r.resource, expiresAt: new Date(r.expires_at) } : null;
+  }
+
+  async setTokenExpiry(hash, expiresAt) {
+    await this.q('UPDATE oauth_tokens SET expires_at = $2 WHERE token_hash = $1', [hash, expiresAt]);
   }
 
   async deleteTokens({ hash, accountId, clientId }) {
