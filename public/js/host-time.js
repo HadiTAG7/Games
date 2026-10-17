@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection, updateTeamsSection,
    TEAM_ORDER, teamLabel, roundsText, cardFace, preloadImages, preloadNote, clockMs, clocksEl, startClockTicker,
-   spinRemaining, SPIN_MS, sfx, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList, banksBox */
+   spinRemaining, SPIN_MS, sfx, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList, banksBox, TEAM_INFO, duelEl */
 'use strict';
 
 // Host screens for «تحدي الوقت». The host is the judge: this screen shows
@@ -243,12 +243,34 @@ function updateLobby() {
 
 /* ---------- Wheel ---------- */
 
+/** This round's two players; until the clock starts the host can swap either for a teammate. */
+function duelPicker() {
+  const { duel } = state;
+  if (!duel) return null;
+  const side = (team) => {
+    const members = state.teams[team];
+    return h('label', { class: `tc-duel-side ${team}` },
+      h('small', {}, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}${members.length > 1 ? ' · اضغط وغيّره' : ''}`),
+      members.length > 1
+        ? h('select', {
+          'aria-label': `لاعب ${teamLabel(team)}`,
+          onchange: (e) => send('host:tc-player', { team, playerId: e.target.value }),
+        }, members.map((p) => h('option', { value: p.id, selected: p.id === duel[team]?.id }, p.name)))
+        : h('b', {}, duel[team]?.name ?? '—'));
+  };
+  return h('div', { class: 'tc-duel' }, side('red'), h('span', { class: 'tc-duel-vs' }, 'ضد'), side('blue'));
+}
+
+/** «أبو فهد يبدأ» */
+const starterName = (team) => state.duel?.[team]?.name ?? teamLabel(team);
+
 function renderWheel() {
   return h('main', { class: 'stage tc-stage' },
     scoreboardEl(state),
     h('div', { class: 'tc-big-emoji' }, '🎡'),
-    h('h1', { class: 'center' }, `الجولة ${state.roundNumber + 1}`),
-    h('p', { class: 'center' }, `${teamLabel(state.nextStartTeam)} يبدأ هالجولة`),
+    h('h1', { class: 'center' }, `الجولة ${state.roundNumber + 1}: شخص ضد شخص`),
+    duelPicker(),
+    h('p', { class: 'center' }, `${starterName(state.nextStartTeam)} يبدأ هالجولة`),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:tc-spin') }, '🎡 دوّر العجلة'),
     ),
@@ -267,12 +289,13 @@ function renderReady() {
     }, left + 30);
   }
   return h('main', { class: 'stage tc-stage' },
+    duelPicker(),
     wheelEl(round),
     left > 0
       ? h('p', { class: 'tc-landed muted' }, 'العجلة تدور…')
       : h('div', { class: 'tc-landed' },
         h('div', { class: 'tc-landed-name' }, `${round.category.emoji} ${round.category.name}`),
-        h('p', {}, `${teamLabel(round.startTeam)} يبدأ · ${state.settings.seconds} ثانية لكل فريق`),
+        h('p', {}, `${starterName(round.startTeam)} يبدأ · ${state.settings.seconds} ثانية لكل واحد`),
         h('div', { class: 'actions' },
           h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:tc-go') }, 'ابدأ الوقت ⏱️'),
           h('button', { class: 'btn', onclick: () => send('host:tc-spin') }, '🎡 دوّر مرة ثانية'),
@@ -296,7 +319,7 @@ function renderPlaying() {
       categoryTitle(round.category),
       h('span', { class: 'pill' }, `صورة ${round.cardNumber}`, round.cardsLeft > 1 ? ` · باقي ${round.cardsLeft - 1}` : ' · الأخيرة'),
     ),
-    clocksEl(round, { seconds: state.settings.seconds }),
+    clocksEl(round, { seconds: state.settings.seconds, duel: state.duel }),
     h('div', { class: 'tc-card' },
       cardFace(card, { brokenText: '😕 الصورة ما فتحت — اضغط «🚫 استبعد»' }),
       round.paused ? h('div', { class: 'tc-paused' }, '⏸️ الوقت موقّف') : null,
@@ -341,6 +364,7 @@ function renderRoundOver() {
   return h('main', { class: 'stage tc-stage' },
     h('div', { class: `verdict tc-verdict ${round.result.winner ?? 'draw'}` },
       text.title, h('div', { class: 'verdict-note' }, text.detail)),
+    duelEl(state.duel),
     scoreboardEl(state),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:next') },
@@ -384,7 +408,8 @@ const SCREENS = {
 function screenKey() {
   const { round } = state;
   return JSON.stringify([
-    state.phase, state.score, state.matchWinner, state.nextStartTeam, state.roundNumber, prefs,
+    state.phase, state.score, state.matchWinner, state.nextStartTeam, state.roundNumber, prefs, state.duel,
+    ['wheel', 'ready'].includes(state.phase) && state.teams,
     round && { ...round, preload: round.preload?.length ?? 0 },
     state.phase === 'ready' && spinRemaining(round.spinId) === 0,
     state.phase === 'final' && state.teams,

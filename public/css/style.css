@@ -943,6 +943,19 @@ details.card[open] summary { margin-bottom: 10px; }
 .tc-clock.mine .tc-clock-name { color: var(--accent); }
 .tc-clock-name { font-weight: 700; font-size: 15px; }
 .tc-clock-name small { font-size: 13px; }
+.tc-clock-player { font-size: clamp(18px, 3vw, 24px); font-weight: 800; margin-top: 2px; }
+.tc-duel { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 8px auto 12px; flex-wrap: wrap; }
+.tc-duel-side { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 120px; padding: 10px 16px; border-radius: 16px; border: 2px solid transparent; }
+.tc-duel-side.red { background: var(--red-soft); border-color: var(--red); }
+.tc-duel-side.blue { background: var(--blue-soft); border-color: var(--blue); }
+.tc-duel-side.me { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tc-duel-side small { color: var(--muted); font-weight: 700; }
+.tc-duel-side b { font-size: clamp(20px, 3.4vw, 30px); }
+.tc-duel-side select { font: inherit; font-size: clamp(18px, 3vw, 26px); font-weight: 800; background: transparent; color: var(--text); border: 0; text-align: center; cursor: pointer; }
+.tc-duel-side select option { color: #111; }
+.tc-duel-vs { font-weight: 800; color: var(--muted); }
+.tc-duel-note { text-align: center; font-weight: 700; margin: 0 0 8px; }
+.tc-duel-note.mine { color: var(--accent); font-size: 20px; }
 .tc-clock-time { font-size: clamp(40px, 9vw, 76px); font-weight: 800; line-height: 1.1; direction: ltr; font-variant-numeric: tabular-nums; }
 .tc-clock.urgent .tc-clock-time { color: var(--bad); animation: pulse 1s infinite; }
 .tc-clock-bar { height: 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.3); overflow: hidden; }

@@ -98,7 +98,8 @@ function formatClock(ms) {
   return (Math.ceil(ms / 100) / 10).toFixed(1);
 }
 
-function clocksEl(round, { seconds, myTeam = null, playing = true }) {
+/** duel: this round's two players ({ red: { name }, blue: … }), named on their clocks. */
+function clocksEl(round, { seconds, myTeam = null, playing = true, duel = null }) {
   const total = seconds * 1000;
   return h('div', { class: 'tc-clocks' }, TEAM_ORDER.map((team) => {
     const ms = clockMs(round, team);
@@ -108,6 +109,7 @@ function clocksEl(round, { seconds, myTeam = null, playing = true }) {
       'data-clock': team,
     },
       h('div', { class: 'tc-clock-name' }, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}`, myTeam === team ? h('small', {}, ' · فريقك') : null),
+      duel?.[team] ? h('div', { class: 'tc-clock-player' }, duel[team].name) : null,
       h('div', { class: 'tc-clock-time' }, formatClock(ms)),
       h('div', { class: 'tc-clock-bar' }, h('span', { style: `width:${Math.min(100, (ms / total) * 100)}%` })),
     );
@@ -214,6 +216,14 @@ function scoreboardEl(s) {
   );
 }
 
+/** «🔴 أبو فهد ضد 🔵 نورة»: who plays this round. */
+function duelEl(duel, { meId = null } = {}) {
+  if (!duel) return null;
+  const side = (team) => h('span', { class: `tc-duel-side ${team}${duel[team]?.id === meId ? ' me' : ''}` },
+    h('small', {}, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}`), h('b', {}, duel[team]?.name ?? '—'));
+  return h('div', { class: 'tc-duel' }, side('red'), h('span', { class: 'tc-duel-vs' }, 'ضد'), side('blue'));
+}
+
 function roundResultText(result) {
   if (!result.winner) return { title: 'تعادل! 🤝', detail: 'خلصت صور الفئة والوقت متساوي' };
   const loser = otherTeam(result.winner);
@@ -241,12 +251,13 @@ function recapEl(items) {
 function timeRulesList(settings) {
   return h('ul', { class: 'rules-list' },
     h('li', {}, 'فريقين: 🔴 الأحمر و🔵 الأزرق، وكل فريق عنده ساعته الخاصة.'),
+    h('li', {}, 'كل جولة شخص ضد شخص: واحد من كل فريق بالدور، عشان الكل يلعب. وهو بس اللي يجاوب، وفريقه ما يساعده 🤫'),
     h('li', {}, 'كل جولة تدور العجلة وتختار الفئة.'),
-    h('li', {}, 'تطلع صورة، والفريق اللي عليه الدور يقول وش هي بصوت عالي.'),
-    h('li', {}, 'لو الجواب صح، يوقف وقتكم ويبدأ وقت الفريق الثاني على صورة جديدة.'),
-    h('li', {}, 'تقدرون تتخطون الصورة، بس وقتكم يبقى شغّال',
+    h('li', {}, 'تطلع صورة، واللي عليه الدور يقول وش هي بصوت عالي.'),
+    h('li', {}, 'لو الجواب صح، يوقف وقته ويبدأ وقت اللاعب الثاني على صورة جديدة.'),
+    h('li', {}, 'يقدر يتخطى الصورة، بس وقته يبقى شغّال',
       settings.skipPenalty ? ` وينخصم منه ${settings.skipPenalty} ثواني` : '', '.'),
-    h('li', {}, 'الفريق اللي يخلص وقته يخسر الجولة.'),
+    h('li', {}, 'اللي يخلص وقته يخسر الجولة لفريقه.'),
     h('li', {}, `أول فريق يكسب ${roundsText(settings.roundsToWin)} يفوز باللعبة.`),
   );
 }

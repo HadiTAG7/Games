@@ -1,10 +1,13 @@
 'use strict';
 
 // «تحدي الوقت» — two teams name pictures against their own chess clock.
-// A correct answer stops your clock and starts the other team's; skipping
-// shows a new picture while your clock keeps running. Whoever runs out of
-// time loses the round. A wheel picks each round's category, and the first
-// team to win the set number of rounds wins the game. The host judges.
+// Each round is one player against one: a player from each team, taking
+// turns so everyone plays (the host can swap either before the clock
+// starts). A correct answer stops your clock and starts the other's;
+// skipping shows a new picture while your clock keeps running. Whoever runs
+// out of time loses the round for their team. A wheel picks each round's
+// category, and the first team to win the set number of rounds wins the
+// game. The host judges.
 
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
@@ -48,6 +51,8 @@ class TimeGame {
     this.usedCategories = new Set();
     this.seenCards = new Map(); // categoryId → Set of card indexes shown this game
     this.excluded = new Set(); // card keys the host took out of the game
+    this.queue = { red: [], blue: [] }; // each team's players in the order they take turns
+    this.duel = null; // { red, blue }: the player ids facing each other this round
     this.timer = null;
     this.turnToken = 0;
   }
@@ -60,18 +65,64 @@ class TimeGame {
 
   addPlayer(id) {
     joinTeam(this.teams, id);
+    this.fixDuel();
   }
 
   removePlayer(id) {
     this.teams.delete(id);
+    this.fixDuel();
   }
 
   setTeam(playerId, team) {
     moveToTeam(this.teams, playerId, team);
+    this.fixDuel();
   }
 
   shuffleTeams() {
     shuffleTeams(this.teams, this.random);
+    this.fixDuel();
+  }
+
+  /* ---------- Who plays: one from each team, taking turns ---------- */
+
+  /** Brings a team's turn order up to date: players who left go, newcomers join the end (in random order). */
+  syncQueue(team) {
+    const members = [...this.teams].filter(([, t]) => t === team).map(([id]) => id);
+    const kept = this.queue[team].filter((id) => this.teams.get(id) === team);
+    this.queue[team] = [...kept, ...shuffle(members.filter((id) => !kept.includes(id)), this.random)];
+  }
+
+  /** Whose turn it is in a team. */
+  nextPlayer(team) {
+    this.syncQueue(team);
+    return this.queue[team][0] ?? null;
+  }
+
+  pickDuel() {
+    this.duel = { red: this.nextPlayer('red'), blue: this.nextPlayer('blue') };
+  }
+
+  /** Before the clock starts, someone who left or changed teams is replaced by the next in turn. */
+  fixDuel() {
+    if (!this.duel || !['wheel', 'ready'].includes(this.phase)) return;
+    for (const team of TEAMS) {
+      if (this.teams.get(this.duel[team]) !== team) this.duel[team] = this.nextPlayer(team);
+    }
+  }
+
+  /** The host swaps a team's player for this round, until the clock starts. */
+  setPlayer(team, playerId) {
+    if (!['wheel', 'ready'].includes(this.phase)) throw new GameError('ما تقدر تغيّر اللاعب والجولة شغّالة');
+    if (!TEAMS.includes(team) || this.teams.get(playerId) !== team) throw new GameError('اختر لاعب من نفس الفريق');
+    this.duel[team] = playerId;
+  }
+
+  /** The two who played go to the end of their team's turn order. */
+  commitDuel() {
+    for (const team of TEAMS) {
+      const id = this.duel[team];
+      if (id) this.queue[team] = [...this.queue[team].filter((x) => x !== id), id];
+    }
   }
 
   /* ---------- Settings ---------- */
@@ -118,12 +169,14 @@ class TimeGame {
     this.nextStartTeam = 'red';
     this.usedCategories.clear();
     this.seenCards.clear();
+    this.queue = { red: [], blue: [] };
     if (Array.isArray(excluded)) {
       for (const key of excluded.slice(0, MAX_EXCLUDED)) {
         if (typeof key === 'string' && key.length <= 200) this.excluded.add(key);
       }
     }
     this.phase = 'wheel';
+    this.pickDuel();
   }
 
   /** Picks the round's category; can spin again until the round starts. */
@@ -180,6 +233,7 @@ class TimeGame {
 
   go() {
     if (this.phase !== 'ready') throw new GameError('دوّر العجلة أول');
+    this.commitDuel();
     this.phase = 'playing';
     this.round.runningSince = this.now();
     this.scheduleTimeout();
@@ -361,7 +415,10 @@ class TimeGame {
   next() {
     if (this.phase !== 'roundOver') throw new GameError('الجولة ما خلصت');
     if (this.matchWinner) this.phase = 'final';
-    else this.phase = 'wheel';
+    else {
+      this.phase = 'wheel';
+      this.pickDuel();
+    }
   }
 
   finish() {
@@ -379,6 +436,7 @@ class TimeGame {
     this.clearTimer();
     this.phase = 'lobby';
     this.round = null;
+    this.duel = null;
     this.score = { red: 0, blue: 0 };
     this.roundNumber = 0;
     this.matchWinner = null;

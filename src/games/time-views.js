@@ -79,6 +79,14 @@ function roundView(room, { host }) {
   return view;
 }
 
+/** This round's two players: { red: { id, name }, blue: … }. */
+function duelView(room) {
+  const { duel } = room.game;
+  if (!duel) return null;
+  const person = (id) => (id ? { id, name: room.nameOf(id) ?? 'لاعب طلع' } : null);
+  return { red: person(duel.red), blue: person(duel.blue) };
+}
+
 function baseView(room, { host }) {
   const { game } = room;
   return {
@@ -90,6 +98,7 @@ function baseView(room, { host }) {
     matchWinner: game.matchWinner,
     nextStartTeam: game.nextStartTeam,
     teams: teamsView(room),
+    duel: duelView(room),
     round: roundView(room, { host }),
   };
 }

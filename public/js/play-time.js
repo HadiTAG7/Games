@@ -1,16 +1,29 @@
 /* global $, h, app, state, screenKey: writable, confetti, PLAY_GAMES, TEAM_ORDER, otherTeam, teamLabel, cardFace,
    preloadImages, preloadNote, clocksEl, startClockTicker, spinRemaining, wheelEl, scoreboardEl, roundResultText,
-   recapEl, timeRulesList, sfx */
+   recapEl, timeRulesList, sfx, duelEl */
 'use strict';
 
-// Player screens for «تحدي الوقت»: the picture and both clocks. Phones never
-// get the answer while a round runs; it shows up in the round recap.
+// Player screens for «تحدي الوقت»: who plays this round, the picture and
+// both clocks. Phones never get the answer while a round runs; it shows up
+// in the round recap.
 (() => {
 let rerenderTimer = null;
 
 startClockTicker(() => state);
 
 const myTeam = () => state.me.team;
+/** The player of a team this round. */
+const duelist = (team) => state.duel?.[team] ?? null;
+const iPlay = () => duelist(myTeam())?.id === state.me.id;
+
+/** Who plays this round, and what that means for me. */
+function duelBox() {
+  const team = myTeam();
+  let note = null;
+  if (iPlay()) note = h('p', { class: 'tc-duel-note mine' }, 'أنت تلعب هالجولة! 🔥 استعد');
+  else if (team && duelist(team)) note = h('p', { class: 'tc-duel-note' }, `يلعب عن فريقكم: ${duelist(team).name} · لا تساعدونه 🤫`);
+  return [duelEl(state.duel, { meId: state.me.id }), note];
+}
 
 function topbar() {
   const team = myTeam();
@@ -50,7 +63,8 @@ function renderWheel() {
     scoreboardEl(state),
     h('div', { class: 'tc-big-emoji spin' }, '🎡'),
     h('h2', { class: 'center' }, 'المضيف بيدوّر العجلة…'),
-    h('p', { class: 'center' }, `${teamLabel(state.nextStartTeam)} يبدأ هالجولة`),
+    ...duelBox(),
+    h('p', { class: 'center' }, `${duelist(state.nextStartTeam)?.name ?? teamLabel(state.nextStartTeam)} يبدأ هالجولة`),
   );
 }
 
@@ -63,15 +77,17 @@ function renderReady() {
       if (state.gameType === 'time' && state.phase === 'ready' && state.round.spinId === round.spinId) render();
     }, left + 30);
   }
-  const mine = round.startTeam === myTeam();
+  const starter = duelist(round.startTeam);
+  const mine = starter?.id === state.me.id;
   return h('main', { class: 'stage narrow' },
     h('h2', { class: 'center' }, `الجولة ${round.number}`),
+    ...duelBox(),
     wheelEl(round),
     left > 0
       ? h('p', { class: 'tc-landed muted' }, 'العجلة تدور…')
       : h('div', { class: 'tc-landed' },
         h('div', { class: 'tc-landed-name' }, `${round.category.emoji} ${round.category.name}`),
-        h('p', {}, mine ? 'فريقكم يبدأ! استعدوا 🔥' : `${teamLabel(round.startTeam)} يبدأ`),
+        h('p', {}, mine ? 'أنت تبدأ! استعد 🔥' : `${starter?.name ?? teamLabel(round.startTeam)} يبدأ`),
       ),
     preloadNote(round.preload),
   );
@@ -80,13 +96,16 @@ function renderReady() {
 function renderPlaying() {
   const { round } = state;
   preloadImages(round.preload);
-  const mine = round.active === myTeam();
+  const player = duelist(round.active);
+  const mine = player?.id === state.me.id;
+  let turn = `دور ${player?.name ?? teamLabel(round.active)} ⏳`;
+  if (mine) turn = 'دورك! 🔥 قل الجواب بصوت عالي';
+  else if (round.active === myTeam()) turn = `دور ${player?.name ?? 'فريقكم'} من فريقكم · لا تساعدونه 🤫`;
   return h('main', { class: `stage narrow tc-playing${round.paused ? ' paused' : ''}` },
     round.paused
       ? h('div', { class: 'tc-turn' }, '⏸️ المضيف وقّف الوقت')
-      : h('div', { class: `tc-turn ${round.active}${mine ? ' mine' : ''}` },
-        mine ? 'دوركم! 🔥 قولوا الجواب بصوت عالي' : `دور ${teamLabel(round.active)} ⏳`),
-    clocksEl(round, { seconds: state.settings.seconds, myTeam: myTeam() }),
+      : h('div', { class: `tc-turn ${round.active}${mine ? ' mine' : ''}` }, turn),
+    clocksEl(round, { seconds: state.settings.seconds, myTeam: myTeam(), duel: state.duel }),
     h('div', { class: 'category-tag' }, `${round.category.emoji} ${round.category.name}`),
     h('div', { class: 'tc-card' },
       cardFace(round.card, { brokenText: '😕 الصورة ما فتحت، المضيف بيتخطاها' }),
@@ -108,6 +127,7 @@ function renderRoundOver() {
   }
   return h('main', { class: 'stage narrow' },
     h('div', { class: `verdict ${kind}` }, title, h('div', { class: 'verdict-note' }, text.detail)),
+    duelEl(state.duel, { meId: state.me.id }),
     scoreboardEl(state),
     h('p', { class: 'hint center' }, state.matchWinner ? 'انتظر النتيجة النهائية…' : 'انتظر الجولة الجاية…'),
     h('h2', { class: 'tc-recap-title' }, `صور الجولة · ${round.category.emoji} ${round.category.name}`),
@@ -142,7 +162,7 @@ const SCREENS = {
 function key() {
   const { round } = state;
   return JSON.stringify([
-    state.phase, state.me, state.score, state.matchWinner, state.nextStartTeam, state.settings,
+    state.phase, state.me, state.score, state.matchWinner, state.nextStartTeam, state.settings, state.duel,
     ['lobby', 'final'].includes(state.phase) && state.teams,
     round && { ...round, preload: round.preload?.length ?? 0 },
     state.phase === 'ready' && spinRemaining(round.spinId) === 0,
@@ -159,9 +179,9 @@ function render() {
   app.replaceChildren(topbar(), main);
 }
 
-/** A chime when your team's clock starts. */
+/** A chime when your clock starts (you're playing this round). */
 function sounds(prev, next) {
-  if (next.phase !== 'playing' || !next.round || next.round.active !== next.me.team) return;
+  if (next.phase !== 'playing' || !next.round || next.duel?.[next.round.active]?.id !== next.me.id) return;
   if (prev.phase !== 'playing' || prev.round?.active !== next.round.active) sfx.play('turn');
 }
 

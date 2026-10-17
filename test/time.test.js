@@ -317,6 +317,61 @@ test('switching games keeps everyone and only happens between games', () => {
   assert.equal(room.game.players.size, 4);
 });
 
+/** Plays a round to the end: the clock starts, then the loser runs out of time. */
+function playRound(game, loser = 'red') {
+  game.spin();
+  game.go();
+  game.endRound(loser, 'time');
+  game.next();
+}
+
+test('each round is one player against one, taking turns so everyone plays', () => {
+  const game = newGame({ players: ['a', 'b', 'c', 'd', 'e'] }); // red: a c e, blue: b d
+  game.updateSettings({ roundsToWin: 5 });
+  game.start();
+  const seen = { red: [], blue: [] };
+  for (let i = 0; i < 6; i++) {
+    assert.equal(game.teams.get(game.duel.red), 'red');
+    assert.equal(game.teams.get(game.duel.blue), 'blue');
+    seen.red.push(game.duel.red);
+    seen.blue.push(game.duel.blue);
+    playRound(game, i % 2 ? 'red' : 'blue');
+  }
+  assert.deepEqual([...new Set(seen.red.slice(0, 3))].sort(), ['a', 'c', 'e'], 'all three reds before anyone repeats');
+  assert.deepEqual(seen.red.slice(3), seen.red.slice(0, 3), 'then the same order again');
+  assert.deepEqual([...new Set(seen.blue.slice(0, 2))].sort(), ['b', 'd']);
+  assert.equal(seen.blue[2], seen.blue[0]);
+});
+
+test('the host can swap a player before the clock starts; the one swapped out plays next', () => {
+  const game = newGame({ players: ['a', 'b', 'c', 'd'] }); // red: a c, blue: b d
+  game.updateSettings({ roundsToWin: 5 });
+  game.start();
+  const picked = game.duel.red;
+  const other = picked === 'a' ? 'c' : 'a';
+  assert.throws(() => game.setPlayer('red', 'b'), /نفس الفريق/);
+  game.setPlayer('red', other);
+  game.spin();
+  game.setPlayer('red', other); // still allowed after the wheel lands
+  game.go();
+  assert.throws(() => game.setPlayer('red', picked), /شغّالة/);
+  game.endRound('red', 'time');
+  game.next();
+  assert.equal(game.duel.red, picked, 'the swapped-out player goes next');
+});
+
+test('a player who leaves or changes team before the clock starts is replaced', () => {
+  const game = newGame({ players: ['a', 'b', 'c', 'd'] });
+  game.start();
+  const red = game.duel.red;
+  game.removePlayer(red);
+  assert.equal(game.duel.red, red === 'a' ? 'c' : 'a');
+  game.setTeam(game.duel.blue, 'red');
+  assert.equal(game.teams.get(game.duel.blue), 'blue');
+  game.restart();
+  assert.equal(game.duel, null);
+});
+
 test('only the host sees the answer while a round runs; everyone sees the recap', () => {
   const { room, players } = roomWithTime();
   room.setGameType('time');
@@ -334,6 +389,8 @@ test('only the host sees the answer while a round runs; everyone sees the recap'
   assert.equal(player.round.card.text, host.round.card.text);
   assert.equal(player.me.team, 'red');
   assert.deepEqual(host.teams.red.map((p) => p.name), ['أحمد', 'فهد']);
+  assert.ok(['أحمد', 'فهد'].includes(player.duel.red.name), 'everyone sees who plays');
+  assert.equal(player.duel.red.id, room.game.duel.red);
   room.game.correct();
   room.game.skip();
   room.game.finish();

@@ -400,6 +400,7 @@ io.on('connection', (socket) => {
   const time = (room) => room.gameOf('time');
   hostAction('host:tc-spin', (room) => time(room).spin());
   hostAction('host:tc-go', (room) => time(room).go());
+  hostAction('host:tc-player', (room, { team, playerId }) => time(room).setPlayer(team, playerId));
   hostAction('host:tc-correct', (room, { step }) => time(room).correct(step));
   hostAction('host:tc-skip', (room, { step }) => time(room).skip(step));
   hostAction('host:tc-pause', (room, { step }) => time(room).pause(step));
