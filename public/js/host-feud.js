@@ -36,7 +36,7 @@ function topbar() {
   const inGame = !['lobby', 'final'].includes(state.phase);
   return h('header', { class: 'topbar' },
     h('div', { class: 'brand' }, 'فاميلي فيود 👪'),
-    inGame ? remoteButton() : null,
+    inGame && !isRemote() ? remoteButton() : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
 }
