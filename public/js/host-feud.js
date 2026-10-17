@@ -162,7 +162,7 @@ function renderFastSetup() {
   const { fast } = state;
   const members = state.teams[fast.team];
   const pick = (index) => (members.length
-    ? h('select', { id: `ff-fast-p${index}`, onchange: (e) => act('host:ff-fast-player', { index, playerId: e.target.value, step: state.step }) },
+    ? h('select', { id: `ff-fast-p${index}`, onchange: (e) => act('host:ff-fast-player', { index, playerId: e.target.value }) },
       members.map((p) => h('option', { value: p.id, selected: fast.players[index]?.id === p.id }, p.name)))
     : h('b', {}, index ? 'اللاعب الثاني' : 'اللاعب الأول'));
   return h('main', { class: 'stage narrow ff-stage' },
@@ -178,7 +178,8 @@ function renderFastSetup() {
   );
 }
 
-const mark = (stage, index, slot) => act('host:ff-fast-mark', { stage, index, slot, step: state.step });
+// Picking a player or a match just sets it, so a quick second change isn't a stale tap: no step.
+const mark = (stage, index, slot) => act('host:ff-fast-mark', { stage, index, slot });
 
 function renderFast() {
   const { fast } = state;
