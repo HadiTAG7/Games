@@ -60,6 +60,27 @@ test('a game needs a player on each team', () => {
   assert.equal(game.phase, 'board');
 });
 
+test('«بدون جوالات»: no players needed, the host names the teams', () => {
+  const game = newGame({ players: [] });
+  assert.throws(() => game.start(), /كل فريق/, 'with phones, each team needs a player');
+  game.updateSettings({ phones: false, teamNames: { red: '  الشباب  ', blue: 'البنات'.repeat(10) } });
+  assert.deepEqual(game.settings.teamNames, { red: 'الشباب', blue: 'البنات'.repeat(10).slice(0, 20) });
+  game.updateSettings({ teamNames: { blue: 'البنات' } });
+  assert.deepEqual(game.settings.teamNames, { red: 'الشباب', blue: 'البنات' }, 'one name at a time');
+  game.updateSettings({ phones: 'no' });
+  assert.equal(game.settings.phones, false, 'only true or false');
+  game.updateSettings({ categories: ['a', 'b'] });
+  assert.throws(() => game.start(), /6 فئات/, 'still six categories');
+  game.updateSettings({ categories: ['a', 'b', 'c', 'd', 'e', 'f'] });
+  game.start();
+  assert.equal(game.phase, 'board');
+  assert.throws(() => game.updateSettings({ phones: true }), /أثناء اللعب/);
+  const tile = ask(game);
+  game.judge(true);
+  assert.equal(game.score.red, tile.value);
+  assert.deepEqual(game.nightPoints(), {}, 'nobody on a phone, nobody to give points to');
+});
+
 test('the board has six categories with two questions of each value', () => {
   const game = started();
   assert.equal(game.board.length, 6);
@@ -244,6 +265,7 @@ test('phones see the question but never the answer until the reveal', () => {
   assert.equal(phone.current.answer, null);
   assert.equal(phone.current.question.q, host.current.question.q);
   assert.equal(phone.me.team, 'blue');
+  assert.deepEqual(phone.settings.teamNames, { red: '', blue: '' }, 'the phones get the team names too');
   room.game.judge(true);
   assert.equal(room.playerView(p2.id).current.answer, host.current.answer);
   assert.equal(room.hostView().board[0].tiles[0].wonBy, 'red');

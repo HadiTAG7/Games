@@ -5,7 +5,8 @@
 // picking a question; the team on turn answers against its timer, and if it
 // misses, the other team gets a shorter turn to steal the points. Each team
 // has four helps, once each. The host picks the categories, sees the answer
-// and judges.
+// and judges. It also plays on one screen with nobody joining («بدون جوالات»):
+// the teams just sit in two groups, with names the host types.
 
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
@@ -19,6 +20,7 @@ const BOARD_SIZE = 6; // categories on the board
 const TURN_SECONDS_OPTIONS = [30, 45, 60, 90];
 const STEAL_SECONDS_OPTIONS = [15, 20, 30];
 const CALL_SECONDS = 30;
+const MAX_TEAM_NAME = 20;
 // الحفرة: a correct answer also takes the points from the other team.
 // دبل: a correct answer is worth double. Both are picked before the question.
 // جاوب جوابين and اتصال بصديق are used once the question is up.
@@ -38,7 +40,13 @@ class SeenGame {
     this.bankCategories = []; // the host's own banks («بنوكي»)
     this.random = random;
     this.now = now;
-    this.settings = { turnSeconds: 60, stealSeconds: 30, categories: this.randomCategories() };
+    this.settings = {
+      turnSeconds: 60,
+      stealSeconds: 30,
+      categories: this.randomCategories(),
+      phones: true, // false: one screen, nobody joins; the host runs it all
+      teamNames: { red: '', blue: '' }, // what the host calls the teams ('' = the colour)
+    };
     this.teams = new Map(); // playerId → 'red' | 'blue'
     this.seen = new Set(); // questions asked in this room, so new games get new ones
     this.firstTeam = 'red';
@@ -85,6 +93,13 @@ class SeenGame {
     const s = { ...this.settings };
     if (TURN_SECONDS_OPTIONS.includes(Number(patch.turnSeconds))) s.turnSeconds = Number(patch.turnSeconds);
     if (STEAL_SECONDS_OPTIONS.includes(Number(patch.stealSeconds))) s.stealSeconds = Number(patch.stealSeconds);
+    if (typeof patch.phones === 'boolean') s.phones = patch.phones;
+    if (patch.teamNames && typeof patch.teamNames === 'object') {
+      s.teamNames = { ...s.teamNames };
+      for (const team of ['red', 'blue']) {
+        if (patch.teamNames[team] !== undefined) s.teamNames[team] = custom.clean(patch.teamNames[team], MAX_TEAM_NAME);
+      }
+    }
     if (patch.custom !== undefined) this.setCustom(patch.custom, s);
     if (patch.randomCategories) s.categories = this.randomCategories();
     else if (Array.isArray(patch.categories)) {
@@ -139,7 +154,9 @@ class SeenGame {
 
   start() {
     if (this.phase !== 'lobby') throw new GameError('اللعبة بدأت');
-    if (!teamSize(this.teams, 'red') || !teamSize(this.teams, 'blue')) throw new GameError('كل فريق يحتاج لاعب واحد على الأقل');
+    if (this.settings.phones && (!teamSize(this.teams, 'red') || !teamSize(this.teams, 'blue'))) {
+      throw new GameError('كل فريق يحتاج لاعب واحد على الأقل');
+    }
     if (this.settings.categories.length !== BOARD_SIZE) throw new GameError(`اختر ${BOARD_SIZE} فئات`);
     this.reset();
     this.board = this.settings.categories.map((id, c) => {

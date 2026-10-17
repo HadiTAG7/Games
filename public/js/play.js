@@ -1,4 +1,4 @@
-/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme, sfx, syncCrown, pointsText */
+/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme, sfx, syncCrown, pointsText, useTeamNames */
 'use strict';
 
 // The player page shell: joining, the room session and dispatch to the
@@ -102,6 +102,7 @@ function render() {
   const game = state.games.find((g) => g.id === state.gameType);
   document.title = game.name;
   setTheme(state.gameType);
+  useTeamNames(state.settings?.teamNames);
   PLAY_GAMES[state.gameType].render();
   placeNightMe();
   syncCrown(state.night, { meId: session.playerId });

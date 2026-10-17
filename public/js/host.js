@@ -1,4 +1,4 @@
-/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, sfx, nightList, syncCrown, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
+/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, sfx, nightList, syncCrown, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel, useTeamNames */
 'use strict';
 
 // The host page shell: connection, room session, the shared lobby pieces
@@ -62,9 +62,11 @@ function render() {
   const game = state.games.find((g) => g.id === state.gameType);
   document.title = `${game.name} · المضيف`;
   setTheme(state.gameType);
+  useTeamNames(state.settings?.teamNames);
   // Switching a bank on or off redraws the lobby, since it changes the categories.
   const banks = state.myBanks ? `${state.myBanks.loggedIn}:${state.myBanks.list.map((b) => `${b.id}${b.on ? '+' : ''}`).join('.')}` : '';
-  const key = `${state.gameType}:${state.phase}:${banks}`;
+  // A game can ask for a fresh lobby when a setting changes its layout.
+  const key = `${state.gameType}:${state.phase}:${banks}:${ui.lobbyKey?.() ?? ''}`;
   // The lobby holds form fields, so keep it and only refresh what changed.
   if (state.phase === 'lobby' && renderedKey === key) {
     ui.updateLobby();

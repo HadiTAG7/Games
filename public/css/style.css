@@ -586,6 +586,14 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
   .lobby > #night-card { grid-column: 1; }
 }
 .join-card { text-align: center; }
+.sj-nophones { display: flex; flex-direction: column; gap: 12px; text-align: start; }
+.sj-nophones h2 { text-align: center; }
+.sj-nophones .muted { text-align: center; margin: 0; }
+.sj-team-name input { font-size: 20px; font-weight: 800; }
+.sj-team-name.red input { border-color: var(--red); }
+.sj-team-name.blue input { border-color: var(--blue); }
+.sj-nophones .link-btn { align-self: center; }
+.sj-nophones-btn { margin: 4px 0 8px; }
 .qr {
   background: #fff;
   border-radius: 16px;

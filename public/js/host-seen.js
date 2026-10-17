@@ -1,10 +1,11 @@
 /* global $, h, storage, toast, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, SJ_LIFELINES, sjAnswering, sjScoreboard, sjBoard,
-   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox */
+   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox, TEAM_ORDER, TEAM_INFO */
 'use strict';
 
 // Host screens for «سين جيم». The host picks the categories, taps the
-// question a team chooses, sees the answer and judges.
+// question a team chooses, sees the answer and judges. With «بدون جوالات»
+// nobody joins: no QR code or team lists, and the host names the two teams.
 (() => {
 const BOARD_SIZE = 6;
 const TURN_SECONDS = [30, 45, 60, 90];
@@ -124,6 +125,25 @@ function categoryChips() {
   }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
 }
 
+/** In place of the QR code when nobody plays on a phone: the two teams' names. */
+function noPhonesCard() {
+  const names = state.settings.teamNames;
+  return h('section', { class: 'card join-card sj-nophones' },
+    h('h2', {}, '📺 بدون جوالات'),
+    h('p', { class: 'muted' }, 'قسّموا أنفسكم فريقين، والمضيف يختار الأسئلة ويحكم من هالشاشة.'),
+    TEAM_ORDER.map((team, i) => h('label', { class: `field sj-team-name ${team}` },
+      h('span', {}, `${TEAM_INFO[team].emoji} اسم الفريق ${i ? 'الثاني' : 'الأول'}`),
+      h('input', {
+        id: `sj-name-${team}`,
+        maxlength: 20,
+        value: names[team],
+        placeholder: TEAM_INFO[team].name,
+        onchange: (e) => act('host:settings', { teamNames: { [team]: e.target.value } }),
+      }))),
+    h('button', { type: 'button', class: 'link-btn', onclick: () => act('host:settings', { phones: true }) }, '📱 نلعب بالجوالات'),
+  );
+}
+
 function renderLobby() {
   const s = state.settings;
   const select = (id, key, options, value) => h('select', {
@@ -132,10 +152,12 @@ function renderLobby() {
   }, options.map((n) => h('option', { value: n, selected: n === value }, `${n} ثانية`)));
 
   return h('main', { class: 'lobby' },
-    joinCard(),
+    s.phones ? joinCard() : noPhonesCard(),
     h('section', { class: 'card' },
       gamePicker(),
-      teamsSection(),
+      s.phones ? teamsSection() : null,
+      s.phones ? h('button', { type: 'button', class: 'btn small sj-nophones-btn', onclick: () => act('host:settings', { phones: false }) },
+        '📺 نلعب بدون جوالات') : null,
       h('h2', {}, 'الإعدادات'),
       h('div', { class: 'settings' },
         field('وقت الفريق اللي عليه الدور', select('sj-turn', 'turnSeconds', TURN_SECONDS, s.turnSeconds)),
@@ -179,7 +201,7 @@ function renderLobby() {
 }
 
 function updateLobby() {
-  updateTeamsSection();
+  if (state.settings.phones) updateTeamsSection();
   // The host's own category comes and goes, so redraw the chips when the list changes.
   const box = $('.sj-categories');
   const shown = [...box.children].map((el) => `${el.dataset.category}:${el.textContent}`).join('|');
@@ -200,10 +222,11 @@ function updateLobby() {
     ? `${custom.items.length} سؤال (${per})${custom.bad ? ` · ${custom.bad} سطر ما فهمناه` : ''} · ${custom.ready ? '✅ الفئة جاهزة، اخترها من الفئات فوق' : 'تحتاج سؤالين من كل قيمة'}`
     : '';
 
-  const teamsReady = state.teams.red.length > 0 && state.teams.blue.length > 0;
+  const teamsReady = !state.settings.phones || (state.teams.red.length > 0 && state.teams.blue.length > 0);
   $('#start').disabled = !teamsReady || picked.length !== BOARD_SIZE;
   let hint = '';
-  if (!state.players.length) hint = 'امسحوا الباركود وادخلوا، واللعبة تقسمكم فريقين';
+  if (!state.settings.phones) hint = picked.length === BOARD_SIZE ? '' : `اختر ${BOARD_SIZE} فئات`;
+  else if (!state.players.length) hint = 'امسحوا الباركود وادخلوا، واللعبة تقسمكم فريقين (أو العبوا بدون جوالات)';
   else if (!teamsReady) hint = 'كل فريق يحتاج لاعب واحد على الأقل';
   else if (picked.length !== BOARD_SIZE) hint = `اختر ${BOARD_SIZE} فئات`;
   $('#start-hint').textContent = hint;
@@ -336,5 +359,8 @@ function sounds(prev, next) {
   else if (next.phase === 'reveal' && prev.phase !== 'reveal') sfx.play(next.current?.result?.winner ? 'correct' : 'wrong');
 }
 
-HOST_GAMES.seen = { render, updateLobby, sounds };
+/** The lobby changes shape with «بدون جوالات». */
+const lobbyKey = () => String(state.settings.phones);
+
+HOST_GAMES.seen = { render, updateLobby, sounds, lobbyKey };
 })();

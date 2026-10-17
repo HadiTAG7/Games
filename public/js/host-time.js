@@ -254,7 +254,8 @@ function duelPicker() {
       members.length > 1
         ? h('select', {
           'aria-label': `لاعب ${teamLabel(team)}`,
-          onchange: (e) => send('host:tc-player', { team, playerId: e.target.value }),
+          // Straight to the server: send() drops a second action while one is in flight, and picking both players quickly must not lose one.
+          onchange: (e) => act('host:tc-player', { team, playerId: e.target.value }),
         }, members.map((p) => h('option', { value: p.id, selected: p.id === duel[team]?.id }, p.name)))
         : h('b', {}, duel[team]?.name ?? '—'));
   };
