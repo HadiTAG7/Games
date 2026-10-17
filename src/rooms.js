@@ -195,6 +195,11 @@ class Room {
     this.maybeAutoReveal();
   }
 
+  /** A phone's unsent answer; nothing on screen changes, so no broadcast. */
+  saveDraft(playerId, draft) {
+    if (this.gameType === 'herd') this.game.saveDraft(playerId, draft ?? {});
+  }
+
   /** Reveal as soon as everyone who is still connected has answered. */
   maybeAutoReveal() {
     if (this.gameType !== 'herd') return;

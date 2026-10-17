@@ -106,7 +106,7 @@ test('a full round: winners gain their bet, every bet is burned', () => {
   assert.deepEqual([...p('a').used], [5]);
   assert.deepEqual([...p('c').used], [15], 'losing burns the bet too');
   assert.deepEqual([...p('d').used], [1], 'no answer burns the lowest number');
-  assert.deepEqual(p('c').last, { answered: true, won: false, value: 15, gained: 0, text: 'أزرق', groupSize: 1, rejected: false });
+  assert.deepEqual(p('c').last, { answered: true, auto: false, won: false, value: 15, gained: 0, text: 'أزرق', groupSize: 1, rejected: false });
   assert.deepEqual(p('d').last, { answered: false, won: false, value: 1, gained: 0 });
   assert.deepEqual(game.round.missed, [{ playerId: 'd', value: 1 }]);
 });
@@ -249,6 +249,49 @@ test('removing a player mid-reveal drops them from the groups', () => {
   game.removePlayer('b');
   assert.deepEqual(sizes(game.round.groups), [1, 1]);
   assert.equal(game.winners().size, 0);
+});
+
+test('time runs out: what was typed is sent, on the picked number or the lowest free one', () => {
+  const game = newGame(['a', 'b', 'c', 'd', 'e', 'f']);
+  game.start();
+  game.submitAnswer('a', { text: 'أحمر', value: 5 });
+  game.saveDraft('a', { text: 'أحمر قديم', value: 5 }); // a late draft from before sending…
+  game.submitAnswer('a', { text: 'أحمر', value: 5 }); // …is cleared by sending
+  game.saveDraft('b', { text: '  الأحمر ', value: 3 }); // typed, never sent
+  game.saveDraft('c', { text: 'أحمر' }); // no number picked
+  game.saveDraft('d', { text: '   ', value: 7 }); // nothing really typed
+  game.submitAnswer('e', { text: 'أزرق', value: 9 });
+  game.saveDraft('e', { text: 'أخضر', value: 9 }); // editing a sent answer
+  game.saveDraft('f', { text: 'x'.repeat(300), value: 99 }); // too long, bad number
+  game.reveal();
+  const answer = (id) => game.round.answers.get(id);
+  assert.deepEqual(answer('a'), { playerId: 'a', text: 'أحمر', value: 5 }, 'sent by hand, not auto');
+  assert.deepEqual(answer('b'), { playerId: 'b', text: 'الأحمر', value: 3, auto: true });
+  assert.deepEqual(answer('c'), { playerId: 'c', text: 'أحمر', value: 1, auto: true }, 'the lowest free number');
+  assert.equal(answer('d'), undefined, 'blank counts as no answer');
+  assert.equal(answer('e').text, 'أخضر', 'the edit wins');
+  assert.equal(answer('f').text.length, 40, 'cut to the longest answer allowed');
+  assert.equal(answer('f').value, 1);
+  game.saveDraft('d', { text: 'متأخر', value: 2 });
+  assert.equal(game.round.drafts.size, 0, 'drafts after the reveal are ignored');
+  game.confirm();
+  const last = (id) => game.players.get(id).last;
+  assert.equal(last('b').auto, true);
+  assert.equal(last('b').won, true, 'the auto answer joins the biggest group');
+  assert.equal(last('a').auto, false);
+  assert.equal(last('d').answered, false);
+  assert.deepEqual([...game.players.get('d').used], [1], 'and burns the lowest number as before');
+});
+
+test('a draft with a number already used goes on the lowest free one', () => {
+  const game = newGame(['a', 'b']);
+  game.start();
+  play(game, [['a', 'x', 1], ['b', 'x', 2]]);
+  game.confirm();
+  game.next();
+  game.saveDraft('a', { text: 'y', value: 1 });
+  game.reveal();
+  assert.equal(game.round.answers.get('a').value, 2);
 });
 
 test('the timer reveals automatically', async () => {

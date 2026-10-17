@@ -180,6 +180,7 @@ class HerdGame {
     this.players.delete(id);
     if (!this.round) return;
     this.round.answers.delete(id);
+    this.round.drafts?.delete(id);
     if (this.phase === 'reveal') {
       this.round.groups = withoutPlayer(this.round.groups, id);
       this.round.history = this.round.history.map((groups) => withoutPlayer(groups, id));
@@ -314,6 +315,7 @@ class HerdGame {
       category,
       subcategory,
       answers: new Map(),
+      drafts: new Map(), // what each phone has typed but not sent; sent for them when time runs out
       endsAt: timer ? this.now() + timer * 1000 : null,
       groups: [],
       history: [],
@@ -357,11 +359,42 @@ class HerdGame {
     if (!clean) throw new GameError('اكتب جوابك');
     if (clean.length > MAX_ANSWER_LENGTH) throw new GameError('الجواب طويل، اختصره');
     this.round.answers.set(playerId, { playerId, text: clean, value: bet });
+    this.round.drafts.delete(playerId);
+  }
+
+  /** What a phone has typed so far (answer and number), kept quietly until time runs out. */
+  saveDraft(playerId, { value, text } = {}) {
+    if (this.phase !== 'question' || !this.players.has(playerId)) return;
+    const bet = Number(value);
+    this.round.drafts.set(playerId, {
+      text: typeof text === 'string' ? text.slice(0, 200) : '',
+      value: Number.isInteger(bet) ? bet : null,
+    });
+  }
+
+  /**
+   * Time's up: whatever someone typed counts as their answer (it replaces a
+   * sent one they were editing), on the number they picked, or their lowest
+   * free one if they picked none or a used one.
+   */
+  takeDrafts() {
+    for (const [playerId, draft] of this.round.drafts) {
+      const player = this.players.get(playerId);
+      const text = draft.text.trim().replace(/\s+/g, ' ').slice(0, MAX_ANSWER_LENGTH);
+      if (!player || !text) continue;
+      const ok = draft.value >= MIN_BET && draft.value <= MAX_BET && !player.used.has(draft.value);
+      const value = ok ? draft.value : lowestUnused(player.used);
+      const sent = this.round.answers.get(playerId);
+      if (value === null || (sent && sent.text === text && sent.value === value)) continue;
+      this.round.answers.set(playerId, { playerId, text, value, auto: true });
+    }
+    this.round.drafts.clear();
   }
 
   reveal() {
     if (this.phase !== 'question') throw new GameError('مو وقت الكشف');
     this.clearTimer();
+    this.takeDrafts();
     this.round.groups = groupAnswers([...this.round.answers.values()]);
     this.round.history = [];
     this.phase = 'reveal';
@@ -480,6 +513,7 @@ class HerdGame {
       player.score += gained;
       player.last = {
         answered: true,
+        auto: Boolean(answer.auto),
         won,
         value: answer.value,
         gained,

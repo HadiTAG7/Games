@@ -1,4 +1,4 @@
-/* global $, h, range, emit, toast, socket, app, state, screenKey: writable, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, PLAY_GAMES */
+/* global $, h, range, emit, toast, socket, app, state, screenKey: writable, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, PLAY_GAMES, serverNow */
 'use strict';
 
 // Player screens for «عقلية القطيع».
@@ -7,12 +7,35 @@ let draft = { value: null, text: '' };
 let draftRound = 0;
 let editing = false;
 
+// What's typed goes to the server as you type (not shown to anyone), so it
+// counts as your answer if time runs out before you press «أرسل».
+let draftTimer = null;
+let draftSent = '';
+function sendDraft(now = false) {
+  clearTimeout(draftTimer);
+  const go = () => {
+    const payload = JSON.stringify(draft);
+    if (payload === draftSent || state.phase !== 'question') return;
+    draftSent = payload;
+    socket.emit('player:draft', draft);
+  };
+  if (now) go();
+  else draftTimer = setTimeout(go, 250);
+}
+// One second before the end, send whatever is typed, in case the last keystrokes are still waiting.
+setInterval(() => {
+  if (state?.gameType !== 'herd' || state.phase !== 'question' || !state.endsAt) return;
+  const left = state.endsAt - serverNow();
+  if (left > 0 && left < 1200 && (!state.myAnswer || editing)) sendDraft(true);
+}, 400);
+
 function render() {
   if (state.phase !== 'question') {
     draftRound = 0;
   } else if (draftRound !== state.roundNumber) {
     draftRound = state.roundNumber;
     draft = { value: null, text: '' };
+    draftSent = '';
     editing = false;
   }
 
@@ -90,6 +113,7 @@ function renderAnswerForm() {
           b.setAttribute('aria-pressed', String(b === e.currentTarget));
         });
         refresh();
+        sendDraft();
       },
     }, n)));
 
@@ -100,13 +124,15 @@ function renderAnswerForm() {
     autocomplete: 'off',
     enterkeyhint: 'send',
     value: draft.text,
-    oninput: (e) => { draft.text = e.target.value; refresh(); },
+    oninput: (e) => { draft.text = e.target.value; refresh(); sendDraft(); },
+    onblur: () => sendDraft(true),
   });
 
   async function submit(e) {
     e.preventDefault();
     if (send.disabled) return;
     send.disabled = true;
+    clearTimeout(draftTimer);
     const res = await emit(socket, 'player:answer', { value: draft.value, text: draft.text });
     if (!res.ok) {
       toast(res.error);
@@ -130,7 +156,18 @@ function renderAnswerForm() {
       h('div', { class: 'step' }, h('span', { class: 'step-num' }, '2'), MODES[state.mode].prompt),
       input,
       send,
-      editing ? h('button', { type: 'button', class: 'btn ghost', onclick: () => { editing = false; render(); } }, 'إلغاء التعديل') : null,
+      h('p', { class: 'hint center' }, '⏱️ لو خلص الوقت، اللي كتبته ينرسل لحاله'),
+      editing ? h('button', {
+        type: 'button',
+        class: 'btn ghost',
+        onclick: () => {
+          // An empty draft: the answer already sent stays.
+          draft = { value: null, text: '' };
+          sendDraft(true);
+          editing = false;
+          render();
+        },
+      }, 'إلغاء التعديل') : null,
       h('p', { id: 'answered', class: 'muted center' }, answeredText()),
     ),
   );
@@ -243,6 +280,7 @@ function renderResults() {
       ? [`${mode.winnersTitle}: `, h('b', {}, winners.join(' / '))]
       : mode.noWinners),
     state.last?.answered ? h('p', { class: 'muted center' }, `جوابك: ${state.last.text}`) : null,
+    state.last?.auto ? h('p', { class: 'hint center' }, `⏱️ انرسل جوابك تلقائياً لما خلص الوقت (على رقم ${state.last.value})`) : null,
     h('div', { class: 'card score-card' },
       h('div', {}, h('small', {}, 'مجموعك'), h('b', {}, state.me.score)),
       h('div', {}, h('small', {}, 'ترتيبك'), h('b', {}, `#${state.me.rank}`)),

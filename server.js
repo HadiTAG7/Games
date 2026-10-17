@@ -69,6 +69,7 @@ const communityReady = openCommunity();
 
 const submitLimit = limiter(50, 60 * 60 * 1000);
 const loginLimit = limiter(10, 15 * 60 * 1000);
+const draftLimit = limiter(30, 5 * 1000); // a phone sends its unsent answer as the player types
 const MAX_ITEMS = 50;
 
 const api = express.Router();
@@ -484,6 +485,13 @@ io.on('connection', (socket) => {
     const room = currentRoom('player');
     room.submitAnswer(socket.data.playerId, answer);
     broadcast(room);
+  });
+
+  // «عقلية القطيع»: what a phone has typed, so it's sent for them if time runs out. Quiet: no broadcast, no errors.
+  socket.on('player:draft', (draft) => {
+    const { code, role, playerId } = socket.data ?? {};
+    if (role !== 'player' || !draftLimit(`${code}:${playerId}`)) return;
+    rooms.get(code)?.saveDraft(playerId, draft && typeof draft === 'object' ? draft : {});
   });
 
   on('player:buzz', () => {
