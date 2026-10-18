@@ -211,7 +211,7 @@ function scoreboardEl(s) {
   return h('div', { class: 'tc-score' },
     TEAM_ORDER.map((team, i) => [
       i === 1 ? h('div', { class: 'tc-score-mid' }, 'أول فريق يكسب ', h('b', {}, roundsText(s.roundsToWin)), ' يفوز') : null,
-      h('div', { class: `tc-score-team ${team}` }, h('span', {}, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}`), h('b', {}, s.score[team])),
+      h('div', { class: `tc-score-team ${team}` }, h('span', {}, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}`), h('b', { 'data-bump': `score-${team}` }, s.score[team])),
     ]),
   );
 }

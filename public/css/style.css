@@ -1374,6 +1374,50 @@ button.hr-cell:hover { filter: brightness(1.1); transform: scale(0.98); }
   .confetti { display: none; }
 }
 
+/* ---------- Motion: screens and pages slide in (showScreen in common.js) ---------- */
+
+/* Only the screen moves; the background and the top bar stay put. Named only
+   while it moves, since a named element would stop the cards' backdrop blur. */
+:root[data-motion] #app > main { view-transition-name: screen; }
+::view-transition-group(screen) { animation-duration: 0.26s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+::view-transition-old(screen) { animation: vt-out 0.18s ease both; }
+::view-transition-new(screen) { animation: vt-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+:root[data-motion="start"]::view-transition-new(screen) { animation: vt-zoom 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+:root[data-motion="final"]::view-transition-new(screen) { animation: vt-zoom 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes vt-out { to { opacity: 0; transform: scale(0.98); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(14px); } }
+@keyframes vt-zoom { from { opacity: 0; transform: scale(0.92); } }
+
+/* Between pages of the site, and a game's name flies from its home tile to its page. */
+@view-transition { navigation: auto; }
+.game-tile[data-theme="herd"] b, body[data-theme="herd"] .landing-intro h1 { view-transition-name: title-herd; }
+.game-tile[data-theme="time"] b, body[data-theme="time"] .landing-intro h1 { view-transition-name: title-time; }
+.game-tile[data-theme="seen"] b, body[data-theme="seen"] .landing-intro h1 { view-transition-name: title-seen; }
+.game-tile[data-theme="letters"] b, body[data-theme="letters"] .landing-intro h1 { view-transition-name: title-letters; }
+.game-tile[data-theme="outsider"] b, body[data-theme="outsider"] .landing-intro h1 { view-transition-name: title-outsider; }
+.game-tile[data-theme="mafia"] b, body[data-theme="mafia"] .landing-intro h1 { view-transition-name: title-mafia; }
+.game-tile[data-theme="feud"] b, body[data-theme="feud"] .landing-intro h1 { view-transition-name: title-feud; }
+
+/* The home tiles and a game page's intro rise in one after another. */
+.game-tile, .landing-intro > *, .landing-visual { animation: rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+.game-tile:nth-child(2), .landing-intro > :nth-child(2) { animation-delay: 50ms; }
+.game-tile:nth-child(3), .landing-intro > :nth-child(3) { animation-delay: 100ms; }
+.game-tile:nth-child(4), .landing-intro > :nth-child(4), .landing-visual { animation-delay: 150ms; }
+.game-tile:nth-child(5), .landing-intro > :nth-child(5) { animation-delay: 200ms; }
+.game-tile:nth-child(6), .landing-intro > :nth-child(6) { animation-delay: 250ms; }
+.game-tile:nth-child(7), .landing-intro > :nth-child(7) { animation-delay: 300ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+
+/* A score that just changed pops (bumpChanges in common.js). */
+.bump { animation: bump 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes bump { 35% { transform: scale(1.3); color: var(--accent); } }
+@keyframes fade-in { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
 /* ---------- Sound switches ---------- */
 
 .sound-dock {
@@ -1702,8 +1746,8 @@ button.ff-slot:hover { border-color: var(--accent); }
 .ff-fast-field.dup .ff-dup-note { display: block; }
 .ff-fast-field.dup input { border-color: #ef4444; }
 .remote-btn { white-space: nowrap; }
-.remote-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(6px); }
-.remote-card { max-width: 380px; text-align: center; display: flex; flex-direction: column; gap: 10px; background: #0d1640; }
+.remote-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(6px); animation: fade-in 0.2s ease; }
+.remote-card { max-width: 380px; text-align: center; display: flex; flex-direction: column; gap: 10px; background: #0d1640; animation: pop 0.25s ease; }
 .remote-card .qr { background: #fff; padding: 12px; border-radius: 16px; }
 @media (max-width: 640px) {
   .ff-board { grid-template-columns: 1fr; gap: 6px; }

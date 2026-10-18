@@ -26,7 +26,7 @@ function sjScoreboard(s, { myTeam = null, compact = false } = {}) {
     class: `sj-score-team ${team}${active === team ? ' active' : ''}${myTeam === team ? ' mine' : ''}`,
   },
     h('div', { class: 'sj-score-name' }, teamShort(team), myTeam === team ? h('small', {}, ' · فريقك') : null),
-    h('div', { class: 'sj-score-points', dir: 'ltr' }, s.score[team]),
+    h('div', { class: 'sj-score-points', dir: 'ltr', 'data-bump': `score-${team}` }, s.score[team]),
     h('div', { class: 'sj-lifelines', 'aria-label': 'وسائل المساعدة' }, SJ_ORDER.map((name) => {
       const left = s.lifelines[team].includes(name);
       return h('span', {

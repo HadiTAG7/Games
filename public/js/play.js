@@ -1,4 +1,5 @@
-/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme, sfx, syncCrown, pointsText, useTeamNames */
+/* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme, sfx, syncCrown, pointsText, useTeamNames,
+   showScreen, motionKind, bumpChanges */
 'use strict';
 
 // The player page shell: joining, the room session and dispatch to the
@@ -16,6 +17,7 @@ const PLAY_GAMES = {};
 let session = null; // { code, playerId, name }
 let state = null;
 let screenKey = ''; // the game screens use this to skip redraws that change nothing
+let lastScene = null; // "game:phase:round", or 'join': a new one slides in
 
 connectionBanner(socket);
 sfx.dock();
@@ -63,6 +65,7 @@ async function join(code, name, playerId, { rejoin = false } = {}) {
 
 function renderJoin({ code = '', name = '', error = '' } = {}) {
   screenKey = 'join';
+  lastScene = 'join';
   setTheme(null);
   document.getElementById('crown')?.remove();
   const codeInput = h('input', {
@@ -99,12 +102,22 @@ function renderJoin({ code = '', name = '', error = '' } = {}) {
 
 function render() {
   if (!state || !session) return;
+  // A new phase or round slides in; updates within one just redraw.
+  const scene = `${state.gameType}:${state.phase}:${state.roundNumber ?? ''}`;
+  const prev = lastScene;
+  lastScene = scene;
+  showScreen(drawGame, prev && prev !== scene ? motionKind(prev, state.phase) : null);
+}
+
+function drawGame() {
+  if (!state || !session) return;
   const game = state.games.find((g) => g.id === state.gameType);
   document.title = game.name;
   setTheme(state.gameType);
   useTeamNames(state.settings?.teamNames);
   PLAY_GAMES[state.gameType].render();
   placeNightMe();
+  bumpChanges(app);
   syncCrown(state.night, { meId: session.playerId });
 }
 

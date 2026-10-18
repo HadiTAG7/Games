@@ -14,7 +14,7 @@ function ffRoundTitle(s) {
 function ffScore(s, { myTeam = null } = {}) {
   return h('div', { class: 'ff-score' }, TEAM_ORDER.map((team) => h('div', {
     class: `ff-score-team ${team}${s.round?.playing === team && ['play', 'steal'].includes(s.phase) ? ' active' : ''}`,
-  }, h('span', {}, teamShort(team), myTeam === team ? h('small', {}, ' · فريقك') : null), h('b', {}, s.score[team]))));
+  }, h('span', {}, teamShort(team), myTeam === team ? h('small', {}, ' · فريقك') : null), h('b', { 'data-bump': `score-${team}` }, s.score[team]))));
 }
 
 /** Where the question's points come from: an estimate, or real answers. */
@@ -54,7 +54,7 @@ function ffStrikes(n) {
 }
 
 function ffPot(round) {
-  return h('div', { class: 'ff-pot' }, h('small', {}, 'نقاط الجولة'), h('b', {}, round.pot));
+  return h('div', { class: 'ff-pot' }, h('small', {}, 'نقاط الجولة'), h('b', { 'data-bump': 'ff-pot' }, round.pot));
 }
 
 /** «🔴 الشباب أخذ 120 نقطة» and why. */

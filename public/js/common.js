@@ -72,6 +72,78 @@ function setTheme(gameType) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
 }
 
+/* ---------- Motion ---------- */
+
+let pendingDraw = null; // a swap waiting for its first frame draws whatever is newest
+let motionToken = 0;
+const canAnimate = () => Boolean(document.startViewTransition) && !document.hidden
+  && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Draws a screen. With a kind ('start', 'next' or 'final', styled under
+ * [data-motion] in style.css) the new screen slides in over the old one;
+ * without one, or where the browser can't or the player asked for less
+ * motion, it just draws.
+ */
+function showScreen(draw, kind = null) {
+  if (pendingDraw) {
+    pendingDraw = draw;
+    return;
+  }
+  if (!kind || !canAnimate()) {
+    draw();
+    return;
+  }
+  pendingDraw = draw;
+  const token = ++motionToken;
+  const root = document.documentElement;
+  const done = () => { if (motionToken === token) delete root.dataset.motion; };
+  const run = () => {
+    if (!pendingDraw) return;
+    const latest = pendingDraw;
+    pendingDraw = null;
+    try {
+      latest();
+    } catch (err) {
+      setTimeout(() => { throw err; }); // still reaches the console instead of the transition's promise
+    }
+  };
+  root.dataset.motion = kind;
+  let transition;
+  try {
+    transition = document.startViewTransition(run);
+  } catch {
+    run();
+    done();
+    return;
+  }
+  setTimeout(run, 1000); // the browser always calls run; this only makes sure the screen can never get stuck
+  transition.ready.catch(() => {});
+  transition.finished.then(done, done);
+}
+
+/** How one scene ("game:phase:round") moves to the next. */
+function motionKind(prevScene, phase) {
+  if (phase === 'final') return 'final';
+  if (prevScene.split(':')[1] === 'lobby' && phase !== 'lobby') return 'start';
+  return 'next';
+}
+
+/** Numbers marked data-bump="key" pop when their value changes from one draw to the next. */
+const bumpValues = new Map();
+function bumpChanges(root = document) {
+  root.querySelectorAll('[data-bump]').forEach((el) => {
+    const key = el.dataset.bump;
+    const value = el.textContent;
+    if (bumpValues.has(key) && bumpValues.get(key) !== value) {
+      el.classList.remove('bump');
+      void el.offsetWidth; // restart the animation
+      el.classList.add('bump');
+    }
+    bumpValues.set(key, value);
+  });
+}
+
 // Countdowns follow the server clock so every screen shows the same number.
 let clockOffset = 0;
 function syncClock(serverTime) {
@@ -140,7 +212,7 @@ function standingsList(rows, { highlightId = null, showGain = true } = {}) {
     h('span', { class: 'rank' }, (row.score > 0 && MEDALS[row.rank]) || row.rank),
     h('span', { class: 'name' }, row.name),
     showGain && row.gained ? h('span', { class: 'gain' }, `+${row.gained}`) : null,
-    h('span', { class: 'score' }, row.score),
+    h('span', { class: 'score', 'data-bump': `score-${row.id}` }, row.score),
   )));
 }
 
@@ -184,7 +256,7 @@ function nightList(rows, { meId = null, limit = 10 } = {}) {
     h('span', { class: 'rank' }, MEDALS[row.rank] || row.rank),
     h('span', { class: 'name' }, row.name),
     row.wins ? h('span', { class: 'night-wins', title: 'عدد مرات الفوز' }, `🏅 ${row.wins}`) : null,
-    h('span', { class: 'score' }, row.points),
+    h('span', { class: 'score', 'data-bump': `night-${row.id}` }, row.points),
   )));
 }
 

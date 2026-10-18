@@ -1,4 +1,5 @@
-/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, sfx, nightList, syncCrown, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel, useTeamNames */
+/* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, sfx, nightList, syncCrown, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel, useTeamNames,
+   showScreen, motionKind, bumpChanges */
 'use strict';
 
 // The host page shell: connection, room session, the shared lobby pieces
@@ -17,6 +18,7 @@ let state = null;
 let info = null; // { code, hostToken, joinUrl, qrSvg }
 let renderedKey = null;
 let lastScreenKey = '';
+let lastScene = null; // "game:phase:round": a new one slides in
 const params = new URLSearchParams(location.search);
 let forceNew = params.has('new');
 let initialGame = forceNew ? params.get('game') : null;
@@ -68,6 +70,15 @@ async function act(event, payload) {
 
 function render() {
   if (!state || !info || state.code !== info.code) return;
+  // A new phase or round slides in; updates within one just redraw.
+  const scene = `${state.gameType}:${state.phase}:${state.roundNumber ?? ''}`;
+  const prev = lastScene;
+  lastScene = scene;
+  showScreen(drawRoom, prev && prev !== scene ? motionKind(prev, state.phase) : null);
+}
+
+function drawRoom() {
+  if (!state || !info || state.code !== info.code) return;
   const ui = HOST_GAMES[state.gameType];
   const game = state.games.find((g) => g.id === state.gameType);
   document.title = `${game.name} · المضيف`;
@@ -90,6 +101,7 @@ function render() {
     if (state.phase === 'lobby') ui.updateLobby();
   }
   placeNightCard();
+  bumpChanges(app);
   syncCrown(state.night, { onClose: () => act('host:night-crown', { on: false }) });
   sfx.music(state.phase === 'lobby' && !state.night.crowned);
 }
