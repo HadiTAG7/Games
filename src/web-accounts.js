@@ -8,6 +8,7 @@ const express = require('express');
 const { GameError } = require('./errors');
 const { hashPassword, checkPassword, sha256, token, USERNAME, MIN_PASSWORD } = require('./accounts');
 const banks = require('./banks');
+const groups = require('./groups');
 const { limiter } = require('./limits');
 const { NEW } = require('./contrib');
 
@@ -56,7 +57,8 @@ function shareEntries(bank, { subcategory } = {}) {
  * accounts: the account store (a promise while it opens); content(): the games' public banks;
  * community: { submit(game, entries, submitter) } for sharing.
  */
-function accountRouter({ accountsReady, content, community }) {
+/** games(): [{ id, name, emoji }], for naming what each «👥 الشلة» group has played. */
+function accountRouter({ accountsReady, content, community, games = () => [] }) {
   const router = express.Router();
   const signupLimit = limiter(5, 60 * 60 * 1000);
   const loginLimit = limiter(10, 15 * 60 * 1000);
@@ -163,6 +165,29 @@ function accountRouter({ accountsReady, content, community }) {
     if (!entries.length) return res.status(400).json({ error: 'ما فيه أسئلة نصية ترسلها' });
     const out = await community.submit(bank.game, entries.slice(0, 200), account.username);
     return res.json({ ...out, skipped: bank.items.length - entries.length });
+  }));
+
+  // «👥 الشلة»: the groups the account plays with, and the questions each has had.
+  router.get('/groups', mine(async (req, res, account) => {
+    res.json({ groups: await groups.list(accounts, account.id), games: games(), limits: groups.LIMITS });
+  }));
+
+  router.post('/groups', mine(async (req, res, account) => {
+    res.json({ group: await groups.create(accounts, account.id, req.body?.name) });
+  }));
+
+  router.post('/groups/:id/rename', mine(async (req, res, account) => {
+    res.json({ group: await groups.rename(accounts, account.id, req.params.id, req.body?.name) });
+  }));
+
+  router.post('/groups/:id/reset', mine(async (req, res, account) => {
+    await groups.reset(accounts, account.id, req.params.id);
+    res.json({ ok: true });
+  }));
+
+  router.post('/groups/:id/delete', mine(async (req, res, account) => {
+    await groups.remove(accounts, account.id, req.params.id);
+    res.json({ ok: true });
   }));
 
   router.get('/connections', mine(async (req, res, account) => {

@@ -11,6 +11,8 @@ const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
 const { rankedPoints } = require('../night');
 const custom = require('../custom');
+const { normalizeAnswer } = require('../normalize');
+const { NO_HISTORY, preferNew } = require('../groups');
 
 const MIN_PLAYERS = 3;
 const ROUNDS_OPTIONS = [3, 5, 7, 10];
@@ -21,10 +23,14 @@ const POINTS = { vote: 1, escape: 3, guess: 2 };
 const TIMER_GRACE_MS = 400;
 const MIN_CUSTOM_WORDS = 4;
 
+/** How a word is remembered for «👥 الشلة»; the host's own words aren't. */
+const playKey = (category, word) => (category.id === 'custom' ? null : normalizeAnswer(word));
+
 class OutsiderGame {
   /** categories: [{ id, name, emoji, words: [word] }] */
-  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {}, groupHistory = NO_HISTORY } = {}) {
     this.bank = categories;
+    this.groupHistory = groupHistory; // «👥 الشلة»: words the room's group has had on other nights
     this.categories = categories;
     this.custom = { name: '', emoji: '', text: '', words: [] }; // «أسئلتكم الخاصة»
     this.customCategory = null;
@@ -147,11 +153,25 @@ class OutsiderGame {
       for (const c of chosen) for (const w of c.words) this.used.delete(`${c.id}:${w}`);
       open = chosen;
     }
-    const category = open[Math.floor(this.random() * open.length)];
-    const fresh = category.words.filter((w) => !this.used.has(`${category.id}:${w}`));
-    const word = fresh[Math.floor(this.random() * fresh.length)];
+    const entries = (list, keep) => list.flatMap((c) => c.words.filter((w) => keep(c, w)).map((w) => ({ c, w })));
+    const fresh = preferNew(
+      entries(open, (c, w) => !this.used.has(`${c.id}:${w}`)), 1, this.groupHistory, ({ c, w }) => playKey(c, w), entries(chosen, () => true),
+    );
+    const cats = [...new Set(fresh.map((e) => e.c))];
+    const category = cats[Math.floor(this.random() * cats.length)];
+    const words = fresh.filter((e) => e.c === category).map((e) => e.w);
+    const word = words[Math.floor(this.random() * words.length)];
     this.used.add(`${category.id}:${word}`);
+    this.groupHistory.add([playKey(category, word)]);
     return { category, word };
+  }
+
+  setGroupHistory(history) {
+    this.groupHistory = history ?? NO_HISTORY;
+  }
+
+  unitCount() {
+    return this.categories.filter((c) => c.id !== 'custom').reduce((n, c) => n + c.words.length, 0);
   }
 
   newRound() {

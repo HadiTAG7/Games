@@ -1,5 +1,5 @@
 /* global $, h, act, state, app, field, joinCard, gamePicker, kickButton, endGame, confetti, timerEl, standingsList,
-   HOST_GAMES, sfx, osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle, customBox, banksBox */
+   HOST_GAMES, sfx, osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle, customBox, banksBox, groupBox */
 'use strict';
 
 // Host screens for «برا السالفة». This screen is for everyone in the room,
@@ -109,6 +109,7 @@ function renderLobby() {
         items: () => state.custom.words.map((word) => ({ category: '__new', newName: state.custom.name, newEmoji: state.custom.emoji, word })),
       }),
       banksBox(),
+      groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 🤫'),
       h('p', { id: 'start-hint', class: 'hint center' }),

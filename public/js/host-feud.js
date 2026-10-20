@@ -1,4 +1,4 @@
-/* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
+/* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection, groupBox,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, sfx, noPhonesCard, remoteButton, isRemote, TEAM_ORDER,
    ffRoundTitle, ffScore, ffSource, ffBoard, ffStrikes, ffPot, ffResultText, ffWinnerText, ffRulesList, ffFastTable */
 'use strict';
@@ -59,6 +59,7 @@ function renderLobby() {
         field('⚡ المال السريع', h('select', { id: 'ff-fast', onchange: (e) => act('host:settings', { fastMoney: e.target.value === 'on' }) },
           [['on', 'بالنهاية للفريق الفايز'], ['off', 'بدون']].map(([v, label]) => h('option', { value: v, selected: (v === 'on') === s.fastMoney }, label)))),
       ),
+      groupBox(),
       h('p', { class: 'hint' }, `📱 الأجوبة تطلع للمضيف بس: افتح اللعبة على الشاشة الكبيرة، وتحكم من جوالك بزر «📱 تحكم من جوالك» (يطلع أول ما تبدأ). ${state.questionCount} سؤال.`),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 👪'),

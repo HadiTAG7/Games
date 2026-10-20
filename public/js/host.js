@@ -84,10 +84,11 @@ function drawRoom() {
   document.title = `${game.name} · المضيف`;
   setTheme(state.gameType);
   useTeamNames(state.settings?.teamNames);
-  // Switching a bank on or off redraws the lobby, since it changes the categories.
+  // Switching a bank on or off redraws the lobby, since it changes the categories; so does picking the group.
   const banks = state.myBanks ? `${state.myBanks.loggedIn}:${state.myBanks.list.map((b) => `${b.id}${b.on ? '+' : ''}`).join('.')}` : '';
+  const group = state.myGroup ? `${state.myGroup.loggedIn}:${state.myGroup.current?.id ?? ''}:${state.myGroup.list.map((g) => g.id).join('.')}` : '';
   // A game can ask for a fresh lobby when a setting changes its layout.
-  const key = `${state.gameType}:${state.phase}:${banks}:${ui.lobbyKey?.() ?? ''}`;
+  const key = `${state.gameType}:${state.phase}:${banks}:${group}:${ui.lobbyKey?.() ?? ''}`;
   // The lobby holds form fields, so keep it and only refresh what changed.
   if (state.phase === 'lobby' && renderedKey === key) {
     ui.updateLobby();
@@ -258,7 +259,7 @@ function banksBox() {
   const mine = state.myBanks;
   if (!mine) return null;
   if (!mine.loggedIn) {
-    return h('p', { class: 'hint banks-login' }, '📚 عندك بنوك أسئلة في حسابك؟ ',
+    return h('p', { class: 'hint banks-login' }, '📚 بنوك أسئلتك و👥 شلتك تنحفظ في حسابك. ',
       h('a', { href: `/account?next=${encodeURIComponent('/host')}` }, 'سجّل دخول'), ' وترجع لنفس الغرفة.');
   }
   const on = mine.list.filter((b) => b.on).map((b) => b.id);
@@ -278,6 +279,45 @@ function banksBox() {
       }, h('span', {}, b.emoji), h('span', {}, b.name), h('small', { class: 'category-count' }, b.count))))
       : h('p', { class: 'hint' }, 'ما عندك بنوك لهاللعبة. سوّ واحد من ', h('a', { href: '/account', target: '_blank' }, 'حسابك'), '، أو اطلب من الذكاء الاصطناعي.'),
     on.length ? h('p', { class: 'hint' }, '✅ البنوك المختارة انضافت للفئات.') : null,
+  );
+}
+
+/* ---------- «👥 الشلة» ---------- */
+
+const number = (n) => n.toLocaleString('en-US');
+
+/** Who's playing tonight: with a group, the questions it has had on other nights don't come back. */
+function groupBox() {
+  const mine = state.myGroup;
+  if (!mine?.applies) return null;
+  if (!mine.loggedIn) {
+    if (state.myBanks) return null; // the banks box asks them to log in, for both
+    return h('p', { class: 'hint banks-login' }, '👥 تلعبون مع نفس الشلة؟ ',
+      h('a', { href: `/account?next=${encodeURIComponent('/host')}` }, 'سجّل دخول'), ' واحفظها عشان الأسئلة ما تتكرر عليكم.');
+  }
+  const { current } = mine;
+  const pick = h('select', {
+    id: 'group-pick',
+    'aria-label': 'الشلة',
+    onchange: (e) => act('host:group', { id: e.target.value ? Number(e.target.value) : null }),
+  },
+  h('option', { value: '', selected: !current }, 'بدون شلة'),
+  mine.list.map((g) => h('option', { value: g.id, selected: current?.id === g.id }, g.name)));
+  const create = () => {
+    const name = prompt('اسم الشلة؟ مثلاً: ولاد خالتي');
+    if (name?.trim()) act('host:group-create', { name: name.trim() });
+  };
+  const left = current ? Math.max(0, current.total - current.played) : 0;
+  return h('div', { class: 'banks-box group-box' },
+    h('div', { class: 'field-head' },
+      h('span', {}, h('b', {}, '👥 الشلة'), h('small', { class: 'muted' }, ' · الأسئلة ما تتكرر على نفس الشلة')),
+      h('a', { class: 'link-btn small', href: '/account#groups', target: '_blank' }, 'شللي')),
+    h('div', { class: 'group-row' }, pick, h('button', { type: 'button', class: 'btn small', id: 'group-new', onclick: create }, '➕ شلة جديدة')),
+    current
+      ? h('p', { class: 'hint group-stat' }, h('b', {}, current.name), current.played
+        ? ` لعبوا ${number(current.played)} من أسئلة هاللعبة، وباقي ${number(left)} جديدة عليهم.`
+        : ' ما لعبوا هاللعبة قبل: كل الأسئلة جديدة عليهم.')
+      : h('p', { class: 'hint' }, 'اختر الشلة اللي تلعبون معها الليلة، والموقع يتذكر وش انسأل عليهم.'),
   );
 }
 

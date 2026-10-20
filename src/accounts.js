@@ -2,7 +2,7 @@
 
 // Accounts and everything that belongs to one: website sessions, the AI
 // apps connected through OAuth (Claude, ChatGPT…), question banks and their
-// pictures.
+// pictures, and «👥 الشلة» groups with the questions each has played.
 //
 // With DATABASE_URL set everything lives in Postgres (Neon's free database).
 // Without it, a JSON file and a folder of pictures stand in: fine on your
@@ -53,6 +53,10 @@ class FileAccounts {
     } catch {
       this.d = { next: { account: 1, bank: 1 }, accounts: [], sessions: [], clients: [], tokens: [], banks: [], images: [] };
     }
+    // Files from before «الشلة» existed.
+    this.d.next.group ??= 1;
+    this.d.groups ??= [];
+    this.d.groupPlays ??= [];
   }
 
   save() {
@@ -99,6 +103,9 @@ class FileAccounts {
     const images = this.d.images.filter((i) => i.accountId === id).map((i) => i.id);
     await this.deleteImages(images);
     for (const list of ['sessions', 'tokens', 'banks']) this.d[list] = this.d[list].filter((x) => x.accountId !== id);
+    const groups = new Set(this.d.groups.filter((g) => g.accountId === id).map((g) => g.id));
+    this.d.groups = this.d.groups.filter((g) => !groups.has(g.id));
+    this.d.groupPlays = this.d.groupPlays.filter((p) => !groups.has(p.groupId));
     const before = this.d.accounts.length;
     this.d.accounts = this.d.accounts.filter((a) => a.id !== id);
     this.save();
@@ -224,6 +231,79 @@ class FileAccounts {
     this.d.images = this.d.images.filter((i) => !gone.has(i.id));
     this.save();
   }
+
+  async listGroups(accountId) {
+    return this.d.groups.filter((g) => g.accountId === accountId).map((g) => ({ ...g }));
+  }
+
+  async getGroup(id) {
+    const g = this.d.groups.find((x) => x.id === id);
+    return g ? { ...g } : null;
+  }
+
+  async createGroup(accountId, name) {
+    const group = { id: this.d.next.group++, accountId, name, createdAt: new Date().toISOString(), playedAt: null };
+    this.d.groups.push(group);
+    this.save();
+    return { ...group };
+  }
+
+  async renameGroup(id, name) {
+    const g = this.d.groups.find((x) => x.id === id);
+    if (!g) return null;
+    g.name = name;
+    this.save();
+    return { ...g };
+  }
+
+  async deleteGroup(id) {
+    const before = this.d.groups.length;
+    this.d.groups = this.d.groups.filter((g) => g.id !== id);
+    this.d.groupPlays = this.d.groupPlays.filter((p) => p.groupId !== id);
+    this.save();
+    return this.d.groups.length < before;
+  }
+
+  async groupPlays(groupId) {
+    const out = {};
+    for (const p of this.d.groupPlays) if (p.groupId === groupId) (out[p.game] ??= []).push([p.key, p.playedAt]);
+    return out;
+  }
+
+  async addGroupPlays(groupId, game, keys) {
+    const now = Date.now();
+    const have = new Map(this.d.groupPlays.filter((p) => p.groupId === groupId && p.game === game).map((p) => [p.key, p]));
+    for (const key of new Set(keys)) {
+      if (have.has(key)) have.get(key).playedAt = now;
+      else this.d.groupPlays.push({ groupId, game, key, playedAt: now });
+    }
+    const g = this.d.groups.find((x) => x.id === groupId);
+    if (g) g.playedAt = new Date(now).toISOString();
+    this.save();
+  }
+
+  async removeGroupPlays(groupId, game, keys) {
+    const gone = new Set(keys);
+    this.d.groupPlays = this.d.groupPlays.filter((p) => !(p.groupId === groupId && p.game === game && gone.has(p.key)));
+    this.save();
+  }
+
+  async resetGroup(groupId) {
+    this.d.groupPlays = this.d.groupPlays.filter((p) => p.groupId !== groupId);
+    this.save();
+  }
+
+  /** { groupId: { game: count } } for one account's groups. */
+  async groupCounts(accountId) {
+    const mine = new Set(this.d.groups.filter((g) => g.accountId === accountId).map((g) => g.id));
+    const out = {};
+    for (const p of this.d.groupPlays) {
+      if (!mine.has(p.groupId)) continue;
+      const counts = (out[p.groupId] ??= {});
+      counts[p.game] = (counts[p.game] ?? 0) + 1;
+    }
+    return out;
+  }
 }
 
 /* ---------- Postgres ---------- */
@@ -275,9 +355,29 @@ CREATE TABLE IF NOT EXISTS bank_images (
   height INTEGER,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS play_groups (
+  id SERIAL PRIMARY KEY,
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  played_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS group_plays (
+  group_id INTEGER NOT NULL REFERENCES play_groups(id) ON DELETE CASCADE,
+  game TEXT NOT NULL,
+  key TEXT NOT NULL,
+  played_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (group_id, game, key)
+);
 CREATE INDEX IF NOT EXISTS banks_account ON banks(account_id);
 CREATE INDEX IF NOT EXISTS tokens_account ON oauth_tokens(account_id);
+CREATE INDEX IF NOT EXISTS groups_account ON play_groups(account_id);
 `;
+
+const groupRow = (r) => ({
+  id: r.id, accountId: r.account_id, name: r.name, createdAt: new Date(r.created_at).toISOString(),
+  playedAt: r.played_at ? new Date(r.played_at).toISOString() : null,
+});
 
 const bankRow = (r) => ({
   id: r.id, accountId: r.account_id, game: r.game, name: r.name, emoji: r.emoji, items: r.items, nextItem: r.next_item,
@@ -441,6 +541,68 @@ class PgAccounts {
 
   async deleteImages(ids) {
     if (ids.length) await this.q('DELETE FROM bank_images WHERE id = ANY($1)', [ids]);
+  }
+
+  async listGroups(accountId) {
+    const { rows } = await this.q('SELECT * FROM play_groups WHERE account_id = $1 ORDER BY id', [accountId]);
+    return rows.map(groupRow);
+  }
+
+  async getGroup(id) {
+    const { rows } = await this.q('SELECT * FROM play_groups WHERE id = $1', [id]);
+    return rows[0] ? groupRow(rows[0]) : null;
+  }
+
+  async createGroup(accountId, name) {
+    const { rows } = await this.q('INSERT INTO play_groups (account_id, name) VALUES ($1, $2) RETURNING *', [accountId, name]);
+    return groupRow(rows[0]);
+  }
+
+  async renameGroup(id, name) {
+    const { rows } = await this.q('UPDATE play_groups SET name = $2 WHERE id = $1 RETURNING *', [id, name]);
+    return rows[0] ? groupRow(rows[0]) : null;
+  }
+
+  async deleteGroup(id) {
+    const { rowCount } = await this.q('DELETE FROM play_groups WHERE id = $1', [id]);
+    return rowCount > 0;
+  }
+
+  async groupPlays(groupId) {
+    const { rows } = await this.q('SELECT game, key, played_at FROM group_plays WHERE group_id = $1', [groupId]);
+    const out = {};
+    for (const r of rows) (out[r.game] ??= []).push([r.key, new Date(r.played_at).getTime()]);
+    return out;
+  }
+
+  async addGroupPlays(groupId, game, keys) {
+    const unique = [...new Set(keys)];
+    if (!unique.length) return;
+    await this.q(
+      `INSERT INTO group_plays (group_id, game, key) SELECT $1, $2, unnest($3::text[])
+       ON CONFLICT (group_id, game, key) DO UPDATE SET played_at = now()`,
+      [groupId, game, unique],
+    );
+    await this.q('UPDATE play_groups SET played_at = now() WHERE id = $1', [groupId]);
+  }
+
+  async removeGroupPlays(groupId, game, keys) {
+    if (keys.length) await this.q('DELETE FROM group_plays WHERE group_id = $1 AND game = $2 AND key = ANY($3)', [groupId, game, keys]);
+  }
+
+  async resetGroup(groupId) {
+    await this.q('DELETE FROM group_plays WHERE group_id = $1', [groupId]);
+  }
+
+  async groupCounts(accountId) {
+    const { rows } = await this.q(
+      `SELECT p.group_id, p.game, COUNT(*)::int AS n FROM group_plays p JOIN play_groups g ON g.id = p.group_id
+       WHERE g.account_id = $1 GROUP BY p.group_id, p.game`,
+      [accountId],
+    );
+    const out = {};
+    for (const r of rows) (out[r.group_id] ??= {})[r.game] = r.n;
+    return out;
   }
 }
 

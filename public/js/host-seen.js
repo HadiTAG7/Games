@@ -1,6 +1,6 @@
 /* global $, h, storage, toast, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, SJ_LIFELINES, sjAnswering, sjScoreboard, sjBoard,
-   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox, noPhonesCard */
+   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox, groupBox, noPhonesCard */
 'use strict';
 
 // Host screens for «سين جيم». The host picks the categories, taps the
@@ -174,6 +174,7 @@ function renderLobby() {
         items: () => state.custom.items.map((i) => ({ category: '__new', newName: state.custom.name, newEmoji: state.custom.emoji, value: i.value, q: i.q, a: i.a })),
       }),
       banksBox(),
+      groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ❓'),
       h('p', { id: 'start-hint', class: 'hint center' }),

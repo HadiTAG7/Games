@@ -16,6 +16,7 @@ const { limiter } = require('./src/limits');
 const { openAccounts, hashPassword } = require('./src/accounts');
 const { accountRouter, pictureRoute, accountFromCookie } = require('./src/web-accounts');
 const banks = require('./src/banks');
+const groups = require('./src/groups');
 const { createOAuth } = require('./src/oauth');
 const { mcpHandler } = require('./src/mcp');
 const { categories } = require('./data/questions.json');
@@ -251,7 +252,17 @@ app.use('/api/account', accountRouter({
   accountsReady,
   content: () => rooms.content,
   community: { submit: async (game, entries, submitter) => { await communityReady; return submitEntries(game, entries, submitter); } },
+  games: () => Object.entries(GAMES).filter(([, g]) => g.needsContent !== false).map(([id, g]) => ({ id, name: g.name, emoji: g.emoji })),
 }));
+
+// «👥 الشلة»: what each group has had, written one after another so a section starting over
+// and the next question played land in order; picking a group waits for them.
+let groupWrites = Promise.resolve();
+const writeGroups = (fn) => {
+  groupWrites = groupWrites.then(() => accountsReady).then(fn).catch((err) => console.error('[groups]', err.message));
+};
+rooms.onGroupPlay = (groupId, game, keys) => writeGroups((store) => store.addGroupPlays(groupId, game, keys));
+rooms.onGroupRecycle = (groupId, game, keys) => writeGroups((store) => store.removeGroupPlays(groupId, game, keys));
 app.get('/bank-img/:id.webp', pictureRoute(accountsReady));
 
 // MCP: Claude, ChatGPT and other AI apps log in to an account (OAuth) and add banks through /mcp.
@@ -357,6 +368,7 @@ io.on('connection', (socket) => {
     room.ownerId = account.id;
     room.ownerName = account.username;
     room.bankList = (await store.listBanks(account.id)).map(banks.summary);
+    room.groupList = (await store.listGroups(account.id)).map((g) => ({ id: g.id, name: g.name }));
   }
 
   async function attachHost(room) {
@@ -492,6 +504,31 @@ io.on('connection', (socket) => {
       }
       if (['lobby', 'final'].includes(room.game.phase)) room.applyBanks();
     }
+    broadcast(room);
+  });
+
+  // «👥 الشلة»: the group playing tonight, so the questions it has had don't come back.
+  const groupRoom = () => {
+    const room = currentRoom('host');
+    if (!room.ownerId) throw new GameError('سجّل دخول عشان تحفظ شلتك');
+    if (!['lobby', 'final'].includes(room.game.phase)) throw new GameError('خلّص اللعبة الحالية أول');
+    return room;
+  };
+  on('host:group', async ({ id = null } = {}) => {
+    const room = groupRoom();
+    if (id == null) room.setGroup(null);
+    else {
+      await groupWrites;
+      room.setGroup(await groups.load(await accountsReady, room.ownerId, id));
+    }
+    broadcast(room);
+  });
+  on('host:group-create', async ({ name } = {}) => {
+    const room = groupRoom();
+    const store = await accountsReady;
+    const group = await groups.create(store, room.ownerId, name);
+    room.groupList = (await store.listGroups(room.ownerId)).map((g) => ({ id: g.id, name: g.name }));
+    room.setGroup({ id: group.id, name: group.name, plays: {} });
     broadcast(room);
   });
 

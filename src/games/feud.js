@@ -17,6 +17,7 @@ const { shuffle } = require('../shuffle');
 const { teamPoints } = require('../night');
 const custom = require('../custom');
 const { normalizeAnswer } = require('../normalize');
+const { NO_HISTORY, preferNew } = require('../groups');
 const { TEAMS, otherTeam: other, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
 
 const ROUNDS_OPTIONS = [3, 4, 5];
@@ -51,8 +52,9 @@ function matchAnswer(text, answers) {
 
 class FeudGame {
   /** questions: [{ id, q, answers: [{ a, points, alt? }], source?: 'bank' | 'survey', responses? }] */
-  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {}, groupHistory = NO_HISTORY } = {}) {
     this.bank = categories.filter((q) => (q.answers ?? []).length >= MIN_ANSWERS);
+    this.groupHistory = groupHistory; // «👥 الشلة»: questions the room's group has had on other nights
     this.random = random;
     this.now = now;
     this.onTimeout = onTimeout;
@@ -141,7 +143,20 @@ class FeudGame {
 
   /* ---------- Questions ---------- */
 
-  /** Questions not asked in this room yet (all of them again once they run out). */
+  setGroupHistory(history) {
+    this.groupHistory = history ?? NO_HISTORY;
+  }
+
+  /** How a question is remembered for «👥 الشلة». */
+  playKey(question) {
+    return question.id;
+  }
+
+  unitCount() {
+    return this.bank.length;
+  }
+
+  /** Questions not asked in this room yet (all of them again once they run out), and new to the room's group. */
   draw(count, minAnswers = MIN_ANSWERS, avoid = new Set()) {
     const usable = this.bank.filter((q) => q.answers.length >= minAnswers && !avoid.has(q.id));
     let fresh = usable.filter((q) => !this.seen.has(q.id));
@@ -149,6 +164,7 @@ class FeudGame {
       for (const q of usable) this.seen.delete(q.id);
       fresh = usable;
     }
+    fresh = preferNew(fresh, count, this.groupHistory, (q) => this.playKey(q), usable);
     const picks = shuffle(fresh, this.random).slice(0, count);
     for (const q of picks) this.seen.add(q.id);
     return picks;
@@ -177,6 +193,7 @@ class FeudGame {
   beginRound() {
     this.roundNumber += 1;
     const [question] = this.draw(1);
+    if (question) this.groupHistory.add([this.playKey(question)]);
     this.round = {
       question,
       revealed: [], // slot indexes, in the order they opened
@@ -383,6 +400,7 @@ class FeudGame {
       if (fast.stage !== 0 || fast.shown[0] < FAST_QUESTIONS) throw new GameError('اكشف أجوبة اللاعب الأول أول');
       fast.stage = 1;
     }
+    if (fast.stage === 0) this.groupHistory.add(fast.questions.map((q) => this.playKey(q)));
     fast.endsAt = this.now() + FAST_SECONDS[fast.stage] * 1000;
     this.phase = 'fast';
     this.schedule(fast.endsAt - this.now() + TIMER_GRACE_MS, () => this.endFastStage());

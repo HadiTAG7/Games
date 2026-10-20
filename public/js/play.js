@@ -117,6 +117,7 @@ function drawGame() {
   useTeamNames(state.settings?.teamNames);
   PLAY_GAMES[state.gameType].render();
   placeNightMe();
+  placeGroupLine();
   bumpChanges(app);
   syncCrown(state.night, { meId: session.playerId });
 }
@@ -137,6 +138,18 @@ function playSounds(prev, next) {
     return;
   }
   PLAY_GAMES[next.gameType].sounds?.(prev, next);
+}
+
+/** «👥 الشلة» playing tonight, at the top of the lobby. */
+function placeGroupLine() {
+  const main = app.querySelector('main');
+  const old = $('#group-line');
+  const el = main && state.phase === 'lobby' && state.groupName
+    ? h('div', { class: 'night-me group-line', id: 'group-line' }, h('b', {}, '👥 شلة: '), state.groupName)
+    : null;
+  if (old && el && old.isEqualNode(el)) return;
+  old?.remove();
+  if (el) main.prepend(el);
 }
 
 /** Your place in «بطل السهرة», at the top of the lobby. */

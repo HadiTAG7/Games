@@ -11,6 +11,11 @@ const { shuffle } = require('../shuffle');
 const { teamPoints } = require('../night');
 const custom = require('../custom');
 const { otherTeam, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
+const { normalizeAnswer } = require('../normalize');
+const { NO_HISTORY, preferNew } = require('../groups');
+
+/** How a question is remembered for «👥 الشلة»; the host's own (and their banks') aren't. */
+const playKey = (letter, q) => (q.custom ? null : `${letter}:${normalizeAnswer(q.q)}`);
 
 const SIZE = 5; // 5 × 5 cells
 const ROUNDS_TO_WIN_OPTIONS = [1, 2, 3, 4];
@@ -54,8 +59,9 @@ function winningPath(owners, team) {
 
 class LettersGame {
   /** letters: [{ letter, questions: [{ q, a }] }] */
-  constructor({ categories = [], random = Math.random, now = Date.now } = {}) {
+  constructor({ categories = [], random = Math.random, now = Date.now, groupHistory = NO_HISTORY } = {}) {
     this.bank = categories.filter((l) => l.questions.length);
+    this.groupHistory = groupHistory; // «👥 الشلة»: questions the room's group has had on other nights
     this.letters = this.bank;
     this.custom = { text: '', items: [], bad: 0 }; // «أسئلتكم الخاصة»
     this.bankQuestions = []; // from the host's banks («بنوكي»)
@@ -147,6 +153,14 @@ class LettersGame {
     this.rebuildLetters();
   }
 
+  setGroupHistory(history) {
+    this.groupHistory = history ?? NO_HISTORY;
+  }
+
+  unitCount() {
+    return this.bank.reduce((n, l) => n + l.questions.length, 0);
+  }
+
   /** The host's banks: their questions come first for their letters, after the room's own. */
   setBanks(list) {
     if (!['lobby', 'final'].includes(this.phase)) throw new GameError('ما تقدر تغيّر البنوك أثناء اللعب');
@@ -179,9 +193,11 @@ class LettersGame {
       pool = questions.map((_, i) => i).filter((i) => i !== avoid);
       if (!pool.length) pool = [0];
     }
+    pool = preferNew(pool, 1, this.groupHistory, (i) => playKey(letter, questions[i]), questions.map((_, i) => i));
     const index = pool[Math.floor(this.random() * pool.length)];
     seen.add(index);
     this.seen.set(letter, seen);
+    this.groupHistory.add([playKey(letter, questions[index])]);
     return index;
   }
 

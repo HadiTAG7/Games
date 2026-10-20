@@ -1673,6 +1673,12 @@ button.hr-cell:hover { filter: brightness(1.1); transform: scale(0.98); }
 .category-chip.bank:disabled { opacity: 0.45; cursor: not-allowed; }
 .banks-login { margin: 12px 0; }
 .banks-login a { color: var(--accent); font-weight: 700; }
+.group-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.group-row select { flex: 1; min-width: 160px; }
+.group-stat b { color: var(--accent); }
+.group-line { margin-bottom: 20px; }
+.group-card .group-games { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.group-card .group-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .consent .logo { font-size: 48px; }
 .consent-who { font-size: 22px; }
 .consent-actions { justify-content: center; }

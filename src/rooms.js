@@ -18,6 +18,7 @@ const mafiaViews = require('./games/mafia-views');
 const feudViews = require('./games/feud-views');
 const { normalizeAnswer } = require('./normalize');
 const { NightBoard } = require('./night');
+const { GroupHistory, NO_HISTORY } = require('./groups');
 
 const MAX_PLAYERS = 40;
 const MAX_NAME_LENGTH = 20;
@@ -40,11 +41,14 @@ function cleanName(name) {
 
 class Room {
   /** content: { herd, time, seen, letters }: each game's questions or cards */
-  constructor({ code, content, random, onSurvey = () => {} }) {
+  /** onGroupPlay / onGroupRecycle(groupId, game, keys): «👥 الشلة» has had these questions / starts these over. */
+  constructor({ code, content, random, onSurvey = () => {}, onGroupPlay = () => {}, onGroupRecycle = () => {} }) {
     this.code = code;
     this.content = content;
     this.random = random;
     this.onSurvey = onSurvey;
+    this.onGroupPlay = onGroupPlay;
+    this.onGroupRecycle = onGroupRecycle;
     this.hostToken = crypto.randomBytes(16).toString('hex');
     this.players = new Map(); // id → { id, name, sockets: Set<socketId>, joinedAt }
     this.onChange = () => {};
@@ -55,6 +59,9 @@ class Room {
     this.bankList = []; // the owner's banks, all games: [{ id, game, name, emoji, count, playable }]
     this.bankOn = {}; // game → ids of the banks switched on
     this.bankContent = {}; // game → those banks as game content
+    // «👥 الشلة»: the owner's group playing tonight, and what it has had in each game.
+    this.groupList = []; // the owner's groups: [{ id, name }]
+    this.group = null; // { id, name, histories: { game: GroupHistory } }
     this.gameType = 'herd';
     this.game = this.createGame('herd');
     this.touch();
@@ -63,7 +70,11 @@ class Room {
   createGame(type) {
     const { Game } = GAMES[type];
     const game = new Game({
-      categories: this.content[type] ?? [], random: this.random, onTimeout: () => this.onChange(), onSurvey: (r) => this.onSurvey(r),
+      categories: this.content[type] ?? [],
+      random: this.random,
+      onTimeout: () => this.onChange(),
+      onSurvey: (r) => this.onSurvey(r),
+      groupHistory: this.historyFor(type),
     });
     for (const id of this.players.keys()) game.addPlayer(id);
     return game;
@@ -85,6 +96,37 @@ class Room {
     this.gameType = type;
     this.game = this.createGame(type);
     this.applyBanks();
+  }
+
+  /* ---------- «👥 الشلة» ---------- */
+
+  historyFor(type) {
+    return this.group?.histories[type] ?? NO_HISTORY;
+  }
+
+  /** Plays tonight with a group (from groups.load: { id, name, plays: { game: [[key, at]] } }), or with none. */
+  setGroup(loaded) {
+    if (!['lobby', 'final'].includes(this.game.phase)) throw new GameError('خلّص اللعبة الحالية أول');
+    this.group = loaded && {
+      id: loaded.id,
+      name: loaded.name,
+      histories: Object.fromEntries(Object.keys(GAMES).map((game) => [game, new GroupHistory(loaded.plays[game] ?? [], {
+        onAdd: (keys) => this.onGroupPlay(loaded.id, game, keys),
+        onRecycle: (keys) => this.onGroupRecycle(loaded.id, game, keys),
+      })])),
+    };
+    this.game.setGroupHistory?.(this.historyFor(this.gameType));
+  }
+
+  /** What the lobby shows of «👥 الشلة». */
+  groupView() {
+    const current = this.group && {
+      id: this.group.id,
+      name: this.group.name,
+      played: this.historyFor(this.gameType).size,
+      total: this.game.unitCount?.() ?? 0,
+    };
+    return { loggedIn: Boolean(this.ownerId), applies: Boolean(this.game.setGroupHistory), list: this.groupList, current };
   }
 
   /** Puts the banks switched on for the current game into it. */
@@ -276,12 +318,13 @@ class Room {
       serverTime: Date.now(),
       playerCount: this.players.size,
       night: this.night.view(this.playerList()),
+      groupName: this.group?.name ?? null,
     };
   }
 
   // The room's own fields come last, so a game's view can't shadow them (say, «night»).
   hostView() {
-    return { ...GAMES[this.gameType].views.hostView(this), ...this.commonView('host'), myBanks: this.banksView() };
+    return { ...GAMES[this.gameType].views.hostView(this), ...this.commonView('host'), myBanks: this.banksView(), myGroup: this.groupView() };
   }
 
   playerView(playerId) {
@@ -308,6 +351,8 @@ class RoomManager {
     this.random = random;
     this.rooms = new Map();
     this.onSurvey = () => {}; // «استبيانكم»: the server stores confirmed «عقلية القطيع» rounds
+    this.onGroupPlay = () => {}; // «👥 الشلة»: the server stores what each group has had
+    this.onGroupRecycle = () => {};
   }
 
   /** Swap in a game's bank (say, after approving questions people sent); games started from now on use it. */
@@ -324,7 +369,14 @@ class RoomManager {
   }
 
   create() {
-    const room = new Room({ code: this.newCode(), content: this.content, random: this.random, onSurvey: (r) => this.onSurvey(r) });
+    const room = new Room({
+      code: this.newCode(),
+      content: this.content,
+      random: this.random,
+      onSurvey: (r) => this.onSurvey(r),
+      onGroupPlay: (...args) => this.onGroupPlay(...args),
+      onGroupRecycle: (...args) => this.onGroupRecycle(...args),
+    });
     this.rooms.set(room.code, room);
     return room;
   }

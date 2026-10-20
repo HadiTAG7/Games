@@ -13,6 +13,8 @@ const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
 const { teamPoints } = require('../night');
 const { TEAMS, otherTeam: other, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
+const { normalizeAnswer } = require('../normalize');
+const { NO_HISTORY, preferNew } = require('../groups');
 
 const SECONDS_OPTIONS = [30, 45, 60, 90];
 const ROUNDS_TO_WIN_OPTIONS = [1, 2, 3, 4, 5];
@@ -26,11 +28,14 @@ const MAX_EXCLUDED = 5000;
 
 /** Names a card across rebuilds of the card file. */
 const cardKey = (categoryId, card) => `${categoryId}:${card.answer}`;
+/** How a card is remembered for «👥 الشلة»: its picture too, since some answers repeat in a category. */
+const playKey = (categoryId, card) => `${categoryId}:${card.src ?? card.emoji ?? card.code ?? card.text ?? ''}:${normalizeAnswer(card.answer)}`;
 
 class TimeGame {
   /** categories: [{ id, name, emoji, cards: [{ type, answer, … }] }] */
-  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {} } = {}) {
+  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {}, groupHistory = NO_HISTORY } = {}) {
     this.bank = categories.filter((c) => c.cards.length);
+    this.groupHistory = groupHistory; // «👥 الشلة»: cards the room's group has had on other nights
     this.categories = this.bank;
     this.random = random;
     this.now = now;
@@ -55,6 +60,14 @@ class TimeGame {
     this.duel = null; // { red, blue }: the player ids facing each other this round
     this.timer = null;
     this.turnToken = 0;
+  }
+
+  setGroupHistory(history) {
+    this.groupHistory = history ?? NO_HISTORY;
+  }
+
+  unitCount() {
+    return this.categories.reduce((n, c) => n + c.cards.length, 0);
   }
 
   /* ---------- Players and teams ---------- */
@@ -221,6 +234,8 @@ class TimeGame {
     if (!all.length) all = category.cards.map((_, i) => i);
     let fresh = all.filter((i) => !seen.has(i));
     if (fresh.length < Math.min(MIN_FRESH_CARDS, all.length)) fresh = all;
+    const key = (i) => playKey(category.id, category.cards[i]);
+    fresh = preferNew(fresh, Math.min(MIN_FRESH_CARDS, fresh.length), this.groupHistory, key, all);
     return shuffle(fresh, this.random).map((index) => {
       const card = { index };
       // Hidden flags show one random patch; everyone sees the same patch.
@@ -407,6 +422,8 @@ class TimeGame {
     for (const entry of round.log) seen.add(entry.index);
     if (stuck !== null) seen.add(stuck);
     this.seenCards.set(round.category, seen);
+    const shown = this.categories.find((c) => c.id === round.category);
+    if (shown) this.groupHistory.add([...round.log.map((entry) => entry.index), ...(stuck !== null ? [stuck] : [])].map((i) => playKey(shown.id, shown.cards[i])));
     this.nextStartTeam = other(round.startTeam);
     if (winner && this.score[winner] >= this.settings.roundsToWin) this.matchWinner = winner;
     this.phase = 'roundOver';

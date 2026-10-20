@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection, updateTeamsSection,
    TEAM_ORDER, teamLabel, roundsText, cardFace, preloadImages, preloadNote, clockMs, clocksEl, startClockTicker,
-   spinRemaining, SPIN_MS, sfx, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList, banksBox, TEAM_INFO, duelEl */
+   spinRemaining, SPIN_MS, sfx, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList, banksBox, groupBox, TEAM_INFO, duelEl */
 'use strict';
 
 // Host screens for «تحدي الوقت». The host is the judge: this screen shows
@@ -211,6 +211,7 @@ function renderLobby() {
         ),
       ),
       banksBox(),
+      groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
       h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start', { excluded: excludedCards() }) }, 'ابدأ اللعبة ⏱️'),
       h('p', { id: 'start-hint', class: 'hint center' }),

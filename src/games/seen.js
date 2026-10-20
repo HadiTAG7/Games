@@ -13,6 +13,8 @@ const { shuffle } = require('../shuffle');
 const { teamPoints } = require('../night');
 const custom = require('../custom');
 const { otherTeam, teamSize, joinTeam, moveToTeam, shuffleTeams } = require('./teams');
+const { normalizeAnswer } = require('../normalize');
+const { NO_HISTORY, preferNew } = require('../groups');
 
 const VALUES = [200, 400, 600];
 const PER_VALUE = 2; // questions of each value in a category
@@ -29,11 +31,14 @@ const BEFORE_QUESTION = new Set(['pit', 'double']);
 const DURING_QUESTION = new Set(['two', 'call']);
 
 const questionKey = (categoryId, value, index) => `${categoryId}:${value}:${index}`;
+/** How a question is remembered for «👥 الشلة»: picture questions share their wording, so the picture (or answer) counts too. The host's own aren't remembered. */
+const playKey = (categoryId, q) => (categoryId === 'custom' ? null : `${normalizeAnswer(q.q)}|${q.img ?? normalizeAnswer(q.a)}`);
 
 class SeenGame {
   /** categories: [{ id, name, emoji, questions: { 200: [{ q, a, img? }], 400: […], 600: […] } }] */
-  constructor({ categories = [], random = Math.random, now = Date.now } = {}) {
+  constructor({ categories = [], random = Math.random, now = Date.now, groupHistory = NO_HISTORY } = {}) {
     this.bank = categories.filter((c) => VALUES.every((v) => (c.questions[v] ?? []).length >= PER_VALUE));
+    this.groupHistory = groupHistory; // «👥 الشلة»: questions the room's group has had on other nights
     this.categories = this.bank;
     this.custom = { name: '', emoji: '', text: '', items: [], bad: 0 }; // «أسئلتكم الخاصة»
     this.customCategory = null;
@@ -86,6 +91,14 @@ class SeenGame {
 
   randomCategories() {
     return shuffle(this.categories, this.random).slice(0, BOARD_SIZE).map((c) => c.id);
+  }
+
+  setGroupHistory(history) {
+    this.groupHistory = history ?? NO_HISTORY;
+  }
+
+  unitCount() {
+    return this.categories.filter((c) => c.id !== 'custom').reduce((n, c) => n + VALUES.reduce((m, v) => m + c.questions[v].length, 0), 0);
   }
 
   updateSettings(patch = {}) {
@@ -176,6 +189,7 @@ class SeenGame {
       for (const i of all) this.seen.delete(questionKey(category.id, value, i));
       fresh = all;
     }
+    fresh = preferNew(fresh, PER_VALUE, this.groupHistory, (i) => playKey(category.id, category.questions[value][i]), all);
     return shuffle(fresh, this.random).slice(0, PER_VALUE);
   }
 
@@ -231,6 +245,7 @@ class SeenGame {
     for (const name of current.before) this.lifelines[current.team].delete(name);
     const { category, tile } = this.lookup(current.tileId);
     this.seen.add(questionKey(category.id, tile.value, tile.index));
+    this.groupHistory.add([playKey(category.id, category.questions[tile.value][tile.index])]);
     current.endsAt = this.now() + this.settings.turnSeconds * 1000;
     this.phase = 'question';
     this.step += 1;

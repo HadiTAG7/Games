@@ -23,6 +23,7 @@ const { normalizeAnswer } = require('../normalize');
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
 const { rankedPoints } = require('../night');
+const { NO_HISTORY, preferNew } = require('../groups');
 
 const MIN_BET = 1;
 const MAX_BET = 15;
@@ -147,8 +148,9 @@ class HerdGame {
    * categories: [{ id, name, emoji, subcategories: [{ id, name, same: [prompt], different: [prompt] }] }]
    */
   /** onSurvey({ question, groups: [{ text, count }] }): a confirmed round for «استبيانكم». */
-  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {}, onSurvey = () => {} } = {}) {
+  constructor({ categories = [], random = Math.random, now = Date.now, onTimeout = () => {}, onSurvey = () => {}, groupHistory = NO_HISTORY } = {}) {
     this.onSurvey = onSurvey;
+    this.groupHistory = groupHistory; // «👥 الشلة»: questions the room's group has had on other nights
     this.baseCategories = categories;
     this.categories = categories;
     this.subcategories = categories.flatMap((c) => c.subcategories.map((sub) => ({ ...sub, categoryId: c.id })));
@@ -170,6 +172,23 @@ class HerdGame {
     this.round = null;
     this.timer = null;
     this.seenQuestions = new Set();
+  }
+
+  setGroupHistory(history) {
+    this.groupHistory = history ?? NO_HISTORY;
+  }
+
+  /** How a question is remembered for «👥 الشلة»: the same prompt in either mode is the same question. */
+  playKey(text) {
+    return normalizeAnswer(text);
+  }
+
+  unitCount() {
+    if (this.countedFor !== this.subcategories) {
+      this.countedFor = this.subcategories;
+      this.units = new Set(this.subcategories.flatMap((sub) => [...sub.same, ...sub.different].map((q) => this.playKey(q)))).size;
+    }
+    return this.units;
   }
 
   addPlayer(id) {
@@ -249,12 +268,14 @@ class HerdGame {
     if (all.filter((q) => !this.seenQuestions.has(q)).length < count) {
       for (const q of all) this.seenQuestions.delete(q);
     }
+    // New to the room's group too, while the chosen sections have enough of those.
+    const open = new Set(preferNew(all.filter((q) => !this.seenQuestions.has(q)), count, this.groupHistory, (q) => this.playKey(q), all));
     const byCategory = new Map();
     for (const sub of leaves) {
       if (!byCategory.has(sub.categoryId)) byCategory.set(sub.categoryId, []);
       byCategory.get(sub.categoryId).push({
         sub,
-        questions: shuffle(sub[mode].filter((q) => !this.seenQuestions.has(q)), this.random),
+        questions: shuffle(sub[mode].filter((q) => open.has(q)), this.random),
       });
     }
     const rotations = shuffle([...byCategory.values()], this.random)
@@ -312,6 +333,7 @@ class HerdGame {
     this.roundIndex += 1;
     const { timer } = this.settings;
     const { text, category, subcategory } = this.questions[this.roundIndex];
+    if (category) this.groupHistory.add([this.playKey(text)]); // the host's own questions aren't remembered
     this.round = {
       question: text,
       category,

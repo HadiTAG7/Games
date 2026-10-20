@@ -114,6 +114,18 @@ test('accounts over HTTP: sign up, log in, paste a bank, share it, and the owner
   assert.equal((await noura.post(`/api/account/banks/${bankId}/delete`)).status, 400);
   assert.equal((await browser(base).get('/api/account/banks')).status, 401, 'logged out');
 
+  // «👥 شللي»: the account's groups; only the owner can change one.
+  assert.equal((await browser(base).get('/api/account/groups')).status, 401, 'logged out');
+  const group = (await fahad.post('/api/account/groups', { name: 'ولاد خالتي' })).json.group;
+  const listed = (await fahad.get('/api/account/groups')).json;
+  assert.deepEqual(listed.groups.map((g) => [g.name, g.total]), [['ولاد خالتي', 0]]);
+  assert.ok(listed.games.some((g) => g.id === 'feud') && !listed.games.some((g) => g.id === 'mafia'), 'games with questions');
+  assert.equal((await noura.post(`/api/account/groups/${group.id}/delete`, {})).status, 400);
+  assert.equal((await fahad.post(`/api/account/groups/${group.id}/rename`, { name: 'العيال' })).json.group.name, 'العيال');
+  assert.equal((await fahad.post(`/api/account/groups/${group.id}/reset`, {})).status, 200);
+  assert.equal((await fahad.post(`/api/account/groups/${group.id}/delete`, {})).status, 200);
+  assert.deepEqual((await fahad.get('/api/account/groups')).json.groups, []);
+
   // «📤 أرسله للكل» goes to the review page under the account's name.
   const shared = await fahad.post(`/api/account/banks/${bankId}/share`);
   assert.equal(shared.json.added, 4);

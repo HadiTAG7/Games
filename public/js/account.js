@@ -2,7 +2,8 @@
 'use strict';
 
 // «حسابي»: log in, see your question banks, paste a new one, share one with
-// everyone, and connect Claude or ChatGPT so they can add banks for you.
+// everyone, connect Claude or ChatGPT so they can add banks for you, and keep
+// the groups you play with («👥 شللي»).
 (() => {
 const app = $('#app');
 const params = new URLSearchParams(location.search);
@@ -11,6 +12,7 @@ const next = /^\/(?!\/)/.test(params.get('next') ?? '') ? params.get('next') : n
 let me = null;
 let persistent = true;
 let data = null; // { banks, games, limits }
+let groupsData = null; // { groups, games, limits }
 const open = new Set(); // banks shown in full
 
 const NEEDS = {
@@ -263,6 +265,78 @@ function passwordSection() {
     }, 'غيّر'));
 }
 
+/* ---------- «👥 شللي» ---------- */
+
+const questionsText = (n) => (n === 1 ? 'سؤال واحد' : n === 2 ? 'سؤالين' : n <= 10 ? `${n} أسئلة` : `${n} سؤال`);
+
+function ago(iso) {
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  if (days <= 0) return 'اليوم';
+  if (days === 1) return 'أمس';
+  return days <= 10 ? `قبل ${days} أيام` : `قبل ${days} يوم`;
+}
+
+function groupRow(group) {
+  const games = Object.entries(group.games).map(([id, n]) => {
+    const game = groupsData.games.find((g) => g.id === id);
+    return game ? h('span', { class: 'category-chip' }, `${game.emoji} ${game.name} · ${n}`) : null;
+  });
+  const call = async (path, body, confirmText) => {
+    if (confirmText && !confirm(confirmText)) return;
+    try {
+      await api(path, body);
+      await refresh();
+    } catch (err) {
+      toast(err.message);
+    }
+  };
+  return h('li', { class: 'card group-card', 'data-group': group.id },
+    h('div', { class: 'bank-head' },
+      h('b', {}, `👥 ${group.name}`),
+      h('span', { class: 'muted' }, ` · ${group.total ? `لعبتوا ${questionsText(group.total)}` : 'لسا ما لعبتوا معها'}${group.playedAt ? ` · آخر مرة ${ago(group.playedAt)}` : ''}`)),
+    group.total ? h('div', { class: 'group-games' }, games) : null,
+    h('div', { class: 'group-actions' },
+      h('button', {
+        type: 'button',
+        class: 'btn small',
+        onclick: () => {
+          const name = prompt('الاسم الجديد؟', group.name);
+          if (name?.trim() && name.trim() !== group.name) call(`/groups/${group.id}/rename`, { name: name.trim() });
+        },
+      }, '✏️ الاسم'),
+      group.total ? h('button', {
+        type: 'button',
+        class: 'btn small',
+        onclick: () => call(`/groups/${group.id}/reset`, {}, `تصفّر أسئلة «${group.name}»؟ بعدها ممكن تنعاد عليهم كل الأسئلة.`),
+      }, '🔄 صفّر أسئلتها') : null,
+      h('button', {
+        type: 'button',
+        class: 'btn small danger',
+        onclick: () => call(`/groups/${group.id}/delete`, {}, `تحذف شلة «${group.name}»؟`),
+      }, '🗑️')),
+  );
+}
+
+function groupsSection() {
+  const { groups, limits } = groupsData;
+  const name = h('input', { id: 'new-group', maxlength: limits.name, placeholder: 'مثل: ولاد خالتي', enterkeyhint: 'done' });
+  const add = async () => {
+    try {
+      await api('/groups', { name: name.value });
+      await refresh();
+    } catch (err) {
+      toast(err.message);
+    }
+  };
+  name.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
+  return h('section', { class: 'card contrib-card', id: 'groups' },
+    h('h2', {}, '👥 شللي'),
+    h('p', { class: 'hint' }, 'اختر الشلة في لوبي الغرفة، والموقع يتذكر الأسئلة اللي انسألت عليهم عشان ما تتكرر في السهرات الجاية. ومع شلة ثانية عادي تنعاد.'),
+    groups.length ? h('ol', { class: 'review-list' }, groups.map(groupRow)) : h('p', { class: 'hint center' }, 'لسا ما عندك شلل.'),
+    h('div', { class: 'group-row' }, name, h('button', { type: 'button', class: 'btn primary', onclick: add }, '➕ أضف شلة')),
+  );
+}
+
 async function render() {
   const groups = data.games.map((g) => ({ g, list: data.banks.filter((b) => b.game === g.id) })).filter((x) => x.list.length);
   app.replaceChildren(...[
@@ -281,13 +355,14 @@ async function render() {
         h('h3', {}, `${g.emoji} ${g.name}`),
         h('ol', { class: 'review-list' }, list.map(bankRow))))),
     newBankForm(),
+    groupsSection(),
     await connectionsSection(),
     passwordSection(),
   ].filter(Boolean));
 }
 
 async function refresh() {
-  data = await api('/banks');
+  [data, groupsData] = await Promise.all([api('/banks'), api('/groups')]);
   await render();
 }
 
@@ -300,6 +375,7 @@ async function start() {
     return;
   }
   await refresh();
+  if (location.hash === '#groups') $('#groups')?.scrollIntoView();
 }
 
 start().catch((err) => {
