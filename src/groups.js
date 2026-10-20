@@ -1,13 +1,30 @@
 'use strict';
 
-// «👥 الشلة»: groups an account plays with («ولاد خالتي»). Each remembers the
-// questions it has had, so a room playing with that group asks new ones, night
-// after night. Another group, or no group, can get the same questions again.
+// «👥 الشلة»: groups people play with («ولاد خالتي»). The owner adds members
+// by username, and any of them can open a room with the group. A group
+// remembers the questions it has had, so its rooms ask new ones night after
+// night (another group, or none, can get them again), and keeps its own
+// ranking: every game it finishes adds that game's «بطل السهرة» points.
 
 const { GameError } = require('./errors');
 const custom = require('./custom');
+const { normalizeAnswer } = require('./normalize');
 
-const LIMITS = { groups: 30, name: 30 };
+const LIMITS = { groups: 30, name: 30, members: 50 };
+
+/** Players are ranked by name, so «أبو فهد» and «ابو فهد» are the same person (an all-emoji name stays as typed). */
+const nameKey = (name) => normalizeAnswer(name) || String(name ?? '').trim();
+
+/** Ranking rows best first, with places (ties share): points, then wins. */
+function rankRows(rows) {
+  const sorted = [...rows].sort((a, b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name));
+  let rank = 0;
+  return sorted.map((row, i) => {
+    const prev = sorted[i - 1];
+    if (!prev || prev.points !== row.points || prev.wins !== row.wins) rank = i + 1;
+    return { ...row, rank };
+  });
+}
 
 /**
  * The questions one group has had in one game: key → when. A game asks has()
@@ -67,24 +84,44 @@ const groupName = (name) => {
   return clean;
 };
 
+/** A group the account owns: for changing it. */
 async function owned(store, accountId, id) {
   const group = await store.getGroup(Number(id));
   if (!group || group.accountId !== accountId) throw new GameError('ما لقينا الشلة');
   return group;
 }
 
-/** The account's groups, with how many questions each has had per game. */
+/** A group the account owns or is a member of: for playing with it and seeing it. */
+async function access(store, accountId, id) {
+  const group = await store.getGroup(Number(id));
+  if (group && group.accountId === accountId) return group;
+  if (group && (await store.groupMembers(group.id)).some((m) => m.accountId === accountId)) return group;
+  throw new GameError('ما لقينا الشلة');
+}
+
+/** The account's groups (its own and the ones it's in): plays per game, members and ranking. */
 async function list(store, accountId) {
   const [groups, counts] = await Promise.all([store.listGroups(accountId), store.groupCounts(accountId)]);
-  return groups.map((g) => {
+  return Promise.all(groups.map(async (g) => {
     const games = counts[g.id] ?? {};
-    return { id: g.id, name: g.name, playedAt: g.playedAt, games, total: Object.values(games).reduce((a, b) => a + b, 0) };
-  });
+    const [members, scores] = await Promise.all([store.groupMembers(g.id), store.groupScores(g.id)]);
+    return {
+      id: g.id,
+      name: g.name,
+      ownerName: g.ownerName,
+      mine: g.accountId === accountId,
+      members: members.map((m) => ({ accountId: m.accountId, username: m.username })),
+      playedAt: g.playedAt,
+      games,
+      total: Object.values(games).reduce((a, b) => a + b, 0),
+      ranking: rankRows(scores).map(({ name, points, wins, games: played, rank }) => ({ name, points, wins, games: played, rank })),
+    };
+  }));
 }
 
 async function create(store, accountId, name) {
   const clean = groupName(name);
-  const groups = await store.listGroups(accountId);
+  const groups = (await store.listGroups(accountId)).filter((g) => g.accountId === accountId);
   if (groups.length >= LIMITS.groups) throw new GameError(`بالكثير ${LIMITS.groups} شلة لكل حساب`);
   if (groups.some((g) => g.name === clean)) throw new GameError('عندك شلة بنفس الاسم');
   return store.createGroup(accountId, clean);
@@ -105,10 +142,47 @@ async function remove(store, accountId, id) {
   await store.deleteGroup(group.id);
 }
 
-/** A group and everything it has played, to play with in a room. */
-async function load(store, accountId, id) {
+async function addMember(store, accountId, id, username) {
   const group = await owned(store, accountId, id);
-  return { id: group.id, name: group.name, plays: await store.groupPlays(group.id) };
+  const account = await store.findAccount(custom.clean(username, 40));
+  if (!account) throw new GameError('ما لقينا حساب بهالاسم');
+  if (account.id === accountId) throw new GameError('أنت صاحب الشلة');
+  const members = await store.groupMembers(group.id);
+  if (members.some((m) => m.accountId === account.id)) throw new GameError(`${account.username} موجود في الشلة`);
+  if (members.length >= LIMITS.members) throw new GameError(`بالكثير ${LIMITS.members} عضو`);
+  await store.addGroupMember(group.id, account.id);
+  return { accountId: account.id, username: account.username };
 }
 
-module.exports = { LIMITS, GroupHistory, NO_HISTORY, preferNew, list, create, rename, reset, remove, load, owned };
+async function removeMember(store, accountId, id, memberId) {
+  const group = await owned(store, accountId, id);
+  await store.removeGroupMember(group.id, Number(memberId));
+}
+
+async function leave(store, accountId, id) {
+  const group = await access(store, accountId, id);
+  if (group.accountId === accountId) throw new GameError('أنت صاحب الشلة: تقدر تحذفها بدل ما تطلع');
+  await store.removeGroupMember(group.id, accountId);
+}
+
+async function resetScores(store, accountId, id) {
+  const group = await owned(store, accountId, id);
+  await store.resetGroupScores(group.id);
+}
+
+async function removeScore(store, accountId, id, name) {
+  const group = await owned(store, accountId, id);
+  if (!(await store.removeGroupScore(group.id, nameKey(name)))) throw new GameError('هالاسم مو في الترتيب');
+}
+
+/** A group with everything it has played and its ranking, to play with in a room. */
+async function load(store, accountId, id) {
+  const group = await access(store, accountId, id);
+  const [plays, scores] = await Promise.all([store.groupPlays(group.id), store.groupScores(group.id)]);
+  return { id: group.id, name: group.name, plays, scores };
+}
+
+module.exports = {
+  LIMITS, GroupHistory, NO_HISTORY, preferNew, nameKey, rankRows,
+  list, create, rename, reset, remove, load, owned, access, addMember, removeMember, leave, resetScores, removeScore,
+};

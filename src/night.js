@@ -41,7 +41,8 @@ class NightBoard {
     }
     if (this.settled) return false;
     this.settled = true;
-    for (const [id, n] of Object.entries(game.nightPoints?.() ?? {})) {
+    this.lastPoints = game.nightPoints?.() ?? {}; // this game's own points, for «👥 الشلة»'s ranking
+    for (const [id, n] of Object.entries(this.lastPoints)) {
       if (!n) continue;
       const row = this.rows.get(id) ?? { points: 0, wins: 0 };
       row.points += n;

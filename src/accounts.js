@@ -13,6 +13,8 @@ const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
 
+const { WIN_POINTS } = require('./night');
+
 const scrypt = promisify(crypto.scrypt);
 const sha256 = (text) => crypto.createHash('sha256').update(String(text)).digest('hex');
 const token = () => crypto.randomBytes(32).toString('base64url');
@@ -57,6 +59,8 @@ class FileAccounts {
     this.d.next.group ??= 1;
     this.d.groups ??= [];
     this.d.groupPlays ??= [];
+    this.d.groupMembers ??= [];
+    this.d.groupScores ??= [];
   }
 
   save() {
@@ -105,7 +109,8 @@ class FileAccounts {
     for (const list of ['sessions', 'tokens', 'banks']) this.d[list] = this.d[list].filter((x) => x.accountId !== id);
     const groups = new Set(this.d.groups.filter((g) => g.accountId === id).map((g) => g.id));
     this.d.groups = this.d.groups.filter((g) => !groups.has(g.id));
-    this.d.groupPlays = this.d.groupPlays.filter((p) => !groups.has(p.groupId));
+    for (const list of ['groupPlays', 'groupMembers', 'groupScores']) this.d[list] = this.d[list].filter((x) => !groups.has(x.groupId));
+    this.d.groupMembers = this.d.groupMembers.filter((m) => m.accountId !== id);
     const before = this.d.accounts.length;
     this.d.accounts = this.d.accounts.filter((a) => a.id !== id);
     this.save();
@@ -232,13 +237,19 @@ class FileAccounts {
     this.save();
   }
 
+  withOwner(g) {
+    return { ...g, ownerName: this.d.accounts.find((a) => a.id === g.accountId)?.username ?? '' };
+  }
+
+  /** Groups the account owns or is a member of. */
   async listGroups(accountId) {
-    return this.d.groups.filter((g) => g.accountId === accountId).map((g) => ({ ...g }));
+    const member = new Set(this.d.groupMembers.filter((m) => m.accountId === accountId).map((m) => m.groupId));
+    return this.d.groups.filter((g) => g.accountId === accountId || member.has(g.id)).map((g) => this.withOwner(g));
   }
 
   async getGroup(id) {
     const g = this.d.groups.find((x) => x.id === id);
-    return g ? { ...g } : null;
+    return g ? this.withOwner(g) : null;
   }
 
   async createGroup(accountId, name) {
@@ -259,9 +270,63 @@ class FileAccounts {
   async deleteGroup(id) {
     const before = this.d.groups.length;
     this.d.groups = this.d.groups.filter((g) => g.id !== id);
-    this.d.groupPlays = this.d.groupPlays.filter((p) => p.groupId !== id);
+    for (const list of ['groupPlays', 'groupMembers', 'groupScores']) this.d[list] = this.d[list].filter((x) => x.groupId !== id);
     this.save();
     return this.d.groups.length < before;
+  }
+
+  async groupMembers(groupId) {
+    return this.d.groupMembers.filter((m) => m.groupId === groupId)
+      .map((m) => ({ accountId: m.accountId, username: this.d.accounts.find((a) => a.id === m.accountId)?.username ?? '', addedAt: m.addedAt }));
+  }
+
+  async addGroupMember(groupId, accountId) {
+    if (this.d.groupMembers.some((m) => m.groupId === groupId && m.accountId === accountId)) return false;
+    this.d.groupMembers.push({ groupId, accountId, addedAt: new Date().toISOString() });
+    this.save();
+    return true;
+  }
+
+  async removeGroupMember(groupId, accountId) {
+    const before = this.d.groupMembers.length;
+    this.d.groupMembers = this.d.groupMembers.filter((m) => !(m.groupId === groupId && m.accountId === accountId));
+    this.save();
+    return this.d.groupMembers.length < before;
+  }
+
+  /** The group's ranking rows: [{ nameKey, name, points, wins, games, updatedAt }]. */
+  async groupScores(groupId) {
+    return this.d.groupScores.filter((r) => r.groupId === groupId).map(({ groupId: _, ...r }) => r);
+  }
+
+  /** Adds one finished game: rows = [{ nameKey, name, points }] for everyone who played it. */
+  async addGroupScores(groupId, rows) {
+    const now = new Date().toISOString();
+    for (const { nameKey, name, points } of rows) {
+      let r = this.d.groupScores.find((x) => x.groupId === groupId && x.nameKey === nameKey);
+      if (!r) {
+        r = { groupId, nameKey, name, points: 0, wins: 0, games: 0, updatedAt: now };
+        this.d.groupScores.push(r);
+      }
+      r.name = name;
+      r.points += points;
+      r.wins += points >= WIN_POINTS ? 1 : 0;
+      r.games += 1;
+      r.updatedAt = now;
+    }
+    this.save();
+  }
+
+  async resetGroupScores(groupId) {
+    this.d.groupScores = this.d.groupScores.filter((r) => r.groupId !== groupId);
+    this.save();
+  }
+
+  async removeGroupScore(groupId, nameKey) {
+    const before = this.d.groupScores.length;
+    this.d.groupScores = this.d.groupScores.filter((r) => !(r.groupId === groupId && r.nameKey === nameKey));
+    this.save();
+    return this.d.groupScores.length < before;
   }
 
   async groupPlays(groupId) {
@@ -293,9 +358,9 @@ class FileAccounts {
     this.save();
   }
 
-  /** { groupId: { game: count } } for one account's groups. */
+  /** { groupId: { game: count } } for the groups an account owns or is in. */
   async groupCounts(accountId) {
-    const mine = new Set(this.d.groups.filter((g) => g.accountId === accountId).map((g) => g.id));
+    const mine = new Set((await this.listGroups(accountId)).map((g) => g.id));
     const out = {};
     for (const p of this.d.groupPlays) {
       if (!mine.has(p.groupId)) continue;
@@ -371,13 +436,31 @@ CREATE TABLE IF NOT EXISTS group_plays (
 );
 CREATE INDEX IF NOT EXISTS banks_account ON banks(account_id);
 CREATE INDEX IF NOT EXISTS tokens_account ON oauth_tokens(account_id);
+CREATE TABLE IF NOT EXISTS group_members (
+  group_id INTEGER NOT NULL REFERENCES play_groups(id) ON DELETE CASCADE,
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (group_id, account_id)
+);
+CREATE TABLE IF NOT EXISTS group_scores (
+  group_id INTEGER NOT NULL REFERENCES play_groups(id) ON DELETE CASCADE,
+  name_key TEXT NOT NULL,
+  name TEXT NOT NULL,
+  points INTEGER NOT NULL DEFAULT 0,
+  wins INTEGER NOT NULL DEFAULT 0,
+  games INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (group_id, name_key)
+);
 CREATE INDEX IF NOT EXISTS groups_account ON play_groups(account_id);
+CREATE INDEX IF NOT EXISTS group_members_account ON group_members(account_id);
 `;
 
 const groupRow = (r) => ({
-  id: r.id, accountId: r.account_id, name: r.name, createdAt: new Date(r.created_at).toISOString(),
+  id: r.id, accountId: r.account_id, ownerName: r.owner_name ?? '', name: r.name, createdAt: new Date(r.created_at).toISOString(),
   playedAt: r.played_at ? new Date(r.played_at).toISOString() : null,
 });
+const GROUP_SELECT = 'SELECT g.*, a.username AS owner_name FROM play_groups g JOIN accounts a ON a.id = g.account_id';
 
 const bankRow = (r) => ({
   id: r.id, accountId: r.account_id, game: r.game, name: r.name, emoji: r.emoji, items: r.items, nextItem: r.next_item,
@@ -544,12 +627,15 @@ class PgAccounts {
   }
 
   async listGroups(accountId) {
-    const { rows } = await this.q('SELECT * FROM play_groups WHERE account_id = $1 ORDER BY id', [accountId]);
+    const { rows } = await this.q(
+      `${GROUP_SELECT} WHERE g.account_id = $1 OR g.id IN (SELECT group_id FROM group_members WHERE account_id = $1) ORDER BY g.id`,
+      [accountId],
+    );
     return rows.map(groupRow);
   }
 
   async getGroup(id) {
-    const { rows } = await this.q('SELECT * FROM play_groups WHERE id = $1', [id]);
+    const { rows } = await this.q(`${GROUP_SELECT} WHERE g.id = $1`, [id]);
     return rows[0] ? groupRow(rows[0]) : null;
   }
 
@@ -594,10 +680,53 @@ class PgAccounts {
     await this.q('DELETE FROM group_plays WHERE group_id = $1', [groupId]);
   }
 
+  async groupMembers(groupId) {
+    const { rows } = await this.q(
+      'SELECT m.account_id, a.username, m.added_at FROM group_members m JOIN accounts a ON a.id = m.account_id WHERE m.group_id = $1 ORDER BY m.added_at',
+      [groupId],
+    );
+    return rows.map((r) => ({ accountId: r.account_id, username: r.username, addedAt: new Date(r.added_at).toISOString() }));
+  }
+
+  async addGroupMember(groupId, accountId) {
+    const { rowCount } = await this.q('INSERT INTO group_members (group_id, account_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [groupId, accountId]);
+    return rowCount > 0;
+  }
+
+  async removeGroupMember(groupId, accountId) {
+    const { rowCount } = await this.q('DELETE FROM group_members WHERE group_id = $1 AND account_id = $2', [groupId, accountId]);
+    return rowCount > 0;
+  }
+
+  async groupScores(groupId) {
+    const { rows } = await this.q('SELECT * FROM group_scores WHERE group_id = $1', [groupId]);
+    return rows.map((r) => ({ nameKey: r.name_key, name: r.name, points: r.points, wins: r.wins, games: r.games, updatedAt: new Date(r.updated_at).toISOString() }));
+  }
+
+  async addGroupScores(groupId, rows) {
+    if (!rows.length) return;
+    await this.q(
+      `INSERT INTO group_scores (group_id, name_key, name, points, wins, games)
+       SELECT $1, k, n, p, w, 1 FROM unnest($2::text[], $3::text[], $4::int[], $5::int[]) AS t(k, n, p, w)
+       ON CONFLICT (group_id, name_key) DO UPDATE SET name = EXCLUDED.name, points = group_scores.points + EXCLUDED.points,
+       wins = group_scores.wins + EXCLUDED.wins, games = group_scores.games + 1, updated_at = now()`,
+      [groupId, rows.map((r) => r.nameKey), rows.map((r) => r.name), rows.map((r) => r.points), rows.map((r) => (r.points >= WIN_POINTS ? 1 : 0))],
+    );
+  }
+
+  async resetGroupScores(groupId) {
+    await this.q('DELETE FROM group_scores WHERE group_id = $1', [groupId]);
+  }
+
+  async removeGroupScore(groupId, nameKey) {
+    const { rowCount } = await this.q('DELETE FROM group_scores WHERE group_id = $1 AND name_key = $2', [groupId, nameKey]);
+    return rowCount > 0;
+  }
+
   async groupCounts(accountId) {
     const { rows } = await this.q(
       `SELECT p.group_id, p.game, COUNT(*)::int AS n FROM group_plays p JOIN play_groups g ON g.id = p.group_id
-       WHERE g.account_id = $1 GROUP BY p.group_id, p.game`,
+       WHERE g.account_id = $1 OR g.id IN (SELECT group_id FROM group_members WHERE account_id = $1) GROUP BY p.group_id, p.game`,
       [accountId],
     );
     const out = {};

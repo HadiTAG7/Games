@@ -75,6 +75,21 @@ function renderJoin({ code = '', name = '', error = '' } = {}) {
     id: 'name', maxlength: 20, placeholder: 'اسمك', autocomplete: 'nickname', enterkeyhint: 'go', value: name,
   });
   const button = h('button', { class: 'btn primary big', type: 'submit' }, 'ادخل');
+  // «👥 الشلة»: the room's group offers its names, so everyone keeps the same name in its ranking.
+  const picks = h('div', { class: 'name-picks', hidden: true });
+  const offerNames = async (room) => {
+    picks.hidden = true;
+    if (!/^\d{4}$/.test(room)) return;
+    const { names = [] } = await fetch(`/api/rooms/${room}/names`).then((r) => r.json()).catch(() => ({}));
+    if (!names.length || toLatinDigits(codeInput.value).trim() !== room) return;
+    picks.replaceChildren(h('small', {}, '👥 من الشلة؟ اضغط اسمك:'), ...names.map((n) => h('button', {
+      type: 'button',
+      class: 'category-chip',
+      onclick: () => { nameInput.value = n; },
+    }, n)));
+    picks.hidden = false;
+  };
+  codeInput.addEventListener('input', () => offerNames(toLatinDigits(codeInput.value).trim()));
   const form = h('form', {
     class: 'card join-form',
     onsubmit: async (e) => {
@@ -94,10 +109,12 @@ function renderJoin({ code = '', name = '', error = '' } = {}) {
     error ? h('p', { class: 'banner bad' }, error) : null,
     h('label', { class: 'field' }, h('span', {}, 'رقم الغرفة'), codeInput),
     h('label', { class: 'field' }, h('span', {}, 'اسمك'), nameInput),
+    picks,
     button,
   );
   app.replaceChildren(h('main', { class: 'narrow' }, form));
   (code ? nameInput : codeInput).focus();
+  offerNames(toLatinDigits(code).trim());
 }
 
 function render() {
@@ -144,8 +161,10 @@ function playSounds(prev, next) {
 function placeGroupLine() {
   const main = app.querySelector('main');
   const old = $('#group-line');
+  const me = state.groupMe;
   const el = main && state.phase === 'lobby' && state.groupName
-    ? h('div', { class: 'night-me group-line', id: 'group-line' }, h('b', {}, '👥 شلة: '), state.groupName)
+    ? h('div', { class: 'night-me group-line', id: 'group-line' }, h('b', {}, '👥 شلة: '), state.groupName,
+      me ? ` · ترتيبك ${me.rank} من ${me.of} (${pointsText(me.points)})` : null)
     : null;
   if (old && el && old.isEqualNode(el)) return;
   old?.remove();

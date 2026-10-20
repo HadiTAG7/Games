@@ -1,4 +1,4 @@
-/* global $, h, toast */
+/* global $, h, toast, MEDALS */
 'use strict';
 
 // «حسابي»: log in, see your question banks, paste a new one, share one with
@@ -276,6 +276,8 @@ function ago(iso) {
   return days <= 10 ? `قبل ${days} أيام` : `قبل ${days} يوم`;
 }
 
+const openRankings = new Set(); // groups whose whole ranking is showing
+
 function groupRow(group) {
   const games = Object.entries(group.games).map(([id, n]) => {
     const game = groupsData.games.find((g) => g.id === id);
@@ -290,30 +292,57 @@ function groupRow(group) {
       toast(err.message);
     }
   };
+  const button = (label, onclick, cls = 'btn small') => h('button', { type: 'button', class: cls, onclick }, label);
+  const all = openRankings.has(group.id);
+  const ranking = all ? group.ranking : group.ranking.slice(0, 10);
+  const member = h('input', { maxlength: 20, placeholder: 'اسم المستخدم حق العضو', 'aria-label': 'اسم المستخدم' });
+  const addMember = () => call(`/groups/${group.id}/members`, { username: member.value.trim() });
+  member.addEventListener('keydown', (e) => { if (e.key === 'Enter') addMember(); });
   return h('li', { class: 'card group-card', 'data-group': group.id },
     h('div', { class: 'bank-head' },
       h('b', {}, `👥 ${group.name}`),
-      h('span', { class: 'muted' }, ` · ${group.total ? `لعبتوا ${questionsText(group.total)}` : 'لسا ما لعبتوا معها'}${group.playedAt ? ` · آخر مرة ${ago(group.playedAt)}` : ''}`)),
+      h('span', { class: 'muted' }, `${group.mine ? '' : ` · لـ${group.ownerName}`} · ${group.total ? `لعبتوا ${questionsText(group.total)}` : 'لسا ما لعبتوا معها'}${group.playedAt ? ` · آخر مرة ${ago(group.playedAt)}` : ''}`)),
     group.total ? h('div', { class: 'group-games' }, games) : null,
-    h('div', { class: 'group-actions' },
-      h('button', {
-        type: 'button',
-        class: 'btn small',
-        onclick: () => {
-          const name = prompt('الاسم الجديد؟', group.name);
-          if (name?.trim() && name.trim() !== group.name) call(`/groups/${group.id}/rename`, { name: name.trim() });
-        },
-      }, '✏️ الاسم'),
-      group.total ? h('button', {
-        type: 'button',
-        class: 'btn small',
-        onclick: () => call(`/groups/${group.id}/reset`, {}, `تصفّر أسئلة «${group.name}»؟ بعدها ممكن تنعاد عليهم كل الأسئلة.`),
-      }, '🔄 صفّر أسئلتها') : null,
-      h('button', {
-        type: 'button',
-        class: 'btn small danger',
-        onclick: () => call(`/groups/${group.id}/delete`, {}, `تحذف شلة «${group.name}»؟`),
-      }, '🗑️')),
+    h('h3', {}, '🏆 الترتيب'),
+    group.ranking.length
+      ? h('ol', { class: 'standings group-ranking' }, ranking.map((r) => h('li', {},
+        h('span', { class: 'rank' }, MEDALS[r.rank] || r.rank),
+        h('span', { class: 'name' }, r.name),
+        h('span', { class: 'night-wins', title: 'عدد مرات الفوز' }, `🏅 ${r.wins} · 🎮 ${r.games}`),
+        h('span', { class: 'score' }, r.points),
+        group.mine ? h('button', {
+          type: 'button',
+          class: 'link-btn small',
+          title: 'شيل الاسم من الترتيب',
+          onclick: () => call(`/groups/${group.id}/scores/remove`, { name: r.name }, `تشيل «${r.name}» من ترتيب «${group.name}»؟`),
+        }, '✕') : null)))
+      : h('p', { class: 'hint' }, 'الترتيب يبدأ مع أول لعبة تخلص وأنتم مختارين الشلة.'),
+    group.ranking.length > 10
+      ? button(all ? 'أول 10 بس' : `الكل (${group.ranking.length})`, () => { if (all) openRankings.delete(group.id); else openRankings.add(group.id); render(); }, 'link-btn small')
+      : null,
+    h('div', { class: 'group-members' },
+      h('small', { class: 'muted' }, 'الأعضاء:'),
+      h('span', { class: 'category-chip' }, `👑 ${group.mine ? me.username : group.ownerName}`),
+      group.members.map((m) => h('span', { class: 'category-chip' }, m.username,
+        group.mine ? h('button', {
+          type: 'button',
+          class: 'link-btn small',
+          'aria-label': `شيل ${m.username}`,
+          onclick: () => call(`/groups/${group.id}/members/${m.accountId}/remove`, {}, `تشيل ${m.username} من الشلة؟`),
+        }, ' ✕') : null))),
+    group.mine
+      ? h('div', { class: 'group-add' }, member, button('➕ أضف عضو', addMember))
+      : null,
+    group.mine ? h('p', { class: 'hint' }, 'كل عضو يسوي حساب في الموقع، وتضيفه باسم المستخدم. بعدها يقدر يفتح غرفة بالشلة من جهازه، والأسئلة ما تتكرر والترتيب يكمل.') : null,
+    h('div', { class: 'group-actions' }, group.mine ? [
+      button('✏️ الاسم', () => {
+        const name = prompt('الاسم الجديد؟', group.name);
+        if (name?.trim() && name.trim() !== group.name) call(`/groups/${group.id}/rename`, { name: name.trim() });
+      }),
+      group.total ? button('🔄 صفّر الأسئلة', () => call(`/groups/${group.id}/reset`, {}, `تصفّر أسئلة «${group.name}»؟ بعدها ممكن تنعاد عليهم كل الأسئلة.`)) : null,
+      group.ranking.length ? button('🔄 صفّر الترتيب', () => call(`/groups/${group.id}/scores/reset`, {}, `تصفّر ترتيب «${group.name}»؟`)) : null,
+      button('🗑️', () => call(`/groups/${group.id}/delete`, {}, `تحذف شلة «${group.name}»؟`), 'btn small danger'),
+    ] : button('🚪 اطلع من الشلة', () => call(`/groups/${group.id}/leave`, {}, `تطلع من «${group.name}»؟`))),
   );
 }
 
@@ -331,7 +360,7 @@ function groupsSection() {
   name.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
   return h('section', { class: 'card contrib-card', id: 'groups' },
     h('h2', {}, '👥 شللي'),
-    h('p', { class: 'hint' }, 'اختر الشلة في لوبي الغرفة، والموقع يتذكر الأسئلة اللي انسألت عليهم عشان ما تتكرر في السهرات الجاية. ومع شلة ثانية عادي تنعاد.'),
+    h('p', { class: 'hint' }, 'الشلة لها ترتيب خاص فيها، وتتذكر الأسئلة اللي انسألت عليهم عشان ما تتكرر. أضف أعضاءها بحساباتهم، وأي واحد منهم يقدر يفتح غرفة بالشلة ويختارها في اللوبي.'),
     groups.length ? h('ol', { class: 'review-list' }, groups.map(groupRow)) : h('p', { class: 'hint center' }, 'لسا ما عندك شلل.'),
     h('div', { class: 'group-row' }, name, h('button', { type: 'button', class: 'btn primary', onclick: add }, '➕ أضف شلة')),
   );

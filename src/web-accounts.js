@@ -190,6 +190,30 @@ function accountRouter({ accountsReady, content, community, games = () => [] }) 
     res.json({ ok: true });
   }));
 
+  router.post('/groups/:id/members', mine(async (req, res, account) => {
+    res.json({ member: await groups.addMember(accounts, account.id, req.params.id, req.body?.username) });
+  }));
+
+  router.post('/groups/:id/members/:accountId/remove', mine(async (req, res, account) => {
+    await groups.removeMember(accounts, account.id, req.params.id, req.params.accountId);
+    res.json({ ok: true });
+  }));
+
+  router.post('/groups/:id/leave', mine(async (req, res, account) => {
+    await groups.leave(accounts, account.id, req.params.id);
+    res.json({ ok: true });
+  }));
+
+  router.post('/groups/:id/scores/reset', mine(async (req, res, account) => {
+    await groups.resetScores(accounts, account.id, req.params.id);
+    res.json({ ok: true });
+  }));
+
+  router.post('/groups/:id/scores/remove', mine(async (req, res, account) => {
+    await groups.removeScore(accounts, account.id, req.params.id, req.body?.name);
+    res.json({ ok: true });
+  }));
+
   router.get('/connections', mine(async (req, res, account) => {
     res.json({ connections: await accounts.listConnections(account.id) });
   }));

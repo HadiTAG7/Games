@@ -302,7 +302,7 @@ function groupBox() {
     onchange: (e) => act('host:group', { id: e.target.value ? Number(e.target.value) : null }),
   },
   h('option', { value: '', selected: !current }, 'بدون شلة'),
-  mine.list.map((g) => h('option', { value: g.id, selected: current?.id === g.id }, g.name)));
+  mine.list.map((g) => h('option', { value: g.id, selected: current?.id === g.id }, g.owner ? `${g.name} (لـ${g.owner})` : g.name)));
   const create = () => {
     const name = prompt('اسم الشلة؟ مثلاً: ولاد خالتي');
     if (name?.trim()) act('host:group-create', { name: name.trim() });
@@ -317,7 +317,10 @@ function groupBox() {
       ? h('p', { class: 'hint group-stat' }, h('b', {}, current.name), current.played
         ? ` لعبوا ${number(current.played)} من أسئلة هاللعبة، وباقي ${number(left)} جديدة عليهم.`
         : ' ما لعبوا هاللعبة قبل: كل الأسئلة جديدة عليهم.')
-      : h('p', { class: 'hint' }, 'اختر الشلة اللي تلعبون معها الليلة، والموقع يتذكر وش انسأل عليهم.'),
+      : h('p', { class: 'hint' }, 'اختر الشلة اللي تلعبون معها الليلة، والموقع يتذكر وش انسأل عليهم ويرتّبهم.'),
+    current?.top.length
+      ? h('p', { class: 'hint group-top' }, h('b', {}, '🏆 ترتيب الشلة: '), current.top.slice(0, 3).map((r) => `${r.name} ${number(r.points)}`).join(' · '))
+      : null,
   );
 }
 

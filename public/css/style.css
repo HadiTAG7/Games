@@ -1677,6 +1677,14 @@ button.hr-cell:hover { filter: brightness(1.1); transform: scale(0.98); }
 .group-row select { flex: 1; min-width: 160px; }
 .group-stat b { color: var(--accent); }
 .group-line { margin-bottom: 20px; }
+.group-top b { color: var(--accent); }
+.name-picks { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.name-picks small { width: 100%; color: var(--muted); }
+.group-card .group-ranking { margin: 8px 0; max-width: none; }
+.group-card .group-ranking li { padding: 6px 10px; }
+.group-card .group-members { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.group-card .group-add { display: flex; gap: 8px; margin: 6px 0; }
+.group-card .group-add input { flex: 1; }
 .group-card .group-games { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .group-card .group-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .consent .logo { font-size: 48px; }

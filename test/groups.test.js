@@ -165,7 +165,7 @@ test('a room plays with a group across games, tells the server what was played, 
   room.ownerId = 1;
   room.groupList = [{ id: 7, name: 'ولاد خالتي' }];
   room.setGroup({ id: 7, name: 'ولاد خالتي', plays: { feud: [['f0', 1], ['f1', 1]] } });
-  assert.deepEqual(room.groupView().current, { id: 7, name: 'ولاد خالتي', played: 2, total: 5 });
+  assert.deepEqual(room.groupView().current, { id: 7, name: 'ولاد خالتي', played: 2, total: 5, top: [] });
   assert.equal(room.commonView('player').groupName, 'ولاد خالتي');
   for (const name of ['أ', 'ب', 'ج', 'د']) room.join({ name });
   room.game.updateSettings({ rounds: 3, fastMoney: false });
@@ -220,4 +220,85 @@ test('the store keeps groups per account; limits, names and owners are checked; 
   await store.deleteAccount(me.id);
   assert.deepEqual(await store.listGroups(me.id), []);
   assert.equal(store.d.groupPlays.length, 0);
+});
+
+test('members: the owner adds them by username; they can play with the group and see it, not change it', async () => {
+  const store = new FileAccounts(fs.mkdtempSync(path.join(os.tmpdir(), 'groups-members-')));
+  const fahad = await store.createAccount('fahad', 'x');
+  const noura = await store.createAccount('noura', 'x');
+  const sami = await store.createAccount('sami', 'x');
+  const group = await groups.create(store, fahad.id, 'ولاد خالتي');
+  await assert.rejects(groups.addMember(store, fahad.id, group.id, 'nobody'), /ما لقينا حساب/);
+  await assert.rejects(groups.addMember(store, fahad.id, group.id, 'fahad'), /صاحب/);
+  await assert.rejects(groups.addMember(store, noura.id, group.id, 'sami'), /ما لقينا الشلة/, 'only the owner adds');
+  assert.equal((await groups.addMember(store, fahad.id, group.id, 'Noura')).username, 'noura');
+  await assert.rejects(groups.addMember(store, fahad.id, group.id, 'noura'), /موجود/);
+  // Noura sees it (with the owner's name) and can play with it; Sami can't.
+  const [seen] = await groups.list(store, noura.id);
+  assert.deepEqual([seen.name, seen.ownerName, seen.mine], ['ولاد خالتي', 'fahad', false]);
+  assert.equal((await groups.load(store, noura.id, group.id)).name, 'ولاد خالتي');
+  await assert.rejects(groups.load(store, sami.id, group.id), /ما لقينا/);
+  await assert.rejects(groups.rename(store, noura.id, group.id, 'لا'), /ما لقينا/);
+  await assert.rejects(groups.reset(store, noura.id, group.id), /ما لقينا/);
+  await assert.rejects(groups.leave(store, fahad.id, group.id), /صاحب/);
+  // Her own groups don't count against the owner's limit, and leaving takes it off her list.
+  await groups.leave(store, noura.id, group.id);
+  assert.deepEqual(await groups.list(store, noura.id), []);
+  await groups.addMember(store, fahad.id, group.id, 'noura');
+  await groups.removeMember(store, fahad.id, group.id, noura.id);
+  assert.deepEqual(await groups.list(store, noura.id), []);
+  // Deleting a member's account takes them out; deleting the owner's deletes the group.
+  await groups.addMember(store, fahad.id, group.id, 'sami');
+  await store.deleteAccount(sami.id);
+  assert.deepEqual((await groups.list(store, fahad.id))[0].members, []);
+  await groups.addMember(store, fahad.id, group.id, 'noura');
+  await store.addGroupScores(group.id, [{ nameKey: 'x', name: 'x', points: 3 }]);
+  await store.deleteAccount(fahad.id);
+  assert.deepEqual(await groups.list(store, noura.id), []);
+  assert.equal(store.d.groupMembers.length + store.d.groupScores.length, 0);
+});
+
+test('the ranking: each finished game adds «بطل السهرة» points by name; the owner can drop a name or start over', async () => {
+  const store = new FileAccounts(fs.mkdtempSync(path.join(os.tmpdir(), 'groups-rank-')));
+  const fahad = await store.createAccount('fahad', 'x');
+  const group = await groups.create(store, fahad.id, 'ولاد خالتي');
+  await store.addGroupScores(group.id, [{ nameKey: groups.nameKey('أبو فهد'), name: 'أبو فهد', points: 3 }, { nameKey: groups.nameKey('ريم'), name: 'ريم', points: 0 }]);
+  await store.addGroupScores(group.id, [{ nameKey: groups.nameKey('ابو فهد'), name: 'ابو فهد', points: 2 }, { nameKey: groups.nameKey('ريم'), name: 'ريم', points: 3 }]);
+  const [row] = await groups.list(store, fahad.id);
+  assert.deepEqual(row.ranking.map((r) => [r.name, r.points, r.wins, r.games, r.rank]), [['ابو فهد', 5, 1, 2, 1], ['ريم', 3, 1, 2, 2]]);
+  await assert.rejects(groups.removeScore(store, fahad.id, group.id, 'سلطان'), /مو في الترتيب/);
+  await groups.removeScore(store, fahad.id, group.id, 'أبو فهد');
+  assert.deepEqual((await groups.list(store, fahad.id))[0].ranking.map((r) => r.name), ['ريم']);
+  await groups.resetScores(store, fahad.id, group.id);
+  assert.deepEqual((await groups.list(store, fahad.id))[0].ranking, []);
+});
+
+test('a room with a group adds each finished game to its ranking once, and phones see their place', () => {
+  const scored = [];
+  const rooms = new RoomManager({ outsiderCategories: [{ id: 'food', name: 'أكل', emoji: '🍔', words: ['كبسة', 'مندي', 'جريش', 'مرقوق'] }] });
+  rooms.onGroupScore = (id, rows) => scored.push([id, rows]);
+  const room = rooms.create();
+  room.setGameType('outsider');
+  const ids = ['فهد', 'ريم', 'سلطان', 'نورة'].map((name) => room.join({ name }).id);
+  room.setGroup({ id: 3, name: 'ولاد خالتي', plays: {}, scores: [{ nameKey: groups.nameKey('ريم'), name: 'ريم', points: 10, wins: 3, games: 4 }] });
+  assert.deepEqual(room.groupNames(), ['ريم']);
+  assert.deepEqual(room.groupMe(ids[1]), { rank: 1, points: 10, of: 1 });
+  assert.equal(room.groupMe(ids[0]), null);
+  // A game ends: its points go to the group, once.
+  room.game.phase = 'final';
+  room.game.nightPoints = () => ({ [ids[0]]: 3, [ids[2]]: 1 });
+  assert.equal(room.settleNight(), true);
+  assert.equal(room.settleNight(), false);
+  assert.equal(scored.length, 1);
+  assert.deepEqual(scored[0][1].map((r) => [r.name, r.points]), [['فهد', 3], ['ريم', 0], ['سلطان', 1], ['نورة', 0]]);
+  assert.deepEqual(room.groupView().current.top.map((r) => [r.name, r.points, r.rank]), [['ريم', 10, 1], ['فهد', 3, 2], ['سلطان', 1, 3], ['نورة', 0, 4]]);
+  assert.deepEqual(room.playerView(ids[0]).groupMe, { rank: 2, points: 3, of: 4 });
+  // Without a group nothing is sent.
+  room.setGroup(null);
+  room.game.phase = 'lobby';
+  room.settleNight();
+  room.game.phase = 'final';
+  room.settleNight();
+  assert.equal(scored.length, 1);
+  room.dispose();
 });

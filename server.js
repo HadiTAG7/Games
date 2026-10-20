@@ -118,6 +118,9 @@ api.use((req, res, next) => {
 
 api.get('/contrib/spec', (req, res) => res.json({ games: contrib.formSpec(rooms.content) }));
 
+// «👥 الشلة»: the names in the room's group ranking, so a phone joining can pick its name instead of typing it.
+api.get('/rooms/:code/names', (req, res) => res.json({ names: rooms.get(req.params.code)?.groupNames().slice(0, 40) ?? [] }));
+
 /** Checks entries for one game and stores the good ones for review. Returns { added, errors }. */
 async function submitEntries(game, items, submitter) {
   const spec = contrib.SPECS[game];
@@ -263,6 +266,10 @@ const writeGroups = (fn) => {
 };
 rooms.onGroupPlay = (groupId, game, keys) => writeGroups((store) => store.addGroupPlays(groupId, game, keys));
 rooms.onGroupRecycle = (groupId, game, keys) => writeGroups((store) => store.removeGroupPlays(groupId, game, keys));
+rooms.onGroupScore = (groupId, rows) => writeGroups((store) => store.addGroupScores(groupId, rows));
+/** The lobby's list: the account's own groups, and the ones it's in (with the owner's name). */
+const lobbyGroups = async (store, accountId) => (await store.listGroups(accountId))
+  .map((g) => ({ id: g.id, name: g.name, owner: g.accountId === accountId ? null : g.ownerName }));
 app.get('/bank-img/:id.webp', pictureRoute(accountsReady));
 
 // MCP: Claude, ChatGPT and other AI apps log in to an account (OAuth) and add banks through /mcp.
@@ -368,7 +375,7 @@ io.on('connection', (socket) => {
     room.ownerId = account.id;
     room.ownerName = account.username;
     room.bankList = (await store.listBanks(account.id)).map(banks.summary);
-    room.groupList = (await store.listGroups(account.id)).map((g) => ({ id: g.id, name: g.name }));
+    room.groupList = await lobbyGroups(store, account.id);
   }
 
   async function attachHost(room) {
@@ -527,7 +534,7 @@ io.on('connection', (socket) => {
     const room = groupRoom();
     const store = await accountsReady;
     const group = await groups.create(store, room.ownerId, name);
-    room.groupList = (await store.listGroups(room.ownerId)).map((g) => ({ id: g.id, name: g.name }));
+    room.groupList = await lobbyGroups(store, room.ownerId);
     room.setGroup({ id: group.id, name: group.name, plays: {} });
     broadcast(room);
   });

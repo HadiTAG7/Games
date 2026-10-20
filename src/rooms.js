@@ -17,8 +17,8 @@ const outsiderViews = require('./games/outsider-views');
 const mafiaViews = require('./games/mafia-views');
 const feudViews = require('./games/feud-views');
 const { normalizeAnswer } = require('./normalize');
-const { NightBoard } = require('./night');
-const { GroupHistory, NO_HISTORY } = require('./groups');
+const { NightBoard, WIN_POINTS } = require('./night');
+const { GroupHistory, NO_HISTORY, nameKey, rankRows } = require('./groups');
 
 const MAX_PLAYERS = 40;
 const MAX_NAME_LENGTH = 20;
@@ -41,14 +41,18 @@ function cleanName(name) {
 
 class Room {
   /** content: { herd, time, seen, letters }: each game's questions or cards */
-  /** onGroupPlay / onGroupRecycle(groupId, game, keys): «👥 الشلة» has had these questions / starts these over. */
-  constructor({ code, content, random, onSurvey = () => {}, onGroupPlay = () => {}, onGroupRecycle = () => {} }) {
+  /**
+   * onGroupPlay / onGroupRecycle(groupId, game, keys): «👥 الشلة» has had these questions / starts these over.
+   * onGroupScore(groupId, rows): a game finished with the group: [{ nameKey, name, points }] for everyone in it.
+   */
+  constructor({ code, content, random, onSurvey = () => {}, onGroupPlay = () => {}, onGroupRecycle = () => {}, onGroupScore = () => {} }) {
     this.code = code;
     this.content = content;
     this.random = random;
     this.onSurvey = onSurvey;
     this.onGroupPlay = onGroupPlay;
     this.onGroupRecycle = onGroupRecycle;
+    this.onGroupScore = onGroupScore;
     this.hostToken = crypto.randomBytes(16).toString('hex');
     this.players = new Map(); // id → { id, name, sockets: Set<socketId>, joinedAt }
     this.onChange = () => {};
@@ -61,7 +65,7 @@ class Room {
     this.bankContent = {}; // game → those banks as game content
     // «👥 الشلة»: the owner's group playing tonight, and what it has had in each game.
     this.groupList = []; // the owner's groups: [{ id, name }]
-    this.group = null; // { id, name, histories: { game: GroupHistory } }
+    this.group = null; // { id, name, histories: { game: GroupHistory }, scores: Map(nameKey → ranking row) }
     this.gameType = 'herd';
     this.game = this.createGame('herd');
     this.touch();
@@ -104,7 +108,7 @@ class Room {
     return this.group?.histories[type] ?? NO_HISTORY;
   }
 
-  /** Plays tonight with a group (from groups.load: { id, name, plays: { game: [[key, at]] } }), or with none. */
+  /** Plays tonight with a group (from groups.load: { id, name, plays: { game: [[key, at]] }, scores }), or with none. */
   setGroup(loaded) {
     if (!['lobby', 'final'].includes(this.game.phase)) throw new GameError('خلّص اللعبة الحالية أول');
     this.group = loaded && {
@@ -114,8 +118,30 @@ class Room {
         onAdd: (keys) => this.onGroupPlay(loaded.id, game, keys),
         onRecycle: (keys) => this.onGroupRecycle(loaded.id, game, keys),
       })])),
+      scores: new Map((loaded.scores ?? []).map((r) => [r.nameKey, { name: r.name, points: r.points, wins: r.wins, games: r.games }])),
     };
     this.game.setGroupHistory?.(this.historyFor(this.gameType));
+  }
+
+  /** The group's ranking, best first. */
+  groupRanking() {
+    return this.group ? rankRows([...this.group.scores].map(([key, row]) => ({ nameKey: key, ...row }))) : [];
+  }
+
+  /** Names in the group's ranking, best first: the join page offers them so names stay the same. */
+  groupNames() {
+    return this.groupRanking().map((r) => r.name);
+  }
+
+  /** A finished game's «بطل السهرة» points go to the group's ranking, by name. */
+  scoreGroup(points) {
+    const rows = this.playerList().map((p) => ({ nameKey: nameKey(p.name), name: p.name, points: points[p.id] ?? 0 }));
+    if (!rows.length) return;
+    for (const { nameKey: key, name, points: n } of rows) {
+      const row = this.group.scores.get(key) ?? { name, points: 0, wins: 0, games: 0 };
+      this.group.scores.set(key, { name, points: row.points + n, wins: row.wins + (n >= WIN_POINTS ? 1 : 0), games: row.games + 1 });
+    }
+    this.onGroupScore(this.group.id, rows);
   }
 
   /** What the lobby shows of «👥 الشلة». */
@@ -125,6 +151,7 @@ class Room {
       name: this.group.name,
       played: this.historyFor(this.gameType).size,
       total: this.game.unitCount?.() ?? 0,
+      top: this.groupRanking().slice(0, 5).map(({ name, points, rank }) => ({ name, points, rank })),
     };
     return { loggedIn: Boolean(this.ownerId), applies: Boolean(this.game.setGroupHistory), list: this.groupList, current };
   }
@@ -304,7 +331,9 @@ class Room {
 
   /** Adds a finished game to «بطل السهرة»; called on every change. */
   settleNight() {
-    return this.night.settle(this.game);
+    const done = this.night.settle(this.game);
+    if (done && this.group) this.scoreGroup(this.night.lastPoints);
+    return done;
   }
 
   /* ---------- Views ---------- */
@@ -328,7 +357,16 @@ class Room {
   }
 
   playerView(playerId) {
-    return { ...GAMES[this.gameType].views.playerView(this, playerId), ...this.commonView('player') };
+    return { ...GAMES[this.gameType].views.playerView(this, playerId), ...this.commonView('player'), groupMe: this.groupMe(playerId) };
+  }
+
+  /** The player's place in the group's ranking: { rank, points, of }, or null. */
+  groupMe(playerId) {
+    const player = this.players.get(playerId);
+    if (!this.group || !player) return null;
+    const ranking = this.groupRanking();
+    const mine = ranking.find((r) => r.nameKey === nameKey(player.name));
+    return mine ? { rank: mine.rank, points: mine.points, of: ranking.length } : null;
   }
 
   dispose() {
@@ -353,6 +391,7 @@ class RoomManager {
     this.onSurvey = () => {}; // «استبيانكم»: the server stores confirmed «عقلية القطيع» rounds
     this.onGroupPlay = () => {}; // «👥 الشلة»: the server stores what each group has had
     this.onGroupRecycle = () => {};
+    this.onGroupScore = () => {};
   }
 
   /** Swap in a game's bank (say, after approving questions people sent); games started from now on use it. */
@@ -376,6 +415,7 @@ class RoomManager {
       onSurvey: (r) => this.onSurvey(r),
       onGroupPlay: (...args) => this.onGroupPlay(...args),
       onGroupRecycle: (...args) => this.onGroupRecycle(...args),
+      onGroupScore: (...args) => this.onGroupScore(...args),
     });
     this.rooms.set(room.code, room);
     return room;

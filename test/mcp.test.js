@@ -121,6 +121,16 @@ test('accounts over HTTP: sign up, log in, paste a bank, share it, and the owner
   assert.deepEqual(listed.groups.map((g) => [g.name, g.total]), [['ولاد خالتي', 0]]);
   assert.ok(listed.games.some((g) => g.id === 'feud') && !listed.games.some((g) => g.id === 'mafia'), 'games with questions');
   assert.equal((await noura.post(`/api/account/groups/${group.id}/delete`, {})).status, 400);
+  // Members: added by username, they see it with the owner's name, can leave, can't change it.
+  assert.equal((await fahad.post(`/api/account/groups/${group.id}/members`, { username: 'nobody_here' })).status, 400);
+  assert.equal((await fahad.post(`/api/account/groups/${group.id}/members`, { username: 'noura' })).json.member.username, 'noura');
+  const hers = (await noura.get('/api/account/groups')).json.groups;
+  assert.deepEqual(hers.map((g) => [g.name, g.ownerName, g.mine]), [['ولاد خالتي', 'فهد_99', false]]);
+  assert.equal((await noura.post(`/api/account/groups/${group.id}/rename`, { name: 'لا' })).status, 400);
+  assert.equal((await noura.post(`/api/account/groups/${group.id}/scores/reset`, {})).status, 400);
+  assert.equal((await noura.post(`/api/account/groups/${group.id}/leave`, {})).status, 200);
+  assert.deepEqual((await noura.get('/api/account/groups')).json.groups, []);
+  assert.equal((await fahad.post(`/api/account/groups/${group.id}/scores/reset`, {})).status, 200);
   assert.equal((await fahad.post(`/api/account/groups/${group.id}/rename`, { name: 'العيال' })).json.group.name, 'العيال');
   assert.equal((await fahad.post(`/api/account/groups/${group.id}/reset`, {})).status, 200);
   assert.equal((await fahad.post(`/api/account/groups/${group.id}/delete`, {})).status, 200);
