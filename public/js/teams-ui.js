@@ -3,8 +3,8 @@
 
 const TEAM_ORDER = ['red', 'blue'];
 const TEAM_INFO = {
-  red: { name: 'الأحمر', emoji: '🔴' },
-  blue: { name: 'الأزرق', emoji: '🔵' },
+  red: { name: 'الأحمر' },
+  blue: { name: 'الأزرق' },
 };
 const otherTeam = (team) => (team === 'red' ? 'blue' : 'red');
 
@@ -13,8 +13,8 @@ let teamNames = {};
 function useTeamNames(names) {
   teamNames = names ?? {};
 }
-/** «🔴 الفريق الأحمر», or «🔴 الشباب» when the host named the team. */
-const teamLabel = (team) => (teamNames[team]
-  ? `${TEAM_INFO[team].emoji} ${teamNames[team]}`
-  : `${TEAM_INFO[team].emoji} الفريق ${TEAM_INFO[team].name}`);
-const teamShort = (team) => `${TEAM_INFO[team].emoji} ${teamNames[team] || TEAM_INFO[team].name}`;
+/** «الفريق الأحمر», or «الشباب» when the host named the team. */
+const teamLabel = (team) => (teamNames[team] || `الفريق ${TEAM_INFO[team].name}`);
+const teamShort = (team) => teamNames[team] || TEAM_INFO[team].name;
+/** The team's colour as a dot, to put before its name. */
+const teamDot = (team) => h('span', { class: `team-dot ${team}`, 'aria-hidden': 'true' });

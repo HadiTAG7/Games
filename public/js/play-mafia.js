@@ -1,5 +1,5 @@
 /* global $, h, emit, toast, socket, app, state, screenKey: writable, confetti, timerEl, PLAY_GAMES, sfx,
-   MF_ROLES, mfRole, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText, mfWon */
+   MF_ROLES, mfRole, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText, mfWon, icon */
 'use strict';
 
 // Player screens for «مافيا». Your role card shows only while you press on
@@ -10,8 +10,8 @@
 (() => {
 function topbar() {
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'مافيا 🎭'),
-    state.me.inGame && !state.me.alive && state.phase !== 'final' ? h('div', { class: 'pill' }, '👻 طالع') : null,
+    h('div', { class: 'brand' }, 'مافيا ', icon('drama')),
+    state.me.inGame && !state.me.alive && state.phase !== 'final' ? h('div', { class: 'pill' }, icon('ghost'), ' طالع') : null,
     h('div', { class: 'pill' }, state.me.name),
   );
 }
@@ -21,17 +21,17 @@ function roleCard() {
   const { me } = state;
   const info = MF_ROLES[me.role];
   const face = [
-    h('span', { class: 'os-card-emoji' }, info.emoji),
+    h('span', { class: 'os-card-emoji' }, icon(info.icon)),
     h('b', { class: 'os-card-word' }, info.name),
     h('small', {}, info.goal),
   ];
-  if (me.team?.length) face.push(h('small', { class: 'mf-team' }, `ربعك: ${me.team.map((t) => `${t.name}${t.alive ? '' : ' 💀'}`).join(' · ')}`));
+  if (me.team?.length) face.push(h('small', { class: 'mf-team' }, `ربعك: ${me.team.map((t) => `${t.name}${t.alive ? '' : ' (مات)'}`).join(' · ')}`));
   if (me.checks?.length) {
-    face.push(h('small', { class: 'mf-team' }, me.checks.map((c) => `${c.name}: ${c.mafia ? '🔪 مافيا' : '✅ مو مافيا'}`).join(' · ')));
+    face.push(h('small', { class: 'mf-team' }, me.checks.map((c) => `${c.name}: ${c.mafia ? 'مافيا' : 'مو مافيا'}`).join(' · ')));
   }
-  if (me.role === 'sniper') face.push(h('small', { class: 'mf-team' }, me.bulletUsed ? 'استخدمت طلقتك' : 'طلقتك لسا معك 🎯'));
+  if (me.role === 'sniper') face.push(h('small', { class: 'mf-team' }, me.bulletUsed ? 'استخدمت طلقتك' : ['طلقتك لسا معك ', icon('crosshair')]));
   const card = h('button', { type: 'button', class: 'os-card mf-card', 'aria-label': 'اضغط مطولاً عشان تشوف دورك', oncontextmenu: (e) => e.preventDefault() },
-    h('div', { class: 'os-card-cover' }, h('span', { class: 'os-card-emoji' }, '🎭'), h('b', {}, 'اضغط مطولاً عشان تشوف دورك')),
+    h('div', { class: 'os-card-cover' }, h('span', { class: 'os-card-emoji' }, icon('drama')), h('b', {}, 'اضغط مطولاً عشان تشوف دورك')),
     h('div', { class: 'os-card-face' }, ...face),
   );
   const show = (on) => card.classList.toggle('open', on);
@@ -44,7 +44,7 @@ function roleCard() {
 
 function renderLobby() {
   return h('main', { class: 'stage narrow' },
-    h('div', { class: 'wave' }, '🎭'),
+    h('div', { class: 'wave' }, icon('drama')),
     h('h1', { class: 'center' }, `أهلاً ${state.me.name}`),
     h('p', { class: 'muted center' }, 'انتظر المضيف يوزّع الأدوار…'),
     h('div', { class: 'card' }, h('h2', {}, 'الأدوار'), mfLineup(state.lineup), mfRulesList(state.lineup)),
@@ -53,7 +53,7 @@ function renderLobby() {
 
 function renderWatching() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('div', { class: 'mf-big' }, '👀'),
+    h('div', { class: 'mf-big' }, icon('eye')),
     h('h1', { class: 'center' }, 'دخلت واللعبة شغّالة'),
     h('p', { class: 'center muted' }, 'تابع من الشاشة، وتلعب معهم من اللعبة الجاية.'),
   );
@@ -62,9 +62,9 @@ function renderWatching() {
 /** The dead watch with every role showing, and keep quiet. */
 function renderGhost() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('div', { class: 'mf-big' }, '👻'),
+    h('div', { class: 'mf-big' }, icon('ghost')),
     h('h1', { class: 'center' }, 'طلعت من اللعبة'),
-    h('p', { class: 'center muted' }, 'تقدر تشوف أدوار الكل… بس لا تتكلم ولا تلمّح! 🤐'),
+    h('p', { class: 'center muted' }, 'تقدر تشوف أدوار الكل… بس لا تتكلم ولا تلمّح!'),
     state.announcement && ['morning', 'verdict'].includes(state.phase) ? mfAnnouncement(state.announcement) : null,
     state.phase === 'discuss' || state.phase === 'night' ? timerEl(state.endsAt) : null,
     mfPlayers(state.players, { meId: state.me.id }),
@@ -75,19 +75,19 @@ function renderRoles() {
   const { me } = state;
   return h('main', { class: 'stage narrow mf-stage' },
     roleCard(),
-    me.team?.length ? h('p', { class: 'center' }, `🔪 ربعك في المافيا: ${me.team.map((t) => t.name).join(' و')}`) : null,
+    me.team?.length ? h('p', { class: 'center' }, icon('swords'), ` ربعك في المافيا: ${me.team.map((t) => t.name).join(' و')}`) : null,
     h('p', { class: 'hint center' }, 'شوف دورك وخلّه سر. المضيف بيبدأ الليل.'),
   );
 }
 
 const NIGHT_PROMPTS = {
-  mafia: '🔪 اختاروا ضحية الليلة',
-  doctor: '🩺 مين تنقذ الليلة؟',
-  police: '👮 مين تسأل عنه؟',
-  sniper: '🎯 تطلق على أحد؟',
-  mayor: '🤔 مين تشك فيه؟',
-  jester: '🤔 مين تشك فيه؟',
-  citizen: '🤔 مين تشك فيه؟',
+  mafia: 'اختاروا ضحية الليلة',
+  doctor: 'مين تنقذ الليلة؟',
+  police: 'مين تسأل عنه؟',
+  sniper: 'تطلق على أحد؟',
+  mayor: 'مين تشك فيه؟',
+  jester: 'مين تشك فيه؟',
+  citizen: 'مين تشك فيه؟',
 };
 
 async function pick(target) {
@@ -107,18 +107,18 @@ function mafiaPlanBox() {
   const mates = me.team.filter((t) => t.alive);
   let main;
   if (plan.locked) {
-    main = [h('div', { class: 'verdict good' }, `✅ اتفقتوا: الضحية ${plan.agreed.name}`), h('p', { class: 'hint' }, 'تقدرون تغيّرون لين يخلص الليل')];
+    main = [h('div', { class: 'verdict good' }, icon('circle-check'), ` اتفقتوا: الضحية ${plan.agreed.name}`), h('p', { class: 'hint' }, 'تقدرون تغيّرون لين يخلص الليل')];
   } else if (plan.agreed && me.pick === plan.agreed.id) {
     main = plan.confirmed
-      ? h('p', { class: 'mf-plan-wait' }, '✅ اعتمدت، ننتظر ربعك')
-      : h('button', { type: 'button', class: 'btn big danger mf-confirm', onclick: confirmPick }, `🔪 اعتمد ${plan.agreed.name}`);
+      ? h('p', { class: 'mf-plan-wait' }, icon('circle-check'), ' اعتمدت، ننتظر ربعك')
+      : h('button', { type: 'button', class: 'btn big danger mf-confirm', onclick: confirmPick }, icon('swords'), ` اعتمد ${plan.agreed.name}`);
   } else {
-    main = h('p', { class: 'mf-plan-wait' }, me.pick ? '👉 ربعك يشوفون إشارتك. أشّروا كلكم على نفس الشخص' : '👉 أشّر على اللي تبيه، وربعك يشوفون إشارتك');
+    main = h('p', { class: 'mf-plan-wait' }, me.pick ? [icon('pointer'), ' ربعك يشوفون إشارتك. أشّروا كلكم على نفس الشخص'] : [icon('pointer'), ' أشّر على اللي تبيه، وربعك يشوفون إشارتك']);
   }
   return h('div', { class: 'card mf-plan' }, main,
     h('ul', { class: 'mf-plan-team' }, mates.map((t) => h('li', {},
-      h('b', {}, t.name), t.pick ? ` 👉 ${t.pick.name}` : ' … لسا ما أشّر',
-      plan.agreed && t.pick?.id === plan.agreed.id ? (t.confirmed ? ' ✅' : ' ⏳') : ''))));
+      h('b', {}, t.name), t.pick ? [` `, icon('pointer'), ` ${t.pick.name}`] : ' … لسا ما أشّر',
+      plan.agreed && t.pick?.id === plan.agreed.id ? (t.confirmed ? [' ', icon('circle-check')] : [' ', icon('hourglass')]) : ''))));
 }
 
 function renderNight() {
@@ -132,11 +132,11 @@ function renderNight() {
   /** Who points at this name: me, and my teammates. */
   const pointers = (p) => (team ? [me.pick === p.id ? 'أنا' : null, ...me.team.filter((t) => t.alive && t.pick?.id === p.id).map((t) => t.name)].filter(Boolean) : []);
   return h('main', { class: 'stage narrow mf-stage mf-night' },
-    h('h1', { class: 'center' }, `🌙 الليلة ${state.dayNumber}`),
-    h('p', { class: 'center mf-prompt' }, team ? '🔪 أشّروا على الضحية، ولما تتفقون اعتمدوا' : NIGHT_PROMPTS[role]),
+    h('h1', { class: 'center' }, icon('moon'), ` الليلة ${state.dayNumber}`),
+    h('p', { class: 'center mf-prompt' }, team ? [icon('swords'), ' أشّروا على الضحية، ولما تتفقون اعتمدوا'] : NIGHT_PROMPTS[role]),
     team ? mafiaPlanBox() : null,
     lastCheck ? h('div', { class: `verdict ${lastCheck.mafia ? 'bad' : 'good'}` },
-      `${lastCheck.name} ${lastCheck.mafia ? 'مافيا! 🔪' : 'مو مافيا ✅'}`) : null,
+      `${lastCheck.name} ${lastCheck.mafia ? 'مافيا!' : 'مو مافيا'}`) : null,
     police ? null : h('div', { class: 'os-vote-grid' }, choices.map((p) => {
       const marks = pointers(p);
       return h('button', {
@@ -144,14 +144,14 @@ function renderNight() {
         class: `btn big os-vote-btn${me.pick === p.id ? ' picked' : ''}${marks.some((m) => m !== 'أنا') ? ' pointed' : ''}`,
         disabled: role === 'doctor' && p.id === me.lastSaved,
         onclick: () => pick(p.id),
-      }, h('span', {}, p.id === me.id ? 'نفسي' : p.name, !team && me.pick === p.id ? ' ✅' : ''),
-      marks.length ? h('small', { class: 'mf-pointers' }, `👉 ${marks.join(' · ')}`) : null);
+      }, h('span', {}, p.id === me.id ? 'نفسي' : p.name, !team && me.pick === p.id ? [' ', icon('circle-check')] : ''),
+      marks.length ? h('small', { class: 'mf-pointers' }, icon('pointer'), ` ${marks.join(' · ')}`) : null);
     })),
     role === 'sniper' ? h('button', {
       type: 'button',
       class: `btn big ghost${me.picked && me.pick === null ? ' picked' : ''}`,
       onclick: () => pick(null),
-    }, me.picked && me.pick === null ? '✋ خلّيت الطلقة ✅' : '✋ خلّ الطلقة لليلة ثانية') : null,
+    }, me.picked && me.pick === null ? [icon('hand'), ' خلّيت الطلقة ', icon('circle-check')] : [icon('hand'), ' خلّ الطلقة لليلة ثانية']) : null,
     timerEl(state.endsAt),
     h('p', { class: 'hint center' }, team
       ? (me.plan.locked ? 'ننتظر الباقين…' : 'اتفقوا واعتمدوا قبل لا يخلص الوقت، وإلا محد يموت')
@@ -162,7 +162,7 @@ function renderNight() {
 
 function renderMorning() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, '☀️ صباح الخير'),
+    h('h1', { class: 'center' }, icon('sun'), ' صباح الخير'),
     mfAnnouncement(state.announcement),
     state.winner ? h('div', { class: 'verdict good' }, mfWinnerText(state.winner)) : null,
     h('p', { class: 'hint center' }, 'شوفوا الشاشة، والمضيف بيبدأ النقاش.'),
@@ -172,7 +172,7 @@ function renderMorning() {
 
 function renderDiscuss() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, '🗣️ تناقشوا'),
+    h('h1', { class: 'center' }, icon('megaphone'), ' تناقشوا'),
     timerEl(state.endsAt),
     h('p', { class: 'center muted' }, 'مين تشكّون فيه؟ بعدها تصوّتون من الجوالات.'),
     mfPlayers(state.players, { meId: state.me.id }),
@@ -189,15 +189,15 @@ function renderVote() {
   const { me } = state;
   const choices = state.players.filter((p) => p.alive && p.id !== me.id);
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, '🗳️ مين يطلع؟'),
-    me.role === 'mayor' ? h('p', { class: 'center mf-mayor' }, '🎩 صوتك يحسب بصوتين') : null,
+    h('h1', { class: 'center' }, icon('vote'), ' مين يطلع؟'),
+    me.role === 'mayor' ? h('p', { class: 'center mf-mayor' }, icon('award'), ' صوتك يحسب بصوتين') : null,
     h('div', { class: 'os-vote-grid' }, choices.map((p) => h('button', {
       type: 'button',
       class: `btn big os-vote-btn${me.vote === p.id ? ' picked' : ''}`,
       onclick: () => vote(p.id),
-    }, p.name, me.vote === p.id ? ' ✅' : ''))),
+    }, p.name, me.vote === p.id ? [' ', icon('circle-check')] : ''))),
     h('button', { type: 'button', class: `btn big ghost${me.vote === 'none' ? ' picked' : ''}`, onclick: () => vote('none') },
-      me.vote === 'none' ? '🙅 ما نطلّع أحد ✅' : '🙅 ما نطلّع أحد'),
+      me.vote === 'none' ? [icon('ban'), ' ما نطلّع أحد ', icon('circle-check')] : [icon('ban'), ' ما نطلّع أحد']),
     h('p', { class: 'hint center' }, `صوّت ${state.voted.length} من ${choices.length + 1} · تقدر تغيّر لين يقفل التصويت`),
     roleCard(),
   );
@@ -217,7 +217,7 @@ function renderFinal() {
   const mine = mfWon(me.role, winner);
   return h('main', { class: 'stage narrow final mf-stage' },
     mine ? confetti() : null,
-    h('div', { class: 'trophy' }, mine ? '🏆' : '🎭'),
+    h('div', { class: 'trophy' }, mine ? icon('trophy') : icon('drama')),
     h('h1', { class: 'center' }, winner ? mfWinnerText(winner) : 'انتهت اللعبة'),
     me.role ? h('p', { class: 'center' }, `كنت ${mfRole(me.role)}${mine ? (me.role === 'jester' ? '، وضحكت عليهم!' : '، وفريقك فاز!') : ''}`) : null,
     h('h2', { class: 'center' }, 'الأدوار كانت'),

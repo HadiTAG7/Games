@@ -29,7 +29,7 @@ function hrBoard(s, { onPick = null, current = null } = {}) {
 
 function hrSides() {
   return h('p', { class: 'hr-sides' },
-    h('span', { class: 'red' }, '🔴 يوصّل يمين ↔ يسار'), ' · ', h('span', { class: 'blue' }, '🔵 يوصّل فوق ↕ تحت'));
+    h('span', { class: 'red' }, h('span', { class: 'team-dot red', 'aria-hidden': 'true' }), ' يوصّل يمين ↔ يسار'), ' · ', h('span', { class: 'blue' }, h('span', { class: 'team-dot blue', 'aria-hidden': 'true' }), ' يوصّل فوق ↕ تحت'));
 }
 
 /** A big hexagon with the letter being played. */
@@ -39,7 +39,7 @@ function hrLetter(letter) {
 
 function hrBuzzStatus(current) {
   if (current.buzz) return null;
-  if (current.locked.length === 0) return 'البازر مفتوح للفريقين 🔔';
+  if (current.locked.length === 0) return 'البازر مفتوح للفريقين';
   const open = current.locked.includes('red') ? 'blue' : 'red';
   return `${teamShort(current.locked[0])} غلط، البازر مفتوح لـ${teamShort(open)} بس`;
 }
@@ -48,7 +48,7 @@ function hrRulesList(settings) {
   const rounds = settings.roundsToWin;
   return h('ul', { class: 'rules-list' },
     h('li', {}, 'فريقين ولوحة فيها 25 حرف على شكل خلايا.'),
-    h('li', {}, '🔴 الأحمر يحاول يوصّل خلاياه من اليمين لليسار، و🔵 الأزرق من فوق لتحت.'),
+    h('li', {}, h('span', { class: 'team-dot red', 'aria-hidden': 'true' }), ' الأحمر يحاول يوصّل خلاياه من اليمين لليسار، و', h('span', { class: 'team-dot blue', 'aria-hidden': 'true' }), ' الأزرق من فوق لتحت.'),
     h('li', {}, 'الفريق اللي عليه الدور يختار حرف، ويطلع سؤال جوابه يبدأ بهالحرف.'),
     h('li', {}, 'اللي يعرف الجواب يضغط البازر في جواله، وأول واحد يضغط يجاوب.'),
     h('li', {}, 'لو جوابه صح تصير الخلية لفريقه، وفريقه يختار الحرف الجاي. ولو غلط، الفرصة للفريق الثاني.'),
@@ -58,5 +58,5 @@ function hrRulesList(settings) {
 }
 
 function hrRoundTitle(result) {
-  return `${teamLabel(result.winner)} وصّل طريقه وكسب الجولة! 🏆`;
+  return `${teamLabel(result.winner)} وصّل طريقه وكسب الجولة!`;
 }

@@ -42,11 +42,10 @@ function pickCategory(input, list) {
 
 const newCategoryFields = [
   { key: 'newName', label: 'اسم الفئة الجديدة', type: 'text', max: custom.MAX_NAME, showIf: { category: NEW } },
-  { key: 'newEmoji', label: 'إيموجي للفئة', type: 'text', max: 8, placeholder: '✍️', showIf: { category: NEW } },
 ];
 const categoryOptions = (list) => [
-  ...list.map((c) => ({ value: c.id, label: `${c.emoji} ${c.name}` })),
-  { value: NEW, label: '➕ فئة جديدة' },
+  ...list.map((c) => ({ value: c.id, label: c.name })),
+  { value: NEW, label: '+ فئة جديدة' },
 ];
 
 /** Appends approved entries to copies of the categories they belong to; new categories come after. */
@@ -125,7 +124,7 @@ const SPECS = {
       { key: 'subcategory', label: 'القسم', type: 'select',
         options: list.flatMap((c) => c.subcategories.map((s) => ({ value: s.id, label: `${c.emoji} ${c.name} · ${s.name}` }))) },
       { key: 'mode', label: 'الطور', type: 'select',
-        options: [{ value: 'same', label: '🐄 مع القطيع (جواب الأغلبية)' }, { value: 'different', label: '🦄 عكس القطيع (جواب ينفرد فيه)' }] },
+        options: [{ value: 'same', label: 'مع القطيع (جواب الأغلبية)' }, { value: 'different', label: 'عكس القطيع (جواب ينفرد فيه)' }] },
       { key: 'q', label: 'السؤال', type: 'textarea', max: custom.MAX_QUESTION, placeholder: 'مثال: اذكر لون من ألوان قوس قزح' },
     ],
     validate(input, list) {
@@ -148,7 +147,7 @@ const SPECS = {
         };
       }),
     })),
-    summary: (e) => `${e.mode === 'same' ? '🐄' : '🦄'} ${e.q}`,
+    summary: (e) => `${e.mode === 'same' ? 'مع القطيع' : 'عكس القطيع'}: ${e.q}`,
   },
 
   outsider: {

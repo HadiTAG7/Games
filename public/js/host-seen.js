@@ -1,6 +1,6 @@
 /* global $, h, storage, toast, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, SJ_LIFELINES, sjAnswering, sjScoreboard, sjBoard,
-   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox, groupBox, noPhonesCard */
+   sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, sfx, customBox, banksBox, groupBox, noPhonesCard, icon */
 'use strict';
 
 // Host screens for «سين جيم». The host picks the categories, taps the
@@ -55,7 +55,7 @@ document.addEventListener('keydown', (e) => {
 function topbar() {
   const inGame = !['lobby', 'final'].includes(state.phase);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'سين جيم ❓'),
+    h('div', { class: 'brand' }, 'سين جيم ', icon('circle-help')),
     inGame ? h('div', { class: 'pill' }, `باقي ${state.tilesLeft} سؤال`) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
@@ -69,7 +69,7 @@ function answerBox(current) {
     title: masked ? 'اضغط عشان تشوف الجواب' : 'اضغط عشان تخفي الجواب (لو الشاشة قدام الكل)',
     onclick: () => { if (state.phase !== 'reveal') savePrefs({ answer: masked }); },
   },
-    h('small', {}, masked ? '🙈 الجواب مخفي — اضغط عشان تشوفه' : 'الجواب'),
+    h('small', {}, masked ? [icon('eye-off'), ' الجواب مخفي — اضغط عشان تشوفه'] : 'الجواب'),
     h('b', {}, current.answer),
   );
 }
@@ -84,7 +84,7 @@ function lifelineButton(name, { team, on = false }) {
     'aria-pressed': String(on),
     title: info.hint,
     onclick: () => send('host:sj-lifeline', { name }),
-  }, `${info.emoji} ${info.name}`, !left && !on ? h('small', {}, ' (انستخدمت)') : null);
+  }, icon(info.icon), ` ${info.name}`, !left && !on ? h('small', {}, ' (انستخدمت)') : null);
 }
 
 /* ---------- Lobby ---------- */
@@ -122,7 +122,7 @@ function categoryChips() {
     class: `category-chip${c.id === 'custom' ? ' custom' : ''}`,
     'data-category': c.id,
     onclick: () => toggleCategory(c.id),
-  }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
+  }, h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
 }
 
 function renderLobby() {
@@ -138,7 +138,7 @@ function renderLobby() {
       gamePicker(),
       s.phones ? teamsSection() : null,
       s.phones ? h('button', { type: 'button', class: 'btn small sj-nophones-btn', onclick: () => act('host:settings', { phones: false }) },
-        '📺 نلعب بدون جوالات') : null,
+        icon('tv'), ' نلعب بدون جوالات') : null,
       h('h2', {}, 'الإعدادات'),
       h('div', { class: 'settings' },
         field('وقت الفريق اللي عليه الدور', select('sj-turn', 'turnSeconds', TURN_SECONDS, s.turnSeconds)),
@@ -154,7 +154,7 @@ function renderLobby() {
                 categoriesSeq += 1;
                 await act('host:settings', { randomCategories: true });
               },
-            }, '🎲 اختيار عشوائي'),
+            }, icon('dices'), ' اختيار عشوائي'),
             h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories([]) }, 'ولا وحدة'),
           ),
           h('div', { class: 'chips sj-categories', role: 'group', 'aria-label': 'الفئات' }, categoryChips()),
@@ -166,17 +166,16 @@ function renderLobby() {
         help: 'فئة خاصة فيكم تطلع مع الفئات. كل سطر: القيمة | السؤال | الجواب، مثل: 200 | مين أطول واحد فينا؟ | فهد. وتحتاج سؤالين على الأقل من كل قيمة.',
         inputs: [
           h('div', { class: 'settings' },
-            field('اسم الفئة', h('input', { id: 'sj-custom-name', maxlength: 30, value: state.custom.name, placeholder: 'أسئلتنا' })),
-            field('إيموجي', h('input', { id: 'sj-custom-emoji', maxlength: 8, value: state.custom.emoji, placeholder: '✍️' }))),
+            field('اسم الفئة', h('input', { id: 'sj-custom-name', maxlength: 30, value: state.custom.name, placeholder: 'أسئلتنا' }))),
           h('textarea', { id: 'sj-custom-text', rows: 5, value: state.custom.text, placeholder: '200 | السؤال | الجواب\n400 | السؤال | الجواب\n600 | السؤال | الجواب' }),
         ],
-        save: () => act('host:settings', { custom: { name: $('#sj-custom-name').value, emoji: $('#sj-custom-emoji').value, text: $('#sj-custom-text').value } }),
+        save: () => act('host:settings', { custom: { name: $('#sj-custom-name').value, text: $('#sj-custom-text').value } }),
         items: () => state.custom.items.map((i) => ({ category: '__new', newName: state.custom.name, newEmoji: state.custom.emoji, value: i.value, q: i.q, a: i.a })),
       }),
       banksBox(),
       groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ❓'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ', icon('circle-help')),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -201,7 +200,7 @@ function updateLobby() {
   const { custom } = state;
   const per = [200, 400, 600].map((v) => `${v}: ${custom.items.filter((i) => i.value === v).length}`).join('، ');
   $('#custom-status').textContent = custom.items.length
-    ? `${custom.items.length} سؤال (${per})${custom.bad ? ` · ${custom.bad} سطر ما فهمناه` : ''} · ${custom.ready ? '✅ الفئة جاهزة، اخترها من الفئات فوق' : 'تحتاج سؤالين من كل قيمة'}`
+    ? `${custom.items.length} سؤال (${per})${custom.bad ? ` · ${custom.bad} سطر ما فهمناه` : ''} · ${custom.ready ? 'الفئة جاهزة، اخترها من الفئات فوق' : 'تحتاج سؤالين من كل قيمة'}`
     : '';
 
   const teamsReady = !state.settings.phones || (state.teams.red.length > 0 && state.teams.blue.length > 0);
@@ -232,7 +231,7 @@ function renderPicked() {
   return h('main', { class: 'stage sj-stage narrow' },
     sjScoreboard(state, { compact: true }),
     h('div', { class: `sj-picked ${current.team}` },
-      h('div', { class: 'sj-picked-cat' }, `${current.category.emoji} ${current.category.name}`),
+      h('div', { class: 'sj-picked-cat' }, `${current.category.name}`),
       h('div', { class: 'sj-picked-value' }, current.value),
       h('div', {}, teamLabel(current.team)),
     ),
@@ -240,8 +239,8 @@ function renderPicked() {
     h('div', { class: 'sj-life-row' },
       ['pit', 'double'].map((name) => lifelineButton(name, { team: current.team, on: current.before.includes(name) }))),
     h('div', { class: 'actions' },
-      h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:sj-show') }, 'اعرض السؤال ▶️'),
-      h('button', { class: 'btn ghost', onclick: () => send('host:sj-cancel') }, '↩︎ اختاروا سؤال ثاني'),
+      h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:sj-show') }, 'اعرض السؤال ', icon('play')),
+      h('button', { class: 'btn ghost', onclick: () => send('host:sj-cancel') }, icon('undo-2'), ' اختاروا سؤال ثاني'),
     ),
     h('p', { class: 'hint center kbd-hint' }, 'مسافة = اعرض السؤال'),
   );
@@ -256,7 +255,7 @@ function renderQuestion() {
     sjScoreboard(state, { compact: true }),
     sjHead(current),
     h('div', { class: `sj-turn ${team}` },
-      steal ? `فرصة ${teamLabel(team)} يسرق النقاط!` : calling ? `📞 ${teamLabel(team)} يتصل بصديق` : `${teamLabel(team)} يجاوب`,
+      steal ? `فرصة ${teamLabel(team)} يسرق النقاط!` : calling ? [icon('phone'), ` ${teamLabel(team)} يتصل بصديق`] : `${teamLabel(team)} يجاوب`,
       timerEl(current.endsAt)),
     sjQuestion(current),
     answerBox(current),
@@ -264,12 +263,12 @@ function renderQuestion() {
       ['two', 'call'].map((name) => lifelineButton(name, { team: current.team, on: current.during.includes(name) }))),
     h('div', { class: 'tc-judge' },
       h('button', { class: 'btn tc-correct', onclick: () => send('host:sj-judge', { correct: true }) },
-        steal ? `✅ صح لـ${teamShort(team)}` : '✅ صح'),
+        steal ? [icon('circle-check'), ` صح لـ${teamShort(team)}`] : [icon('circle-check'), ' صح']),
       h('button', { class: 'btn tc-skip', onclick: () => send('host:sj-judge', { correct: false }) },
-        steal ? '❌ محد جاوب' : '❌ غلط'),
+        steal ? [icon('circle-x'), ' محد جاوب'] : [icon('circle-x'), ' غلط']),
     ),
     h('div', { class: 'actions tc-tools' },
-      state.canUndo ? h('button', { class: 'btn', onclick: () => send('host:sj-undo') }, '↩︎ تراجع') : null,
+      state.canUndo ? h('button', { class: 'btn', onclick: () => send('host:sj-undo') }, icon('undo-2'), ' تراجع') : null,
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
     h('p', { class: 'hint center kbd-hint' }, 'الكيبورد: C = صح · X = غلط'),
@@ -287,8 +286,8 @@ function renderReveal() {
     answerBox(current),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:sj-next') },
-        last ? 'النتيجة النهائية 🏆' : 'رجوع للوحة ▶️'),
-      h('button', { class: 'btn', onclick: () => send('host:sj-undo') }, '↩︎ تراجع عن الحكم'),
+        last ? ['النتيجة النهائية ', icon('trophy')] : ['رجوع للوحة ', icon('play')]),
+      h('button', { class: 'btn', onclick: () => send('host:sj-undo') }, icon('undo-2'), ' تراجع عن الحكم'),
     ),
     h('p', { class: 'hint center kbd-hint' }, 'Enter = رجوع للوحة'),
   );
@@ -298,11 +297,11 @@ function renderFinal() {
   const { winner } = state;
   return h('main', { class: 'stage narrow final' },
     winner ? confetti() : null,
-    h('div', { class: 'trophy' }, winner ? '🏆' : '🤝'),
+    h('div', { class: 'trophy' }, winner ? icon('trophy') : icon('handshake')),
     h('h1', { class: 'winner-name' }, sjWinnerText(state)),
     winner && state.teams[winner].length ? h('p', { class: 'center' }, state.teams[winner].map((p) => p.name).join(' · ')) : null,
     sjScoreboard(state),
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة ', icon('repeat'))),
     h('p', { class: 'hint center' }, 'الفريق الثاني يبدأ اللعبة الجاية، والأسئلة ما تتكرر'),
   );
 }

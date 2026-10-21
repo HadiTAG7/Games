@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection,
    updateTeamsSection, timerEl, teamLabel, teamShort, scoreboardEl, roundsText, hrBoard, hrSides, hrLetter,
-   hrBuzzStatus, hrRulesList, hrRoundTitle, sfx, customBox, banksBox, groupBox */
+   hrBuzzStatus, hrRulesList, hrRoundTitle, sfx, customBox, banksBox, groupBox, icon */
 'use strict';
 
 // Host screens for «حروف». The host taps the letter a team picks, reads the
@@ -57,7 +57,7 @@ document.addEventListener('keydown', (e) => {
 function topbar() {
   const inGame = !['lobby', 'final'].includes(state.phase);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'حروف 🔤'),
+    h('div', { class: 'brand' }, 'حروف ', icon('hexagon')),
     inGame ? h('div', { class: 'pill' }, `الجولة ${state.roundNumber}`) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
@@ -71,7 +71,7 @@ function answerBox(answer, { always = false } = {}) {
     title: masked ? 'اضغط عشان تشوف الجواب' : 'اضغط عشان تخفي الجواب (لو الشاشة قدام الكل)',
     onclick: () => { if (!always) savePrefs({ answer: masked }); },
   },
-    h('small', {}, masked ? '🙈 الجواب مخفي — اضغط عشان تشوفه' : 'الجواب'),
+    h('small', {}, masked ? [icon('eye-off'), ' الجواب مخفي — اضغط عشان تشوفه'] : 'الجواب'),
     h('b', {}, answer),
   );
 }
@@ -103,7 +103,7 @@ function renderLobby() {
       banksBox(),
       groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 🔤'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ', icon('hexagon')),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -115,7 +115,7 @@ function updateLobby() {
   const { custom } = state;
   const letters = [...new Set(custom.items.map((i) => i.letter))];
   $('#custom-status').textContent = custom.items.length
-    ? `✅ ${custom.items.length} سؤال على الحروف: ${letters.join(' ')}${custom.bad ? ` · ${custom.bad} سطر ما فهمناه (لازم «السؤال | الجواب» والجواب يبدأ بحرف عربي)` : ''}`
+    ? `${custom.items.length} سؤال على الحروف: ${letters.join(' ')}${custom.bad ? ` · ${custom.bad} سطر ما فهمناه (لازم «السؤال | الجواب» والجواب يبدأ بحرف عربي)` : ''}`
     : '';
   const ready = state.teams.red.length > 0 && state.teams.blue.length > 0;
   $('#start').disabled = !ready;
@@ -133,7 +133,7 @@ function renderPick() {
     h('div', { class: 'hr-main' }, hrBoard(state, { onPick: (cell) => send('host:hr-pick', { cell }) })),
     hrSides(),
     h('div', { class: 'actions' },
-      state.canUndo ? h('button', { class: 'btn', onclick: () => send('host:hr-undo') }, '↩︎ تراجع عن آخر حكم') : null,
+      state.canUndo ? h('button', { class: 'btn', onclick: () => send('host:hr-undo') }, icon('undo-2'), ' تراجع عن آخر حكم') : null,
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
   );
@@ -150,22 +150,22 @@ function questionPanel() {
     const { buzz } = current;
     panel.push(
       h('div', { class: `sj-turn ${buzz.team} hr-buzzed` },
-        buzz.name ? `🔔 ${buzz.name} (${teamShort(buzz.team)}) ضغط أول!` : `🔔 ${teamLabel(buzz.team)} يجاوب`,
+        buzz.name ? [icon('bell-ring'), ` ${buzz.name} (${teamShort(buzz.team)}) ضغط أول!`] : [icon('bell-ring'), ` ${teamLabel(buzz.team)} يجاوب`],
         timerEl(buzz.endsAt)),
       answerBox(current.answer),
       h('div', { class: 'tc-judge' },
-        h('button', { class: 'btn tc-correct', onclick: () => send('host:hr-judge', { correct: true }) }, '✅ صح'),
-        h('button', { class: 'btn tc-skip', onclick: () => send('host:hr-judge', { correct: false }) }, '❌ غلط'),
+        h('button', { class: 'btn tc-correct', onclick: () => send('host:hr-judge', { correct: true }) }, icon('circle-check'), ' صح'),
+        h('button', { class: 'btn tc-skip', onclick: () => send('host:hr-judge', { correct: false }) }, icon('circle-x'), ' غلط'),
       ),
       h('p', { class: 'hint center kbd-hint' }, 'الكيبورد: C = صح · X = غلط'),
     );
   } else if (phase === 'missed') {
     panel.push(
-      h('div', { class: 'sj-result none' }, 'الفريقين غلطوا 😅'),
+      h('div', { class: 'sj-result none' }, 'الفريقين غلطوا'),
       answerBox(current.answer, { always: true }),
       h('div', { class: 'actions' },
-        h('button', { class: 'btn primary', onclick: () => send('host:hr-new') }, '🔄 سؤال ثاني لنفس الحرف'),
-        h('button', { class: 'btn', onclick: () => send('host:hr-release') }, '↩︎ رجوع للحروف'),
+        h('button', { class: 'btn primary', onclick: () => send('host:hr-new') }, icon('refresh-cw'), ' سؤال ثاني لنفس الحرف'),
+        h('button', { class: 'btn', onclick: () => send('host:hr-release') }, icon('undo-2'), ' رجوع للحروف'),
       ),
     );
   } else {
@@ -177,16 +177,16 @@ function questionPanel() {
         h('span', { class: 'hint' }, 'أحد ما عنده جوال؟ '),
         open.map((team) => h('button', { class: `btn small team-btn ${team}`, onclick: () => send('host:hr-buzz', { team }) }, `${teamShort(team)} ضغط`))),
       h('div', { class: 'actions' },
-        h('button', { class: 'btn', onclick: () => send('host:hr-new') }, '🔄 سؤال ثاني'),
-        h('button', { class: 'btn ghost', onclick: () => send('host:hr-release') }, '↩︎ رجوع للحروف'),
+        h('button', { class: 'btn', onclick: () => send('host:hr-new') }, icon('refresh-cw'), ' سؤال ثاني'),
+        h('button', { class: 'btn ghost', onclick: () => send('host:hr-release') }, icon('undo-2'), ' رجوع للحروف'),
       ),
       h('p', { class: 'hint center kbd-hint' }, 'N = سؤال ثاني'),
     );
   }
   if (state.canUndo && phase !== 'answer') {
-    panel.push(h('div', { class: 'actions' }, h('button', { class: 'btn small', onclick: () => send('host:hr-undo') }, '↩︎ تراجع عن آخر حكم')));
+    panel.push(h('div', { class: 'actions' }, h('button', { class: 'btn small', onclick: () => send('host:hr-undo') }, icon('undo-2'), ' تراجع عن آخر حكم')));
   } else if (state.canUndo) {
-    panel.push(h('div', { class: 'actions' }, h('button', { class: 'btn small ghost', onclick: () => send('host:hr-undo') }, '↩︎ تراجع')));
+    panel.push(h('div', { class: 'actions' }, h('button', { class: 'btn small ghost', onclick: () => send('host:hr-undo') }, icon('undo-2'), ' تراجع')));
   }
   return h('section', { class: 'hr-panel' }, panel);
 }
@@ -209,8 +209,8 @@ function renderRoundOver() {
     h('div', { class: 'hr-main' }, hrBoard(state)),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:hr-next') },
-        last ? 'النتيجة النهائية 🏆' : 'الجولة الجاية 🔤'),
-      h('button', { class: 'btn', onclick: () => send('host:hr-undo') }, '↩︎ تراجع عن الحكم'),
+        last ? ['النتيجة النهائية ', icon('trophy')] : ['الجولة الجاية ', icon('hexagon')]),
+      h('button', { class: 'btn', onclick: () => send('host:hr-undo') }, icon('undo-2'), ' تراجع عن الحكم'),
     ),
   );
 }
@@ -219,11 +219,11 @@ function renderFinal() {
   const winner = state.matchWinner;
   return h('main', { class: 'stage narrow final' },
     winner ? confetti() : null,
-    h('div', { class: 'trophy' }, winner ? '🏆' : '🤝'),
+    h('div', { class: 'trophy' }, winner ? icon('trophy') : icon('handshake')),
     h('h1', { class: 'winner-name' }, winner ? `${teamLabel(winner)} فاز!` : 'تعادل!'),
     winner && state.teams[winner].length ? h('p', { class: 'center' }, state.teams[winner].map((p) => p.name).join(' · ')) : null,
     scoreboardEl(state),
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة ', icon('repeat'))),
   );
 }
 

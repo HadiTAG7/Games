@@ -1,5 +1,5 @@
 /* global $, h, act, state, app, field, joinCard, gamePicker, kickButton, endGame, confetti, timerEl, standingsList,
-   HOST_GAMES, sfx, osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle, customBox, banksBox, groupBox */
+   HOST_GAMES, sfx, osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle, customBox, banksBox, groupBox, icon */
 'use strict';
 
 // Host screens for «برا السالفة». This screen is for everyone in the room,
@@ -36,7 +36,7 @@ document.addEventListener('keydown', (e) => {
 function topbar() {
   const inGame = !['lobby', 'final'].includes(state.phase);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'برا السالفة 🤫'),
+    h('div', { class: 'brand' }, 'برا السالفة ', icon('venetian-mask')),
     inGame ? h('div', { class: 'pill' }, osRoundTitle(state)) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
@@ -66,7 +66,7 @@ function categoryChips() {
     class: `category-chip${c.id === 'custom' ? ' custom' : ''}`,
     'data-category': c.id,
     onclick: () => toggleCategory(c.id),
-  }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
+  }, h('span', {}, c.name), h('small', { class: 'category-count' }, c.count)));
 }
 
 function renderLobby() {
@@ -101,17 +101,16 @@ function renderLobby() {
         help: `فئة خاصة فيكم: أماكنكم، أصحابكم، سوالفكم. كل كلمة في سطر (أو بينها فاصلة)، وتحتاج ${state.custom.min} كلمات على الأقل.`,
         inputs: [
           h('div', { class: 'settings' },
-            field('اسم الفئة', h('input', { id: 'os-custom-name', maxlength: 30, value: state.custom.name, placeholder: 'كلماتنا' })),
-            field('إيموجي', h('input', { id: 'os-custom-emoji', maxlength: 8, value: state.custom.emoji, placeholder: '✍️' }))),
+            field('اسم الفئة', h('input', { id: 'os-custom-name', maxlength: 30, value: state.custom.name, placeholder: 'كلماتنا' }))),
           h('textarea', { id: 'os-custom-text', rows: 4, value: state.custom.text, placeholder: 'استراحة أبو فهد\nمخيم البر\nديوانية' }),
         ],
-        save: () => act('host:settings', { custom: { name: $('#os-custom-name').value, emoji: $('#os-custom-emoji').value, text: $('#os-custom-text').value } }),
+        save: () => act('host:settings', { custom: { name: $('#os-custom-name').value, text: $('#os-custom-text').value } }),
         items: () => state.custom.words.map((word) => ({ category: '__new', newName: state.custom.name, newEmoji: state.custom.emoji, word })),
       }),
       banksBox(),
       groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 🤫'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ', icon('venetian-mask')),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -137,7 +136,7 @@ function updateLobby() {
   $('#rules-body').replaceChildren(osRulesList(state.settings, state.rules));
   const { custom } = state;
   $('#custom-status').textContent = custom.words.length
-    ? `${custom.words.length} كلمة · ${custom.ready ? '✅ الفئة جاهزة وانضافت للفئات' : `تحتاج ${custom.min} كلمات على الأقل`}`
+    ? `${custom.words.length} كلمة · ${custom.ready ? 'الفئة جاهزة وانضافت للفئات' : `تحتاج ${custom.min} كلمات على الأقل`}`
     : '';
   const enough = state.players.length >= state.rules.minPlayers;
   $('#start').disabled = !enough || !picked.length;
@@ -156,13 +155,13 @@ function roundHead() {
 function renderRoles() {
   return h('main', { class: 'stage narrow os-stage' },
     roundHead(),
-    h('div', { class: 'os-big' }, '👀'),
+    h('div', { class: 'os-big' }, icon('eye')),
     h('h1', { class: 'center' }, 'كل واحد يشوف بطاقته في جواله'),
     h('p', { class: 'center muted' }, state.round.outsiderCount > 1
       ? 'فيه اثنين برا السالفة هالمرة! الباقين يعرفون السالفة.'
-      : 'واحد منكم برا السالفة، والباقين يعرفونها. لا تخلّون أحد يشوف جوالكم 🤫'),
+      : ['واحد منكم برا السالفة، والباقين يعرفونها. لا تخلّون أحد يشوف جوالكم ', icon('venetian-mask')]),
     h('div', { class: 'actions' },
-      h('button', { class: 'btn primary big', onclick: () => send('host:os-begin') }, 'يلا نبدأ الأسئلة ▶️'),
+      h('button', { class: 'btn primary big', onclick: () => send('host:os-begin') }, 'يلا نبدأ الأسئلة ', icon('play')),
     ),
   );
 }
@@ -181,8 +180,8 @@ function renderAsking() {
     h('p', { class: 'hint center' }, 'اسأل سؤال عن السالفة يبيّن إنك تعرفها، بس لا تفضحها لللي برا السالفة!'),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary big', onclick: () => send('host:os-next') },
-        round.askIndex < round.pairs.length - 1 ? 'اللي بعده ▶️' : 'خلصنا الأسئلة ▶️'),
-      h('button', { class: 'btn ghost', onclick: () => send('host:os-vote') }, 'خلّونا نصوّت الحين 🗳️'),
+        round.askIndex < round.pairs.length - 1 ? ['اللي بعده ', icon('play')] : ['خلصنا الأسئلة ', icon('play')]),
+      h('button', { class: 'btn ghost', onclick: () => send('host:os-vote') }, 'خلّونا نصوّت الحين ', icon('vote')),
     ),
   );
 }
@@ -190,10 +189,10 @@ function renderAsking() {
 function renderFree() {
   return h('main', { class: 'stage narrow os-stage' },
     roundHead(),
-    h('h1', { class: 'center' }, 'أسئلة حرة! 🗣️'),
+    h('h1', { class: 'center' }, 'أسئلة حرة! ', icon('megaphone')),
     h('p', { class: 'center muted' }, 'اسألوا أي أحد أي سؤال، وبعدها نصوّت.'),
     timerEl(state.round.endsAt),
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:os-vote') }, 'يلا نصوّت 🗳️')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:os-vote') }, 'يلا نصوّت ', icon('vote'))),
   );
 }
 
@@ -202,10 +201,10 @@ function renderVote() {
   const voted = new Set(round.voted);
   return h('main', { class: 'stage narrow os-stage' },
     roundHead(),
-    h('h1', { class: 'center' }, '🗳️ صوّتوا من جوالاتكم'),
+    h('h1', { class: 'center' }, icon('vote'), ' صوّتوا من جوالاتكم'),
     h('p', { class: 'center muted' }, round.outsiderCount > 1 ? 'مين برا السالفة؟ (فيه اثنين)' : 'مين برا السالفة؟'),
     h('ul', { class: 'chips os-voters' }, round.players.map((p) => h('li', { class: `chip${voted.has(p.id) ? ' done' : ''}` },
-      voted.has(p.id) ? '✅ ' : '⏳ ', p.name))),
+      voted.has(p.id) ? [icon('circle-check'), ' '] : [icon('hourglass'), ' '], p.name))),
     h('p', { class: 'center' }, h('b', {}, `${voted.size} من ${round.players.length}`), ' صوّتوا'),
     h('div', { class: 'actions' }, h('button', { class: 'btn', onclick: () => send('host:os-close') }, 'اقفل التصويت')),
   );
@@ -218,7 +217,7 @@ function renderGuess() {
     roundHead(),
     osOutsiderBanner(round),
     osTally(round),
-    h('div', { class: 'os-waiting' }, `🤔 ${waiting.join(' و')} ${waiting.length > 1 ? 'يخمّنون' : 'يخمّن'} السالفة من جواله…`),
+    h('div', { class: 'os-waiting' }, `${waiting.join(' و')} ${waiting.length > 1 ? 'يخمّنون' : 'يخمّن'} السالفة من جواله…`),
     h('div', { class: 'actions' }, h('button', { class: 'btn ghost', onclick: () => send('host:os-skip-guess') }, 'تخطّى التخمين')),
   );
 }
@@ -228,14 +227,14 @@ function renderRoundOver() {
   const last = state.roundNumber >= state.totalRounds;
   const parts = [roundHead()];
   if (round.aborted) {
-    parts.push(h('div', { class: 'verdict bad' }, 'اللي برا السالفة طلع من الغرفة، نعيد الجولة 🙃'));
+    parts.push(h('div', { class: 'verdict bad' }, 'اللي برا السالفة طلع من الغرفة، نعيد الجولة'));
   } else {
     parts.push(
       h('div', { class: 'os-word' }, h('small', {}, 'السالفة كانت'), h('b', {}, round.word)),
       osOutsiderBanner(round),
       h('div', { class: 'os-guesses' }, round.outsiders.map((o) => h('p', { class: `center os-guess ${o.right ? 'good' : 'bad'}` },
         o.guess
-          ? `${o.name} خمّن «${o.guess}» ${o.right ? '✅ صح!' : '❌'}`
+          ? `${o.name} خمّن «${o.guess}» ${o.right ? 'صح!' : 'غلط'}`
           : `${o.name} ما خمّن`))),
       osTally(round),
       h('h2', { class: 'center' }, 'نقاط هالجولة'),
@@ -246,7 +245,7 @@ function renderRoundOver() {
     h('h2', { class: 'center' }, 'الترتيب'),
     standingsList(state.standings, { showGain: false }),
     h('div', { class: 'actions' },
-      h('button', { class: 'btn primary big', onclick: () => send('host:next') }, last ? 'النتيجة النهائية 🏆' : 'الجولة الجاية ▶️'),
+      h('button', { class: 'btn primary big', onclick: () => send('host:next') }, last ? ['النتيجة النهائية ', icon('trophy')] : ['الجولة الجاية ', icon('play')]),
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
   );
@@ -257,11 +256,11 @@ function renderFinal() {
   const top = state.standings.filter((r) => r.rank === 1 && r.score > 0);
   return h('main', { class: 'stage narrow final' },
     top.length ? confetti() : null,
-    h('div', { class: 'trophy' }, top.length ? '🏆' : '🤝'),
+    h('div', { class: 'trophy' }, top.length ? icon('trophy') : icon('handshake')),
     h('h1', { class: 'winner-name' }, top.length ? top.map((r) => r.name).join(' و') : 'محد كسب نقاط'),
     top.length ? h('p', { class: 'muted center' }, `بـ ${top[0].score} نقطة`) : null,
     standingsList(state.standings, { showGain: false }),
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة ', icon('repeat'))),
   );
 }
 

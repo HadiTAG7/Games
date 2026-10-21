@@ -318,6 +318,16 @@ npm test   # اختبارات المنطق: توحيد الكتابة، التج
 python3 scripts/build_time_challenge.py
 ```
 
+واجهة الموقع بأيقونات خطية من [Lucide](https://lucide.dev) (رخصة ISC، `public/icons-LICENSE.txt`)، مو إيموجي. كلها في ملف واحد `public/icons.svg`، والسكربتات ترسمها بـ`icon('اسم')` من `public/js/common.js`، والصفحات الثابتة بـ`<svg class="icon"><use href="/icons.svg#i-اسم"/></svg>`. ولو تبي أيقونة جديدة، أضف اسمها لقائمة `ICONS` في السكربت وابنِ الملف من حزمة `lucide-static`:
+
+```bash
+npm pack lucide-static@1.61.0 && tar xzf lucide-static-1.61.0.tgz
+python3 scripts/build_icons.py package/icons
+node scripts/check_emoji.js   # يطلع أي إيموجي رجع للواجهة (npm test يشغّله بعد)
+```
+
+فئات الأسئلة تبقى بإيموجيها في البيانات، بس الواجهة تعرضها بالاسم. والإيموجي اللي هو محتوى اللعبة نفسها، مثل بطاقات الإيموجي في «تحدي الوقت»، يبقى مثل ما هو.
+
 | الملف | وش فيه |
 | --- | --- |
 | `server.js` | سيرفر Express + Socket.io، رابط الانضمام والباركود |

@@ -21,11 +21,11 @@
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
   --glow1: #5b2bb8;
   --glow2: #a82f78;
-  --watermark: '';
+  --watermark: none; /* the game's emblem, faint in the corner: url('/icons/<icon>.svg') */
   color-scheme: dark;
 }
 
-/* Each game has its own mood: colours, glow and a faint emblem in the corner.
+/* Each game has its own mood: colours, glow and a faint emblem in the corner (its icon).
    Pages set data-theme on <body> (the host and player pages follow the room's game). */
 [data-theme="herd"] {
   --bg: #0c1f12;
@@ -34,7 +34,7 @@
   --muted: #cfe6c6;
   --accent: #ffe066;
   --accent-ink: #2a2200;
-  --watermark: '🐄';
+  --watermark: url('/icons/users-round.svg');
 }
 [data-theme="time"] {
   --bg: #140d08;
@@ -43,7 +43,7 @@
   --muted: #f3d3bd;
   --accent: #ffb020;
   --accent-ink: #2a1600;
-  --watermark: '⏱️';
+  --watermark: url('/icons/timer.svg');
 }
 [data-theme="seen"] {
   --bg: #070f2b;
@@ -52,7 +52,7 @@
   --muted: #c3d2f5;
   --accent: #ffd23f;
   --accent-ink: #2a1d00;
-  --watermark: '❓';
+  --watermark: url('/icons/circle-help.svg');
 }
 [data-theme="mafia"] {
   --bg: #0c0707;
@@ -61,7 +61,7 @@
   --muted: #e6c3c3;
   --accent: #f43f5e;
   --accent-ink: #ffffff;
-  --watermark: '🎭';
+  --watermark: url('/icons/drama.svg');
 }
 [data-theme="outsider"] {
   --bg: #170a1f;
@@ -70,7 +70,7 @@
   --muted: #e9c9e6;
   --accent: #ff8fd0;
   --accent-ink: #2b0620;
-  --watermark: '🤫';
+  --watermark: url('/icons/venetian-mask.svg');
 }
 [data-theme="letters"] {
   --bg: #1a1205;
@@ -79,7 +79,7 @@
   --muted: #f1dfb8;
   --accent: #ffc83d;
   --accent-ink: #2a1d00;
-  --watermark: '🔤';
+  --watermark: url('/icons/hexagon.svg');
 }
 [data-theme="feud"] {
   --bg: #050f33;
@@ -88,7 +88,7 @@
   --muted: #c7d3f2;
   --accent: #fbbf24;
   --accent-ink: #241600;
-  --watermark: '👪';
+  --watermark: url('/icons/chart-bar-big.svg');
 }
 
 * { box-sizing: border-box; }
@@ -109,13 +109,16 @@ body {
   transition: background-color 0.4s ease;
 }
 body::after {
-  content: var(--watermark);
+  content: '';
   position: fixed;
   inset-inline-start: -40px;
   bottom: -50px;
-  font-size: min(42vw, 320px);
-  line-height: 1;
-  opacity: 0.07;
+  width: min(42vw, 320px);
+  aspect-ratio: 1;
+  background: var(--text);
+  -webkit-mask: var(--watermark) center / contain no-repeat;
+  mask: var(--watermark) center / contain no-repeat;
+  opacity: 0.06;
   transform: rotate(-12deg);
   pointer-events: none;
   z-index: 0;
@@ -1770,3 +1773,35 @@ button.ff-slot:hover { border-color: var(--accent); }
   .ff-slot-num { width: 28px; height: 28px; }
   .ff-score-team { min-width: 0; flex: 1; }
 }
+
+/* ---------- Icons (Lucide line icons from /icons.svg; icon() in common.js) ---------- */
+
+.icon { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; fill: none; stroke: currentColor; }
+.icon.lg { width: 1.6em; height: 1.6em; }
+.icon.xl { width: 1em; height: 1em; } /* sized by the font-size of a big emblem (.trophy, .wave …) */
+.btn .icon, .chip-btn .icon, .link-btn .icon, .pill .icon, .mf-chip .icon, .category-chip .icon { margin-inline-end: 0.35em; }
+.btn > .icon:last-child:not(:first-child) { margin-inline: 0.35em 0; }
+/* The big emblems that used to be emoji: one line icon in the theme's colour. */
+.trophy, .wave, .big-emoji, .mf-big, .os-big, .crown-emoji, .logo { color: var(--accent); }
+.trophy .icon, .wave .icon, .big-emoji .icon, .mf-big .icon, .os-big .icon, .crown-emoji .icon, .logo .icon { width: 1em; height: 1em; stroke-width: 1.6; }
+.wave { display: block; }
+
+/* A game's logo: its icon in a rounded tile of the game's colour. */
+.game-logo { display: inline-grid; place-items: center; width: 2.2em; height: 2.2em; border-radius: 0.6em; background: var(--accent); color: var(--accent-ink); flex: none; }
+.game-logo .icon { width: 1.3em; height: 1.3em; stroke-width: 2.2; }
+.game-logo.lg { font-size: 26px; }
+.game-logo.xl { font-size: 44px; }
+
+/* Places: 1, 2, 3 in gold, silver and bronze. */
+.rank-badge { display: inline-grid; place-items: center; min-width: 1.8em; height: 1.8em; padding: 0 0.3em; border-radius: 999px; font-weight: 800; font-size: 0.85em; background: var(--card-strong); color: var(--text); }
+.rank-badge.r1 { background: linear-gradient(180deg, #ffe27a, #e0a800); color: #2a1d00; }
+.rank-badge.r2 { background: linear-gradient(180deg, #f1f3f6, #a9b1bd); color: #1d2430; }
+.rank-badge.r3 { background: linear-gradient(180deg, #f3b98a, #b96a33); color: #2b1505; }
+
+/* Team colours as a dot, where a team's name shows. */
+.team-dot { display: inline-block; width: 0.7em; height: 0.7em; border-radius: 50%; margin-inline-end: 0.35em; vertical-align: 0.02em; }
+.team-dot.red { background: var(--red); }
+.team-dot.blue { background: var(--blue); }
+
+/* Text for screen readers only (an icon-only button's name). */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

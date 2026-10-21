@@ -1,4 +1,4 @@
-/* global $, h, toast, MEDALS */
+/* global $, h, icon, toast, rankBadge */
 'use strict';
 
 // «حسابي»: log in, see your question banks, paste a new one, share one with
@@ -34,7 +34,7 @@ async function api(path, body) {
   return out;
 }
 
-async function copy(text, done = 'انتسخ ✅') {
+async function copy(text, done = 'انتسخ') {
   try {
     await navigator.clipboard.writeText(text);
     toast(done, 'ok');
@@ -44,7 +44,7 @@ async function copy(text, done = 'انتسخ ✅') {
 }
 
 function nav() {
-  return h('nav', { class: 'landing-nav' }, h('a', { href: '/' }, '→ الصفحة الرئيسية'), h('a', { href: '/add' }, '✍️ أضف أسئلة للكل'));
+  return h('nav', { class: 'landing-nav' }, h('a', { href: '/' }, '→ الصفحة الرئيسية'), h('a', { href: '/add' }, icon('pen-line'), ' أضف أسئلة للكل'));
 }
 
 /* ---------- Log in / sign up ---------- */
@@ -68,7 +68,7 @@ function renderAuth(mode = 'login', error = '') {
       }
     },
   },
-    h('h1', { class: 'center' }, mode === 'login' ? '👤 تسجيل الدخول' : '👤 حساب جديد'),
+    h('h1', { class: 'center' }, mode === 'login' ? [icon('user'), ' تسجيل الدخول'] : [icon('user'), ' حساب جديد']),
     h('div', { class: 'review-tabs' },
       h('button', { type: 'button', class: `btn small${mode === 'login' ? ' primary' : ''}`, onclick: () => renderAuth('login') }, 'دخول'),
       h('button', { type: 'button', class: `btn small${mode === 'signup' ? ' primary' : ''}`, onclick: () => renderAuth('signup') }, 'حساب جديد')),
@@ -87,7 +87,7 @@ function connectSection() {
   const url = `${location.origin}/mcp`;
   const example = 'سوّ لي بنك «سين جيم» عن الدوري السعودي، 4 أسئلة لكل قيمة، وأضفه لحسابي في ألعاب الشلة.';
   return h('section', { class: 'card contrib-card' },
-    h('h2', {}, '🤖 اربط الذكاء الاصطناعي'),
+    h('h2', {}, icon('bot'), ' اربط الذكاء الاصطناعي'),
     h('p', { class: 'muted' }, 'اربط Claude أو ChatGPT بحسابك، واطلب منه بنك أسئلة، ويضيفه لك على طول.'),
     h('div', { class: 'mcp-url' }, h('code', {}, url), h('button', { type: 'button', class: 'btn small', onclick: () => copy(url) }, 'نسخ')),
     h('details', { class: 'rules' }, h('summary', {}, 'في Claude'),
@@ -101,7 +101,7 @@ function connectSection() {
         h('li', {}, 'اضغط Create، والصق الرابط فوق، واختر OAuth.'),
         h('li', {}, 'بتطلع لك صفحة موقعنا: ادخل بحسابك واضغط «اسمح».'),
         h('li', {}, 'مهم: في كل محادثة جديدة اضغط «+» ← «المزيد» وفعّل «ألعاب الشلة» قبل ما تطلب منه، وإلا بيقول لك إن الأدوات مو متاحة.'))),
-    h('p', { class: 'hint' }, 'الميزة هذي تعتمد على اشتراكك في Claude أو ChatGPT. لو قال إنه ما يقدر يحفظ: شيّك إن التطبيق موجود في «🔌 الأجهزة المربوطة» تحت (لو مو موجود اربطه من جديد)، أو انسخ اللي كتبه والصقه في «بنك جديد بالصق»، والأرقام والعناوين تنشال لحالها.'),
+    h('p', { class: 'hint' }, 'الميزة هذي تعتمد على اشتراكك في Claude أو ChatGPT. لو قال إنه ما يقدر يحفظ: شيّك إن التطبيق موجود في «', icon('plug'), ' الأجهزة المربوطة» تحت (لو مو موجود اربطه من جديد)، أو انسخ اللي كتبه والصقه في «بنك جديد بالصق»، والأرقام والعناوين تنشال لحالها.'),
     h('div', { class: 'mcp-url' }, h('span', {}, `مثال: «${example}»`), h('button', { type: 'button', class: 'btn small', onclick: () => copy(example) }, 'نسخ')),
   );
 }
@@ -127,9 +127,9 @@ function itemText(game, item) {
   switch (game) {
     case 'seen': return `${item.value} · ${item.q} ← ${item.a}`;
     case 'letters': return `${item.letter} · ${item.q} ← ${item.a}`;
-    case 'herd': return `${item.mode === 'same' ? '🐄' : '🦄'} ${item.q}`;
+    case 'herd': return `${item.mode === 'same' ? 'مع القطيع' : 'عكس القطيع'}: ${item.q}`;
     case 'outsider': return item.word;
-    default: return item.type === 'image' ? `🖼️ ← ${item.answer}` : `${item.face} ← ${item.answer}`;
+    default: return item.type === 'image' ? `← ${item.answer}` : `${item.face} ← ${item.answer}`;
   }
 }
 
@@ -162,7 +162,7 @@ async function bankDetails(bank, box) {
           toast(err.message);
         }
       },
-    }, '➕ أضف'),
+    }, icon('plus'), ' أضف'),
   );
 }
 
@@ -172,48 +172,48 @@ function bankRow(bank) {
   if (open.has(bank.id)) bankDetails(bank, details);
   return h('li', { class: 'card bank-row', 'data-bank': bank.id },
     h('div', { class: 'bank-head' },
-      h('b', {}, `${bank.emoji} ${bank.name}`),
+      h('b', {}, `${bank.name}`),
       h('span', { class: 'muted' }, ` · ${bank.count} ${game.unit}${bank.images ? ` · ${bank.images} صورة` : ''}`),
-      h('span', { class: `bank-state ${bank.playable ? 'good' : ''}` }, bank.playable ? '✅ جاهز للعب' : `⏳ ${NEEDS[bank.game]}`)),
+      h('span', { class: `bank-state ${bank.playable ? 'good' : ''}` }, bank.playable ? [icon('circle-check'), ' جاهز للعب'] : [icon('hourglass'), ` ${NEEDS[bank.game]}`])),
     h('div', { class: 'review-actions' },
       h('button', { type: 'button', class: 'btn small', onclick: () => { if (open.has(bank.id)) open.delete(bank.id); else open.add(bank.id); render(); } },
         open.has(bank.id) ? 'إخفاء' : 'عرض'),
-      bank.game !== 'time' ? h('button', { type: 'button', class: 'btn small', onclick: () => share(bank) }, '📤 أرسله للكل') : null,
+      bank.game !== 'time' ? h('button', { type: 'button', class: 'btn small', onclick: () => share(bank) }, icon('send'), ' أرسله للكل') : null,
       h('button', {
         type: 'button',
         class: 'btn small danger',
+        'aria-label': `احذف «${bank.name}»`,
+        title: 'احذف',
         onclick: async () => {
           if (!confirm(`تحذف «${bank.name}»؟`)) return;
           await api(`/banks/${bank.id}/delete`, {});
           await refresh();
         },
-      }, '🗑️')),
+      }, icon('trash-2'))),
     details,
   );
 }
 
 function newBankForm() {
   const game = h('select', { id: 'new-game', onchange: () => { text.placeholder = data.games.find((g) => g.id === game.value).paste; } },
-    data.games.map((g) => h('option', { value: g.id }, `${g.emoji} ${g.name}`)));
+    data.games.map((g) => h('option', { value: g.id }, g.name)));
   const name = h('input', { id: 'new-name', maxlength: 30, placeholder: 'مثل: سوالف الشلة' });
-  const emoji = h('input', { id: 'new-emoji', maxlength: 8, placeholder: '✍️' });
   const text = h('textarea', { id: 'new-text', rows: 6, placeholder: data.games[0].paste });
   return h('section', { class: 'card contrib-card' },
-    h('h2', {}, '➕ بنك جديد بالصق'),
+    h('h2', {}, icon('plus'), ' بنك جديد بالصق'),
     h('p', { class: 'hint' }, 'اضغط «انسخ التعليمات» والصقها في أي شات ذكاء اصطناعي، وبعدين الصق اللي يكتبه هنا.'),
     h('div', { class: 'contrib-fields' },
       h('label', { class: 'field' }, h('span', {}, 'اللعبة'), game),
       h('label', { class: 'field' }, h('span', {}, 'اسم البنك'), name),
-      h('label', { class: 'field' }, h('span', {}, 'إيموجي'), emoji),
       h('label', { class: 'field wide' }, h('span', {}, 'الأسئلة'), text)),
     h('div', { class: 'review-actions' },
-      h('button', { type: 'button', class: 'btn', onclick: () => copy(data.games.find((g) => g.id === game.value).prompt, 'انتسخت التعليمات ✅') }, '📋 انسخ التعليمات'),
+      h('button', { type: 'button', class: 'btn', onclick: () => copy(data.games.find((g) => g.id === game.value).prompt, 'انتسخت التعليمات') }, icon('clipboard-copy'), ' انسخ التعليمات'),
       h('button', {
         type: 'button',
         class: 'btn primary',
         onclick: async () => {
           try {
-            const out = await api('/banks', { game: game.value, name: name.value, emoji: emoji.value, text: text.value });
+            const out = await api('/banks', { game: game.value, name: name.value, text: text.value });
             toast(`انحفظ «${out.bank.name}»: ${out.added}${out.errors.length ? ` · ${out.errors.length} ما انضاف` : ''}`, 'ok');
             open.add(out.bank.id);
             await refresh();
@@ -221,14 +221,14 @@ function newBankForm() {
             toast(err.message);
           }
         },
-      }, '💾 احفظ البنك')),
+      }, icon('save'), ' احفظ البنك')),
   );
 }
 
 async function connectionsSection() {
   const { connections } = await api('/connections');
   return h('section', { class: 'card contrib-card' },
-    h('h2', {}, '🔌 الأجهزة المربوطة'),
+    h('h2', {}, icon('plug'), ' الأجهزة المربوطة'),
     connections.length
       ? h('ul', { class: 'contrib-queue' }, connections.map((c) => h('li', {},
         h('span', {}, `${c.name} · من ${new Date(c.since).toLocaleDateString('ar-SA-u-nu-latn')}`),
@@ -248,7 +248,7 @@ async function connectionsSection() {
 function passwordSection() {
   const current = h('input', { type: 'password', autocomplete: 'current-password' });
   const fresh = h('input', { type: 'password', autocomplete: 'new-password' });
-  return h('details', { class: 'card contrib-card' }, h('summary', {}, '🔑 غيّر كلمة السر'),
+  return h('details', { class: 'card contrib-card' }, h('summary', {}, icon('key-round'), ' غيّر كلمة السر'),
     h('label', { class: 'field' }, h('span', {}, 'الحالية'), current),
     h('label', { class: 'field' }, h('span', {}, 'الجديدة'), fresh),
     h('button', {
@@ -257,7 +257,7 @@ function passwordSection() {
       onclick: async () => {
         try {
           await api('/password', { current: current.value, next: fresh.value });
-          toast('تغيّرت ✅', 'ok');
+          toast('تغيّرت', 'ok');
         } catch (err) {
           toast(err.message);
         }
@@ -281,7 +281,7 @@ const openRankings = new Set(); // groups whose whole ranking is showing
 function groupRow(group) {
   const games = Object.entries(group.games).map(([id, n]) => {
     const game = groupsData.games.find((g) => g.id === id);
-    return game ? h('span', { class: 'category-chip' }, `${game.emoji} ${game.name} · ${n}`) : null;
+    return game ? h('span', { class: 'category-chip' }, `${game.name} · ${n}`) : null;
   });
   const call = async (path, body, confirmText) => {
     if (confirmText && !confirm(confirmText)) return;
@@ -300,15 +300,15 @@ function groupRow(group) {
   member.addEventListener('keydown', (e) => { if (e.key === 'Enter') addMember(); });
   return h('li', { class: 'card group-card', 'data-group': group.id },
     h('div', { class: 'bank-head' },
-      h('b', {}, `👥 ${group.name}`),
+      h('b', {}, icon('users'), ` ${group.name}`),
       h('span', { class: 'muted' }, `${group.mine ? '' : ` · لـ${group.ownerName}`} · ${group.total ? `لعبتوا ${questionsText(group.total)}` : 'لسا ما لعبتوا معها'}${group.playedAt ? ` · آخر مرة ${ago(group.playedAt)}` : ''}`)),
     group.total ? h('div', { class: 'group-games' }, games) : null,
-    h('h3', {}, '🏆 الترتيب'),
+    h('h3', {}, icon('trophy'), ' الترتيب'),
     group.ranking.length
       ? h('ol', { class: 'standings group-ranking' }, ranking.map((r) => h('li', {},
-        h('span', { class: 'rank' }, MEDALS[r.rank] || r.rank),
+        h('span', { class: 'rank' }, rankBadge(r.rank)),
         h('span', { class: 'name' }, r.name),
-        h('span', { class: 'night-wins', title: 'عدد مرات الفوز' }, `🏅 ${r.wins} · 🎮 ${r.games}`),
+        h('span', { class: 'night-wins', title: 'عدد مرات الفوز' }, icon('medal'), ` ${r.wins} · `, icon('gamepad-2'), ` ${r.games}`),
         h('span', { class: 'score' }, r.points),
         group.mine ? h('button', {
           type: 'button',
@@ -322,7 +322,7 @@ function groupRow(group) {
       : null,
     h('div', { class: 'group-members' },
       h('small', { class: 'muted' }, 'الأعضاء:'),
-      h('span', { class: 'category-chip' }, `👑 ${group.mine ? me.username : group.ownerName}`),
+      h('span', { class: 'category-chip' }, icon('crown'), ` ${group.mine ? me.username : group.ownerName}`),
       group.members.map((m) => h('span', { class: 'category-chip' }, m.username,
         group.mine ? h('button', {
           type: 'button',
@@ -331,18 +331,18 @@ function groupRow(group) {
           onclick: () => call(`/groups/${group.id}/members/${m.accountId}/remove`, {}, `تشيل ${m.username} من الشلة؟`),
         }, ' ✕') : null))),
     group.mine
-      ? h('div', { class: 'group-add' }, member, button('➕ أضف عضو', addMember))
+      ? h('div', { class: 'group-add' }, member, button([icon('plus'), ' أضف عضو'], addMember))
       : null,
     group.mine ? h('p', { class: 'hint' }, 'كل عضو يسوي حساب في الموقع، وتضيفه باسم المستخدم. بعدها يقدر يفتح غرفة بالشلة من جهازه، والأسئلة ما تتكرر والترتيب يكمل.') : null,
     h('div', { class: 'group-actions' }, group.mine ? [
-      button('✏️ الاسم', () => {
+      button([icon('pencil'), ' الاسم'], () => {
         const name = prompt('الاسم الجديد؟', group.name);
         if (name?.trim() && name.trim() !== group.name) call(`/groups/${group.id}/rename`, { name: name.trim() });
       }),
-      group.total ? button('🔄 صفّر الأسئلة', () => call(`/groups/${group.id}/reset`, {}, `تصفّر أسئلة «${group.name}»؟ بعدها ممكن تنعاد عليهم كل الأسئلة.`)) : null,
-      group.ranking.length ? button('🔄 صفّر الترتيب', () => call(`/groups/${group.id}/scores/reset`, {}, `تصفّر ترتيب «${group.name}»؟`)) : null,
-      button('🗑️', () => call(`/groups/${group.id}/delete`, {}, `تحذف شلة «${group.name}»؟`), 'btn small danger'),
-    ] : button('🚪 اطلع من الشلة', () => call(`/groups/${group.id}/leave`, {}, `تطلع من «${group.name}»؟`))),
+      group.total ? button([icon('refresh-cw'), ' صفّر الأسئلة'], () => call(`/groups/${group.id}/reset`, {}, `تصفّر أسئلة «${group.name}»؟ بعدها ممكن تنعاد عليهم كل الأسئلة.`)) : null,
+      group.ranking.length ? button([icon('refresh-cw'), ' صفّر الترتيب'], () => call(`/groups/${group.id}/scores/reset`, {}, `تصفّر ترتيب «${group.name}»؟`)) : null,
+      button([icon('trash-2'), h('span', { class: 'sr-only' }, 'احذف الشلة')], () => call(`/groups/${group.id}/delete`, {}, `تحذف شلة «${group.name}»؟`), 'btn small danger'),
+    ] : button([icon('door-open'), ' اطلع من الشلة'], () => call(`/groups/${group.id}/leave`, {}, `تطلع من «${group.name}»؟`))),
   );
 }
 
@@ -359,10 +359,10 @@ function groupsSection() {
   };
   name.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
   return h('section', { class: 'card contrib-card', id: 'groups' },
-    h('h2', {}, '👥 شللي'),
+    h('h2', {}, icon('users'), ' شللي'),
     h('p', { class: 'hint' }, 'الشلة لها ترتيب خاص فيها، وتتذكر الأسئلة اللي انسألت عليهم عشان ما تتكرر. أضف أعضاءها بحساباتهم، وأي واحد منهم يقدر يفتح غرفة بالشلة ويختارها في اللوبي.'),
     groups.length ? h('ol', { class: 'review-list' }, groups.map(groupRow)) : h('p', { class: 'hint center' }, 'لسا ما عندك شلل.'),
-    h('div', { class: 'group-row' }, name, h('button', { type: 'button', class: 'btn primary', onclick: add }, '➕ أضف شلة')),
+    h('div', { class: 'group-row' }, name, h('button', { type: 'button', class: 'btn primary', onclick: add }, icon('plus'), ' أضف شلة')),
   );
 }
 
@@ -371,17 +371,17 @@ async function render() {
   app.replaceChildren(...[
     nav(),
     h('header', { class: 'contrib-hero' },
-      h('div', { class: 'logo' }, '👤'),
+      h('div', { class: 'logo' }, icon('user')),
       h('h1', {}, `أهلاً ${me.username}`),
       h('button', { type: 'button', class: 'link-btn', onclick: async () => { await api('/logout', {}); me = null; renderAuth(); } }, 'تسجيل الخروج')),
-    persistent ? null : h('p', { class: 'banner bad' }, '⚠️ قاعدة البيانات مو مجهزة على السيرفر، فالحسابات والبنوك تنمسح مع كل تحديث للموقع.'),
+    persistent ? null : h('p', { class: 'banner bad' }, icon('triangle-alert'), ' قاعدة البيانات مو مجهزة على السيرفر، فالحسابات والبنوك تنمسح مع كل تحديث للموقع.'),
     connectSection(),
     h('section', { class: 'card contrib-card' },
-      h('h2', {}, '📚 بنوكي'),
+      h('h2', {}, icon('library'), ' بنوكي'),
       h('p', { class: 'hint' }, 'افتح غرفة وأنت مسجّل دخول، وبتلقى بنوكك الجاهزة في اللوبي.'),
       groups.length ? null : h('p', { class: 'hint center' }, 'لسا ما عندك بنوك. اطلب من الذكاء الاصطناعي، أو سوّ واحد بالصق تحت.'),
       ...groups.map(({ g, list }) => h('div', { class: 'review-group' },
-        h('h3', {}, `${g.emoji} ${g.name}`),
+        h('h3', {}, `${g.name}`),
         h('ol', { class: 'review-list' }, list.map(bankRow))))),
     newBankForm(),
     groupsSection(),

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#150c2c">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏱️</text></svg>">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
@@ -20,7 +20,7 @@
 /* global $, h, toast, storage, cardFace */
 'use strict';
 
-// Every «تحدي الوقت» card with its answer. 🚫 takes a card out of the games
+// Every «تحدي الوقت» card with its answer. <svg class="icon" aria-hidden="true"><use href="/icons.svg#i-ban"/></svg> takes a card out of the games
 // hosted on this device (the host screen reads the same list).
 
 const app = $('#app');
@@ -57,7 +57,7 @@ function excludedSection(keys) {
   const rows = categories.flatMap((c) => c.cards.filter((card) => keys.has(keyOf(c, card))).map((card) => ({ c, card })));
   const lines = rows.map(({ c, card }) => `${c.name}: ${card.answer}`);
   return h('section', { class: 'card', id: 'excluded' },
-    h('h2', {}, `🚫 الصور المستبعدة من هالجهاز (${rows.length})`),
+    h('h2', {}, `<svg class="icon" aria-hidden="true"><use href="/icons.svg#i-ban"/></svg> الصور المستبعدة من هالجهاز (${rows.length})`),
     h('p', { class: 'hint' }, 'ما تطلع في الألعاب اللي تستضيفها من هالجهاز. أرسل القائمة عشان أشيلها من اللعبة نهائياً.'),
     h('ul', { class: 'broken-list' }, rows.map(({ c, card }) => h('li', {},
       `${c.emoji} ${c.name}: `, h('b', {}, card.answer), ' ',
@@ -72,7 +72,7 @@ function excludedSection(keys) {
           toast('ما قدرنا ننسخ، صوّر الشاشة');
         }
       },
-    }, '📋 انسخ القائمة'),
+    }, '<svg class="icon" aria-hidden="true"><use href="/icons.svg#i-clipboard-copy"/></svg> انسخ القائمة'),
   );
 }
 
@@ -81,12 +81,12 @@ function render() {
   const total = categories.reduce((n, c) => n + c.cards.length, 0);
   app.replaceChildren(
     h('header', { class: 'topbar' },
-      h('div', { class: 'brand' }, 'تحدي الوقت ⏱️ · كل الصور'),
+      h('div', { class: 'brand' }, 'تحدي الوقت <svg class="icon" aria-hidden="true"><use href="/icons.svg#i-timer"/></svg> · كل الصور'),
       h('div', { class: 'pill' }, `${categories.length} فئة · ${total} بطاقة`),
     ),
     h('section', { class: 'card' },
-      h('p', {}, 'هنا كل البطاقات وأجوبتها. لو فيه صورة غلط أو تفضح الجواب، اضغط 🚫 عليها وما راح تطلع في الألعاب اللي تستضيفها من هالجهاز.'),
-      h('p', { class: 'hint' }, 'وأثناء اللعب، المضيف يقدر يضغط «🚫 استبعد الصورة» وتتبدل بدون ما ينخصم وقت.'),
+      h('p', {}, 'هنا كل البطاقات وأجوبتها. لو فيه صورة غلط أو تفضح الجواب، اضغط <svg class="icon" aria-hidden="true"><use href="/icons.svg#i-ban"/></svg> عليها وما راح تطلع في الألعاب اللي تستضيفها من هالجهاز.'),
+      h('p', { class: 'hint' }, 'وأثناء اللعب، المضيف يقدر يضغط «<svg class="icon" aria-hidden="true"><use href="/icons.svg#i-ban"/></svg> استبعد الصورة» وتتبدل بدون ما ينخصم وقت.'),
     ),
     excludedSection(keys),
     h('nav', { class: 'preview-cats' }, h('div', { class: 'chips' }, categories.map((c) => h('button', {
@@ -112,7 +112,7 @@ function render() {
             'aria-pressed': String(out),
             title: out ? 'رجّعها للعبة' : 'استبعدها من اللعبة',
             onclick: () => setExcluded(key, !out),
-          }, out ? '↩︎ رجّعها' : '🚫 استبعد'),
+          }, out ? '<svg class="icon" aria-hidden="true"><use href="/icons.svg#i-undo-2"/></svg> رجّعها' : '<svg class="icon" aria-hidden="true"><use href="/icons.svg#i-ban"/></svg> استبعد'),
         ),
       );
       return item;

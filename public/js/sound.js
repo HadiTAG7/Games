@@ -1,4 +1,4 @@
-/* global h, storage */
+/* global h, storage, icon */
 'use strict';
 
 // Sounds for every game, made on the fly with Web Audio (no sound files).
@@ -195,7 +195,7 @@ const sfx = (() => {
         'aria-label': prefs.music ? 'وقّف موسيقى الانتظار' : 'شغّل موسيقى الانتظار',
         'aria-pressed': String(prefs.music),
         onclick: () => save({ music: !prefs.music, on: prefs.on || !prefs.music }),
-      }, '🎵') : null,
+      }, icon('music')) : null,
       h('button', {
         type: 'button',
         class: `dock-btn${prefs.on ? ' on' : ''}`,
@@ -203,7 +203,7 @@ const sfx = (() => {
         'aria-label': prefs.on ? 'كتم الصوت' : 'تشغيل الصوت',
         'aria-pressed': String(prefs.on),
         onclick: () => save({ on: !prefs.on }),
-      }, prefs.on ? '🔊' : '🔇'),
+      }, prefs.on ? icon('volume-2') : icon('volume-x')),
     ].filter(Boolean));
   }
 

@@ -1,4 +1,4 @@
-/* global $, h */
+/* global $, h, icon */
 'use strict';
 
 // «تسمح لـClaude…؟»: an AI app wants to add question banks to your account.
@@ -19,7 +19,7 @@ async function call(path, body) {
 }
 
 function frame(...children) {
-  app.replaceChildren(h('section', { class: 'card join-form consent' }, h('div', { class: 'logo center' }, '🎲'), ...children));
+  app.replaceChildren(h('section', { class: 'card join-form consent' }, h('div', { class: 'logo center' }, icon('dices')), ...children));
 }
 
 function renderLogin(info, error = '') {
@@ -52,7 +52,7 @@ function renderLogin(info, error = '') {
 async function decide(allow) {
   try {
     const { redirect } = await call('/oauth/decision', { req: reqId, allow });
-    frame(h('p', { class: 'center' }, allow ? '✅ تم الربط، نرجّعك للتطبيق…' : 'رجعناك للتطبيق.'));
+    frame(h('p', { class: 'center' }, allow ? [icon('circle-check'), ' تم الربط، نرجّعك للتطبيق…'] : 'رجعناك للتطبيق.'));
     location.href = redirect;
   } catch (err) {
     frame(h('p', { class: 'banner bad' }, err.message));
@@ -69,7 +69,7 @@ function renderConsent(info) {
       h('li', {}, 'ما يقدر يشوف كلمة السر، ولا يلعب بدالك.'),
       h('li', {}, 'تقدر تلغي الربط أي وقت من صفحة حسابك.')),
     h('div', { class: 'review-actions consent-actions' },
-      h('button', { type: 'button', class: 'btn primary big', onclick: () => decide(true) }, '✅ اسمح'),
+      h('button', { type: 'button', class: 'btn primary big', onclick: () => decide(true) }, icon('circle-check'), ' اسمح'),
       h('button', { type: 'button', class: 'btn big', onclick: () => decide(false) }, 'لا')),
     h('p', { class: 'hint center' }, 'مو أنت ', h('bdi', {}, info.account.username), '؟ ',
       h('button', { type: 'button', class: 'link-btn', onclick: async () => { await call('/api/account/logout', {}); start(); } }, 'ادخل بحساب ثاني')),

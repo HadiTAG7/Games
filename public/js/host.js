@@ -1,5 +1,5 @@
 /* global io, $, h, emit, storage, toast, connectionBanner, syncClock, setTheme, sfx, nightList, syncCrown, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel, useTeamNames,
-   showScreen, motionKind, bumpChanges */
+   showScreen, motionKind, bumpChanges, icon, teamDot, gameLogo */
 'use strict';
 
 // The host page shell: connection, room session, the shared lobby pieces
@@ -131,7 +131,7 @@ function nightCard() {
   const final = state.phase === 'final';
   return h('section', { class: `card night-card${final ? ' compact' : ''}`, id: 'night-card' },
     h('div', { class: 'field-head' },
-      h('h2', {}, final ? '🏆 بطل السهرة لين الحين' : '🏆 بطل السهرة'),
+      h('h2', {}, final ? [icon('trophy'), ' بطل السهرة لين الحين'] : [icon('trophy'), ' بطل السهرة']),
       final ? null : h('button', {
         type: 'button',
         class: 'link-btn small',
@@ -141,7 +141,7 @@ function nightCard() {
     h('p', { class: 'hint' }, 'كل لعبة تخلص تضيف نقاط: الفايز 3، والثاني 2، والثالث 1. وفي ألعاب الفرق، كل الفريق الفايز ياخذ 3.'),
     nightList(rows, { limit: final ? 5 : 10 }),
     h('button', { type: 'button', class: 'btn big night-crown-btn', onclick: () => act('host:night-crown', { on: true }) },
-      '👑 أعلن بطل السهرة'),
+      icon('crown'), ' أعلن بطل السهرة'),
   );
 }
 
@@ -163,7 +163,7 @@ function field(label, control) {
 
 function joinCard() {
   return h('section', { class: 'card join-card' },
-    h('h2', {}, 'امسحوا الباركود وادخلوا 📱'),
+    h('h2', {}, 'امسحوا الباركود وادخلوا ', icon('smartphone')),
     h('div', { class: 'qr', html: info.qrSvg }),
     h('div', { class: 'big-code' }, h('small', {}, 'أو ادخلوا برقم الغرفة'), h('b', {}, state.code)),
     h('button', { class: 'link-btn', title: 'نسخ الرابط', onclick: copyLink }, info.joinUrl),
@@ -179,7 +179,7 @@ function gamePicker() {
       role: 'radio',
       'aria-checked': String(game.id === state.gameType),
       onclick: () => { if (game.id !== state.gameType) act('host:game-type', { gameType: game.id }); },
-    }, h('span', { class: 'game-emoji' }, game.emoji), h('b', {}, game.name))));
+    }, gameLogo(game.id), h('b', {}, game.name))));
 }
 
 function kick(player) {
@@ -199,10 +199,10 @@ function kickButton(player) {
 function noPhonesCard(text) {
   const names = state.settings.teamNames;
   return h('section', { class: 'card join-card sj-nophones' },
-    h('h2', {}, '📺 بدون جوالات'),
+    h('h2', {}, icon('tv'), ' بدون جوالات'),
     h('p', { class: 'muted' }, text),
     TEAM_ORDER.map((team, i) => h('label', { class: `field sj-team-name ${team}` },
-      h('span', {}, `${TEAM_INFO[team].emoji} اسم الفريق ${i ? 'الثاني' : 'الأول'}`),
+      h('span', {}, teamDot(team), `اسم الفريق ${i ? 'الثاني' : 'الأول'}`),
       h('input', {
         id: `team-name-${team}`,
         maxlength: 20,
@@ -210,7 +210,7 @@ function noPhonesCard(text) {
         placeholder: TEAM_INFO[team].name,
         onchange: (e) => act('host:settings', { teamNames: { [team]: e.target.value } }),
       }))),
-    h('button', { type: 'button', class: 'link-btn', onclick: () => act('host:settings', { phones: true }) }, '📱 نلعب بالجوالات'),
+    h('button', { type: 'button', class: 'link-btn', onclick: () => act('host:settings', { phones: true }) }, icon('smartphone'), ' نلعب بالجوالات'),
   );
 }
 
@@ -228,15 +228,15 @@ function remoteButton() {
       const close = () => modal.remove();
       const modal = h('div', { id: 'remote-modal', class: 'remote-modal', onclick: (e) => { if (e.target === modal) close(); } },
         h('div', { class: 'card remote-card' },
-          h('h2', {}, '📱 تحكم من جوالك'),
+          h('h2', {}, icon('smartphone'), ' تحكم من جوالك'),
           h('p', { class: 'muted' }, 'امسحه بجوالك أنت بس: تشوف الأجوبة وتتحكم باللعبة، والشاشة الكبيرة تبقى مخفية.'),
           h('div', { class: 'qr', html: info.remoteQrSvg }),
-          h('p', { class: 'hint' }, '⚠️ اللي يمسحه يصير يتحكم بالغرفة، فخلّه لك. يختفي بعد دقيقة.'),
+          h('p', { class: 'hint' }, icon('triangle-alert'), ' اللي يمسحه يصير يتحكم بالغرفة، فخلّه لك. يختفي بعد دقيقة.'),
           h('button', { type: 'button', class: 'btn', onclick: close }, 'تم')));
       document.body.append(modal);
       setTimeout(close, 60 * 1000);
     },
-  }, '📱 تحكم من جوالك');
+  }, icon('smartphone'), ' تحكم من جوالك');
 }
 
 async function copyLink() {
@@ -259,14 +259,14 @@ function banksBox() {
   const mine = state.myBanks;
   if (!mine) return null;
   if (!mine.loggedIn) {
-    return h('p', { class: 'hint banks-login' }, '📚 بنوك أسئلتك و👥 شلتك تنحفظ في حسابك. ',
+    return h('p', { class: 'hint banks-login' }, icon('library'), ' بنوك أسئلتك و', icon('users'), ' شلتك تنحفظ في حسابك. ',
       h('a', { href: `/account?next=${encodeURIComponent('/host')}` }, 'سجّل دخول'), ' وترجع لنفس الغرفة.');
   }
   const on = mine.list.filter((b) => b.on).map((b) => b.id);
   return h('div', { class: 'banks-box' },
     h('div', { class: 'field-head' },
-      h('span', {}, h('b', {}, '📚 بنوكي'), h('small', { class: 'muted' }, ` · ${mine.owner}`)),
-      h('button', { type: 'button', class: 'link-btn small', onclick: () => act('host:banks-refresh') }, '🔄 تحديث'),
+      h('span', {}, h('b', {}, icon('library'), ' بنوكي'), h('small', { class: 'muted' }, ` · ${mine.owner}`)),
+      h('button', { type: 'button', class: 'link-btn small', onclick: () => act('host:banks-refresh') }, icon('refresh-cw'), ' تحديث'),
       h('a', { class: 'link-btn small', href: '/account', target: '_blank' }, 'حسابي')),
     mine.list.length
       ? h('div', { class: 'chips' }, mine.list.map((b) => h('button', {
@@ -276,9 +276,9 @@ function banksBox() {
         'aria-pressed': String(b.on),
         title: b.playable ? '' : 'البنك يحتاج عناصر أكثر عشان ينلعب',
         onclick: () => act('host:banks', { ids: b.on ? on.filter((id) => id !== b.id) : [...on, b.id] }),
-      }, h('span', {}, b.emoji), h('span', {}, b.name), h('small', { class: 'category-count' }, b.count))))
+      }, h('span', {}, b.name), h('small', { class: 'category-count' }, b.count))))
       : h('p', { class: 'hint' }, 'ما عندك بنوك لهاللعبة. سوّ واحد من ', h('a', { href: '/account', target: '_blank' }, 'حسابك'), '، أو اطلب من الذكاء الاصطناعي.'),
-    on.length ? h('p', { class: 'hint' }, '✅ البنوك المختارة انضافت للفئات.') : null,
+    on.length ? h('p', { class: 'hint' }, icon('circle-check'), ' البنوك المختارة انضافت للفئات.') : null,
   );
 }
 
@@ -292,7 +292,7 @@ function groupBox() {
   if (!mine?.applies) return null;
   if (!mine.loggedIn) {
     if (state.myBanks) return null; // the banks box asks them to log in, for both
-    return h('p', { class: 'hint banks-login' }, '👥 تلعبون مع نفس الشلة؟ ',
+    return h('p', { class: 'hint banks-login' }, icon('users'), ' تلعبون مع نفس الشلة؟ ',
       h('a', { href: `/account?next=${encodeURIComponent('/host')}` }, 'سجّل دخول'), ' واحفظها عشان الأسئلة ما تتكرر عليكم.');
   }
   const { current } = mine;
@@ -310,16 +310,16 @@ function groupBox() {
   const left = current ? Math.max(0, current.total - current.played) : 0;
   return h('div', { class: 'banks-box group-box' },
     h('div', { class: 'field-head' },
-      h('span', {}, h('b', {}, '👥 الشلة'), h('small', { class: 'muted' }, ' · الأسئلة ما تتكرر على نفس الشلة')),
+      h('span', {}, h('b', {}, icon('users'), ' الشلة'), h('small', { class: 'muted' }, ' · الأسئلة ما تتكرر على نفس الشلة')),
       h('a', { class: 'link-btn small', href: '/account#groups', target: '_blank' }, 'شللي')),
-    h('div', { class: 'group-row' }, pick, h('button', { type: 'button', class: 'btn small', id: 'group-new', onclick: create }, '➕ شلة جديدة')),
+    h('div', { class: 'group-row' }, pick, h('button', { type: 'button', class: 'btn small', id: 'group-new', onclick: create }, icon('plus'), ' شلة جديدة')),
     current
       ? h('p', { class: 'hint group-stat' }, h('b', {}, current.name), current.played
         ? ` لعبوا ${number(current.played)} من أسئلة هاللعبة، وباقي ${number(left)} جديدة عليهم.`
         : ' ما لعبوا هاللعبة قبل: كل الأسئلة جديدة عليهم.')
       : h('p', { class: 'hint' }, 'اختر الشلة اللي تلعبون معها الليلة، والموقع يتذكر وش انسأل عليهم ويرتّبهم.'),
     current?.top.length
-      ? h('p', { class: 'hint group-top' }, h('b', {}, '🏆 ترتيب الشلة: '), current.top.slice(0, 3).map((r) => `${r.name} ${number(r.points)}`).join(' · '))
+      ? h('p', { class: 'hint group-top' }, h('b', {}, icon('trophy'), ' ترتيب الشلة: '), current.top.slice(0, 3).map((r) => `${r.name} ${number(r.points)}`).join(' · '))
       : null,
   );
 }
@@ -340,7 +340,7 @@ async function sendToSite(game, items) {
     });
     const out = await res.json();
     if (!res.ok) toast(out.error);
-    else toast(`وصلت ${out.added} للموقع وتنتظر الموافقة${out.errors.length ? ` (${out.errors.length} موجودة أو ناقصة)` : ''} ✅`, 'ok');
+    else toast(`وصلت ${out.added} للموقع وتنتظر الموافقة${out.errors.length ? ` (${out.errors.length} موجودة أو ناقصة)` : ''}`, 'ok');
   } catch {
     toast('ما قدرنا نرسل، تأكد من النت');
   }
@@ -354,21 +354,21 @@ async function sendToSite(game, items) {
 function customBox({ game, help, inputs, save, items, open = false }) {
   const share = h('input', { type: 'checkbox', id: `${game}-share` });
   return h('details', { class: 'custom-box', open },
-    h('summary', {}, '✍️ أسئلتكم الخاصة'),
+    h('summary', {}, icon('pen-line'), ' أسئلتكم الخاصة'),
     h('p', { class: 'hint' }, help),
     ...inputs,
     h('p', { class: 'hint custom-status', id: 'custom-status' }),
-    h('label', { class: 'check' }, share, ' 📤 أرسلها للموقع كمان، عشان تطلع للكل (بعد موافقة صاحب الموقع)'),
+    h('label', { class: 'check' }, share, ' ', icon('send'), ' أرسلها للموقع كمان، عشان تطلع للكل (بعد موافقة صاحب الموقع)'),
     h('button', {
       type: 'button',
       class: 'btn',
       onclick: async () => {
         const res = await save();
         if (!res?.ok) return;
-        toast('انحفظت لهالغرفة ✅', 'ok');
+        toast('انحفظت لهالغرفة', 'ok');
         if (share.checked) await sendToSite(game, items());
       },
-    }, '💾 احفظ'),
+    }, icon('save'), ' احفظ'),
   );
 }
 
@@ -378,7 +378,7 @@ function teamsSection() {
   return [
     h('div', { class: 'field-head tc-teams-head' },
       h('h2', {}, 'الفرق ', h('span', { id: 'player-count', class: 'count' })),
-      h('button', { type: 'button', class: 'btn small', onclick: () => act('host:shuffle') }, '🔀 وزّعهم عشوائي'),
+      h('button', { type: 'button', class: 'btn small', onclick: () => act('host:shuffle') }, icon('shuffle'), ' وزّعهم عشوائي'),
     ),
     h('div', { class: 'tc-teams' }, TEAM_ORDER.map((team) => h('div', { class: `tc-team ${team}` },
       h('h3', {}, teamLabel(team), h('span', { class: 'count', 'data-team-count': team })),

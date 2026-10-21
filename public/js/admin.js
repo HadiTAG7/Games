@@ -1,4 +1,4 @@
-/* global $, h, toast, contribForm */
+/* global $, h, toast, contribForm, icon */
 'use strict';
 
 // The owner's review page: questions people sent wait here until approved
@@ -12,7 +12,7 @@ let status = null;
 let accountQuery = '';
 
 function tabsEl() {
-  const tabs = [['pending', `تنتظر (${status.pending})`], ['approved', `المقبولة (${status.approved})`], ['rejected', 'المرفوضة'], ['accounts', '👤 الحسابات']];
+  const tabs = [['pending', `تنتظر (${status.pending})`], ['approved', `المقبولة (${status.approved})`], ['rejected', 'المرفوضة'], ['accounts', 'الحسابات']];
   return h('div', { class: 'review-tabs', role: 'tablist' }, tabs.map(([id, label]) => h('button', {
     type: 'button',
     class: `btn small${tab === id ? ' primary' : ''}`,
@@ -51,7 +51,7 @@ function renderLogin(error = '') {
         await start();
       },
     },
-      h('h1', { class: 'center' }, '🔐 مراجعة الأسئلة'),
+      h('h1', { class: 'center' }, icon('lock'), ' مراجعة الأسئلة'),
       error ? h('p', { class: 'banner bad' }, error) : null,
       h('label', { class: 'field' }, h('span', {}, 'كلمة السر'), input),
       h('button', { class: 'btn primary big', type: 'submit' }, 'ادخل'),
@@ -71,12 +71,12 @@ async function start() {
 
 function storageBanner() {
   const survey = status.survey
-    ? h('p', { class: 'hint center' }, `📊 استبيان «فاميلي فيود» من أجوبة «عقلية القطيع»: ${status.survey.ready} سؤال جاهز من ${status.survey.questions}`)
+    ? h('p', { class: 'hint center' }, icon('chart-column'), ` استبيان «فاميلي فيود» من أجوبة «عقلية القطيع»: ${status.survey.ready} سؤال جاهز من ${status.survey.questions}`)
     : null;
   const banner = status.persistent
-    ? h('p', { class: 'banner good' }, '✅ الأسئلة محفوظة في قاعدة البيانات، وما تنمسح مع التحديثات.')
+    ? h('p', { class: 'banner good' }, icon('circle-check'), ' الأسئلة محفوظة في قاعدة البيانات، وما تنمسح مع التحديثات.')
     : h('p', { class: 'banner bad' }, status.error ?? '',
-      '⚠️ الأسئلة محفوظة في ملف مؤقت على السيرفر، وتنمسح مع كل تحديث. جهّز قاعدة البيانات (DATABASE_URL) عشان تنحفظ للأبد.');
+      icon('triangle-alert'), ' الأسئلة محفوظة في ملف مؤقت على السيرفر، وتنمسح مع كل تحديث. جهّز قاعدة البيانات (DATABASE_URL) عشان تنحفظ للأبد.');
   return h('div', {}, banner, survey);
 }
 
@@ -95,14 +95,14 @@ function itemCard(item, spec) {
   const when = new Date(item.createdAt).toLocaleDateString('ar-SA-u-nu-latn', { day: 'numeric', month: 'short' });
   const buttons = tab === 'pending'
     ? [
-      h('button', { type: 'button', class: 'btn primary small', onclick: () => act(`/submissions/${item.id}/approve`, { payload: form.read() }, 'انقبل ✅') }, '✅ وافق'),
-      h('button', { type: 'button', class: 'btn small', onclick: () => act(`/submissions/${item.id}/reject`, {}, 'انرفض') }, '❌ ارفض'),
+      h('button', { type: 'button', class: 'btn primary small', onclick: () => act(`/submissions/${item.id}/approve`, { payload: form.read() }, 'انقبل') }, icon('circle-check'), ' وافق'),
+      h('button', { type: 'button', class: 'btn small', onclick: () => act(`/submissions/${item.id}/reject`, {}, 'انرفض') }, icon('circle-x'), ' ارفض'),
     ]
     : [h('button', {
       type: 'button',
       class: 'btn small danger',
       onclick: () => { if (confirm('تحذف السؤال؟')) act(`/submissions/${item.id}/delete`, {}, 'انحذف'); },
-    }, '🗑️ احذف')];
+    }, icon('trash-2'), ' احذف')];
   return h('li', { class: 'card review-item', 'data-id': item.id },
     h('div', { class: 'review-meta' }, `#${item.id} · ${item.submitter ? `من ${item.submitter}` : 'بدون اسم'} · ${when}`),
     tab === 'pending' ? form.el : h('p', { class: 'review-text' }, Object.values(item.payload).filter(Boolean).join(' · ')),
@@ -137,8 +137,8 @@ async function renderAccounts(tabs) {
   const search = h('input', { placeholder: 'ابحث باسم المستخدم', value: accountQuery });
   app.replaceChildren(...[
     h('nav', { class: 'landing-nav' }, h('a', { href: '/' }, '→ الصفحة الرئيسية')),
-    h('h1', { class: 'center' }, '🔐 الحسابات'),
-    list.persistent ? null : h('p', { class: 'banner bad' }, '⚠️ الحسابات محفوظة في ملف مؤقت وتنمسح مع كل تحديث.'),
+    h('h1', { class: 'center' }, icon('lock'), ' الحسابات'),
+    list.persistent ? null : h('p', { class: 'banner bad' }, icon('triangle-alert'), ' الحسابات محفوظة في ملف مؤقت وتنمسح مع كل تحديث.'),
     tabs,
     h('form', { class: 'mcp-url', onsubmit: (e) => { e.preventDefault(); accountQuery = search.value; renderTab(); } },
       search, h('button', { class: 'btn small', type: 'submit' }, 'بحث')),
@@ -153,12 +153,12 @@ async function renderAccounts(tabs) {
             const password = prompt(`كلمة سر جديدة لـ${a.username} (8 أحرف على الأقل):`);
             if (password) act(`/accounts/${a.id}/password`, { password }, 'تغيّرت كلمة السر');
           },
-        }, '🔑 كلمة سر جديدة'),
+        }, icon('key-round'), ' كلمة سر جديدة'),
         h('button', {
           type: 'button',
           class: 'btn small danger',
           onclick: () => { if (confirm(`تحذف حساب ${a.username} وكل بنوكه؟`)) act(`/accounts/${a.id}/delete`, {}, 'انحذف الحساب'); },
-        }, '🗑️ احذف')),
+        }, icon('trash-2'), ' احذف')),
     )))
       : h('p', { class: 'hint center' }, 'ما فيه حسابات'),
   ].filter(Boolean));
@@ -178,17 +178,17 @@ async function renderTab() {
   }
   const groups = data.games.map((spec) => ({ spec, items: data.items.filter((i) => i.game === spec.id) })).filter((g) => g.items.length);
   app.replaceChildren(...[
-    h('nav', { class: 'landing-nav' }, h('a', { href: '/' }, '→ الصفحة الرئيسية'), h('a', { href: '/add' }, '✍️ أضف أسئلة')),
-    h('h1', { class: 'center' }, '🔐 مراجعة الأسئلة'),
+    h('nav', { class: 'landing-nav' }, h('a', { href: '/' }, '→ الصفحة الرئيسية'), h('a', { href: '/add' }, icon('pen-line'), ' أضف أسئلة')),
+    h('h1', { class: 'center' }, icon('lock'), ' مراجعة الأسئلة'),
     storageBanner(),
     tabsEl(),
-    groups.length ? null : h('p', { class: 'hint center' }, tab === 'pending' ? 'ما فيه أسئلة تنتظر 👌' : 'ما فيه شي هنا'),
+    groups.length ? null : h('p', { class: 'hint center' }, tab === 'pending' ? 'ما فيه أسئلة تنتظر' : 'ما فيه شي هنا'),
     ...groups.map(({ spec, items }) => {
       const list = h('ol', { class: 'review-list' }, items.map((item) => itemCard(item, spec)));
       return h('section', { class: 'review-group' },
         h('div', { class: 'field-head' },
-          h('h2', {}, `${spec.emoji} ${spec.name} (${items.length})`),
-          tab === 'pending' ? h('button', { type: 'button', class: 'link-btn small', onclick: () => approveAll([...list.children]) }, '✅ وافق على الكل') : null),
+          h('h2', {}, `${spec.name} (${items.length})`),
+          tab === 'pending' ? h('button', { type: 'button', class: 'link-btn small', onclick: () => approveAll([...list.children]) }, icon('circle-check'), ' وافق على الكل') : null),
         list);
     }),
   ].filter(Boolean));

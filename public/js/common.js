@@ -21,6 +21,43 @@ function h(tag, props, ...children) {
   return el;
 }
 
+/* ---------- Icons ---------- */
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** A line icon from /icons.svg (Lucide), drawn in the text colour: icon('trophy'), icon('crown', 'xl'). */
+function icon(name, size = '') {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', size ? `icon ${size}` : 'icon');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const use = document.createElementNS(SVG_NS, 'use');
+  use.setAttribute('href', `/icons.svg#i-${name}`);
+  svg.append(use);
+  return svg;
+}
+
+/** Each game's logo: its icon in a tile of the game's colour. */
+const GAME_ICONS = {
+  herd: 'users-round',
+  time: 'timer',
+  seen: 'circle-help',
+  letters: 'hexagon',
+  outsider: 'venetian-mask',
+  mafia: 'drama',
+  feud: 'chart-bar-big',
+  who: 'pointer',
+  truth: 'circle-check-big',
+};
+function gameLogo(id, size = '') {
+  return h('span', { class: `game-logo${size ? ` ${size}` : ''}`, 'data-theme': id }, icon(GAME_ICONS[id] ?? 'dices'));
+}
+
+/** 1, 2 and 3 in gold, silver and bronze; the rest as plain numbers. */
+function rankBadge(rank) {
+  return h('span', { class: `rank-badge${rank <= 3 ? ` r${rank}` : ''}` }, rank);
+}
+
 const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 function toLatinDigits(text) {
@@ -168,34 +205,33 @@ setInterval(() => {
   globalThis.sfx?.countdown(lowest);
 }, 250);
 
-const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 const GAME_NAME = 'عقلية القطيع';
 
 const MODES = {
   same: {
     name: 'مع القطيع',
-    emoji: '🐄',
+    icon: 'users-round',
     goal: 'جاوب نفس جواب الأغلبية',
     prompt: 'اكتب الجواب اللي تتوقع الأغلبية تكتبه',
-    winLabel: '👑 الأغلبية',
+    winLabel: 'الأغلبية',
     winnersTitle: 'جواب الأغلبية',
-    noWinners: 'ما فيه أغلبية هالمرة 😅',
+    noWinners: 'ما فيه أغلبية هالمرة',
   },
   different: {
     name: 'عكس القطيع',
-    emoji: '🦄',
+    icon: 'sparkles',
     goal: 'جاوب جواب صحيح ما أحد غيرك يقوله',
     prompt: 'اكتب جواب صحيح تتوقع ما أحد غيرك بيكتبه',
-    winLabel: '🦄 انفرد فيه',
+    winLabel: 'انفرد فيه',
     winnersTitle: 'الأجوبة اللي ما تكررت',
-    noWinners: 'ما أحد انفرد بجوابه هالمرة 😅',
+    noWinners: 'ما أحد انفرد بجوابه هالمرة',
   },
 };
 
 function categoryTag(category) {
   if (!category) return null;
   return h('div', { class: 'category-tag' },
-    `${category.emoji} ${category.name}`, category.sub ? ` · ${category.sub}` : null);
+    `${category.name}`, category.sub ? ` · ${category.sub}` : null);
 }
 
 function lastVoteBanner(lastVote) {
@@ -204,12 +240,12 @@ function lastVoteBanner(lastVote) {
     ? `تعادل ${lastVote.keep}–${lastVote.reject} وقرر المضيف`
     : `${lastVote.reject} رفض · ${lastVote.keep} قبول`;
   return h('div', { class: `banner ${lastVote.rejected ? 'bad' : 'good'}` },
-    '🗳️ الجواب «', h('b', {}, lastVote.text), `» ${lastVote.rejected ? 'انرفض' : 'انقبل'} (${detail})`);
+    icon('vote'), ' الجواب «', h('b', {}, lastVote.text), `» ${lastVote.rejected ? 'انرفض' : 'انقبل'} (${detail})`);
 }
 
 function standingsList(rows, { highlightId = null, showGain = true } = {}) {
   return h('ol', { class: 'standings' }, rows.map((row) => h('li', { class: row.id === highlightId ? 'me' : null },
-    h('span', { class: 'rank' }, (row.score > 0 && MEDALS[row.rank]) || row.rank),
+    h('span', { class: 'rank' }, row.score > 0 ? rankBadge(row.rank) : row.rank),
     h('span', { class: 'name' }, row.name),
     showGain && row.gained ? h('span', { class: 'gain' }, `+${row.gained}`) : null,
     h('span', { class: 'score', 'data-bump': `score-${row.id}` }, row.score),
@@ -253,9 +289,9 @@ function timesText(n) {
 
 function nightList(rows, { meId = null, limit = 10 } = {}) {
   return h('ol', { class: 'standings night-list' }, rows.slice(0, limit).map((row) => h('li', { class: row.id === meId ? 'me' : null },
-    h('span', { class: 'rank' }, MEDALS[row.rank] || row.rank),
+    h('span', { class: 'rank' }, rankBadge(row.rank)),
     h('span', { class: 'name' }, row.name),
-    row.wins ? h('span', { class: 'night-wins', title: 'عدد مرات الفوز' }, `🏅 ${row.wins}`) : null,
+    row.wins ? h('span', { class: 'night-wins', title: 'عدد مرات الفوز' }, icon('medal'), ` ${row.wins}`) : null,
     h('span', { class: 'score', 'data-bump': `night-${row.id}` }, row.points),
   )));
 }
@@ -267,9 +303,9 @@ function crownOverlay(night, { meId = null, onClose = null } = {}) {
   return h('div', { class: 'crown-overlay', id: 'crown', role: 'dialog', 'aria-label': 'بطل السهرة' },
     confetti(),
     h('div', { class: 'crown-box' },
-      h('div', { class: 'crown-emoji' }, '👑'),
+      h('div', { class: 'crown-emoji' }, icon('crown')),
       h('p', { class: 'crown-kicker' }, champions.length > 1 ? 'أبطال السهرة' : 'بطل السهرة'),
-      h('h1', {}, mine ? 'أنت بطل السهرة! 🎉' : champions.map((row) => row.name).join(' و')),
+      h('h1', {}, mine ? ['أنت بطل السهرة! ', icon('party-popper')] : champions.map((row) => row.name).join(' و')),
       h('p', { class: 'muted' }, `${pointsText(champions[0].points)}${champions[0].wins ? ` · فاز ${timesText(champions[0].wins)}` : ''}`),
       nightList(night.standings, { meId, limit: 6 }),
       onClose ? h('button', { class: 'btn primary big', onclick: onClose }, 'رجوع للغرفة') : null,

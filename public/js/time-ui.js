@@ -1,4 +1,4 @@
-/* global h, serverNow, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel */
+/* global h, serverNow, TEAM_ORDER, TEAM_INFO, otherTeam, teamLabel, icon */
 'use strict';
 
 // Pieces of «تحدي الوقت» shared by the host, player and preview pages:
@@ -18,7 +18,7 @@ function roundsText(n) {
  * The picture (or emoji / text) players have to name.
  * reveal: show hidden flags whole (recap and preview).
  */
-function cardFace(card, { reveal = false, lazy = false, brokenText = '😕 الصورة ما فتحت', onBroken } = {}) {
+function cardFace(card, { reveal = false, lazy = false, brokenText = 'الصورة ما فتحت', onBroken } = {}) {
   if (!card) return null;
   if (card.type === 'emoji') return h('div', { class: 'tc-face emoji' }, card.emoji);
   if (card.type === 'text') {
@@ -72,7 +72,7 @@ function preloadNote(urls) {
   const el = h('p', { class: 'tc-preload', 'data-preload': '' });
   const update = () => {
     const done = urls.filter((src) => preloaded.get(src)?.done).length;
-    el.textContent = done >= urls.length ? '✅ الصور جاهزة' : `⏳ تحميل الصور ${done}/${urls.length}`;
+    el.textContent = done >= urls.length ? 'الصور جاهزة' : `تحميل الصور ${done}/${urls.length}`;
   };
   preloadImages(urls, update);
   update();
@@ -108,7 +108,7 @@ function clocksEl(round, { seconds, myTeam = null, playing = true, duel = null }
       class: `tc-clock ${team}${active ? ' active' : ''}${myTeam === team ? ' mine' : ''}`,
       'data-clock': team,
     },
-      h('div', { class: 'tc-clock-name' }, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}`, myTeam === team ? h('small', {}, ' · فريقك') : null),
+      h('div', { class: 'tc-clock-name' }, `${TEAM_INFO[team].name}`, myTeam === team ? h('small', {}, ' · فريقك') : null),
       duel?.[team] ? h('div', { class: 'tc-clock-player' }, duel[team].name) : null,
       h('div', { class: 'tc-clock-time' }, formatClock(ms)),
       h('div', { class: 'tc-clock-bar' }, h('span', { style: `width:${Math.min(100, (ms / total) * 100)}%` })),
@@ -163,12 +163,11 @@ function wheelSvg(items) {
     const shape = n === 1
       ? `<circle r="97" fill="${color}"/>`
       : `<path d="M0 0 L${point(i * seg, 97)} A97 97 0 0 1 ${point((i + 1) * seg, 97)} Z" fill="${color}" stroke="#1d1238" stroke-width="1"/>`;
-    // The name runs along the radius, between the hub and the emoji at the rim.
+    // The name runs along the radius, from the hub to the rim.
     const name = c.name.replace(/ من الإيموجي$/, '');
-    const size = Math.min(10, 56 / (name.length * 0.55)).toFixed(1);
+    const size = Math.min(10.5, 70 / (name.length * 0.55)).toFixed(1);
     return `${shape}<g transform="rotate(${i * seg + seg / 2})">`
-      + `<text y="-85" font-size="13" text-anchor="middle" dominant-baseline="central">${escapeXml(c.emoji)}</text>`
-      + `<text transform="translate(0 -51) rotate(-90)" font-size="${size}" text-anchor="middle" dominant-baseline="central" fill="#1d1238" font-weight="800">${escapeXml(name)}</text>`
+      + `<text transform="translate(0 -58) rotate(-90)" font-size="${size}" text-anchor="middle" dominant-baseline="central" fill="#1d1238" font-weight="800">${escapeXml(name)}</text>`
       + '</g>';
   });
   return `<svg viewBox="-100 -100 200 200" aria-hidden="true">${slices.join('')}</svg>`;
@@ -201,7 +200,7 @@ function wheelEl(round) {
   return h('div', { class: 'tc-wheel' },
     h('div', { class: 'tc-wheel-pointer' }),
     h('div', { class: 'tc-wheel-clip' }, disk),
-    h('div', { class: 'tc-wheel-hub' }, '⏱️'),
+    h('div', { class: 'tc-wheel-hub' }, icon('timer')),
   );
 }
 
@@ -211,7 +210,7 @@ function scoreboardEl(s) {
   return h('div', { class: 'tc-score' },
     TEAM_ORDER.map((team, i) => [
       i === 1 ? h('div', { class: 'tc-score-mid' }, 'أول فريق يكسب ', h('b', {}, roundsText(s.roundsToWin)), ' يفوز') : null,
-      h('div', { class: `tc-score-team ${team}` }, h('span', {}, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}`), h('b', { 'data-bump': `score-${team}` }, s.score[team])),
+      h('div', { class: `tc-score-team ${team}` }, h('span', {}, `${TEAM_INFO[team].name}`), h('b', { 'data-bump': `score-${team}` }, s.score[team])),
     ]),
   );
 }
@@ -220,22 +219,22 @@ function scoreboardEl(s) {
 function duelEl(duel, { meId = null } = {}) {
   if (!duel) return null;
   const side = (team) => h('span', { class: `tc-duel-side ${team}${duel[team]?.id === meId ? ' me' : ''}` },
-    h('small', {}, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}`), h('b', {}, duel[team]?.name ?? '—'));
+    h('small', {}, `${TEAM_INFO[team].name}`), h('b', {}, duel[team]?.name ?? '—'));
   return h('div', { class: 'tc-duel' }, side('red'), h('span', { class: 'tc-duel-vs' }, 'ضد'), side('blue'));
 }
 
 function roundResultText(result) {
-  if (!result.winner) return { title: 'تعادل! 🤝', detail: 'خلصت صور الفئة والوقت متساوي' };
+  if (!result.winner) return { title: 'تعادل!', detail: 'خلصت صور الفئة والوقت متساوي' };
   const loser = otherTeam(result.winner);
   return {
-    title: `${teamLabel(result.winner)} فاز بالجولة! 🏆`,
+    title: `${teamLabel(result.winner)} فاز بالجولة!`,
     detail: result.reason === 'time'
-      ? `${teamLabel(loser)} خلص وقته ⌛`
+      ? `${teamLabel(loser)} خلص وقته`
       : `خلصت صور الفئة، و${teamLabel(result.winner)} باقي له وقت أكثر`,
   };
 }
 
-const RESULT_MARK = { correct: '✅', skip: '⏭️', stuck: '⌛' };
+const RESULT_MARK = { correct: 'circle-check', skip: 'skip-forward', stuck: 'hourglass' };
 
 function recapEl(items) {
   if (!items.length) return h('p', { class: 'muted center' }, 'ما انعرضت صور هالجولة');
@@ -243,15 +242,15 @@ function recapEl(items) {
     cardFace(item, { reveal: true }),
     h('figcaption', {},
       h('span', { class: 'tc-recap-mark', title: item.result === 'correct' ? 'صح' : item.result === 'skip' ? 'تخطي' : 'خلص الوقت عليها' },
-        RESULT_MARK[item.result]),
+        icon(RESULT_MARK[item.result])),
       h('b', {}, item.answer)),
   )));
 }
 
 function timeRulesList(settings) {
   return h('ul', { class: 'rules-list' },
-    h('li', {}, 'فريقين: 🔴 الأحمر و🔵 الأزرق، وكل فريق عنده ساعته الخاصة.'),
-    h('li', {}, 'كل جولة شخص ضد شخص: واحد من كل فريق بالدور، عشان الكل يلعب. وهو بس اللي يجاوب، وفريقه ما يساعده 🤫'),
+    h('li', {}, 'فريقين: ', h('span', { class: 'team-dot red', 'aria-hidden': 'true' }), ' الأحمر و', h('span', { class: 'team-dot blue', 'aria-hidden': 'true' }), ' الأزرق، وكل فريق عنده ساعته الخاصة.'),
+    h('li', {}, 'كل جولة شخص ضد شخص: واحد من كل فريق بالدور، عشان الكل يلعب. وهو بس اللي يجاوب، وفريقه ما يساعده ', icon('venetian-mask')),
     h('li', {}, 'كل جولة تدور العجلة وتختار الفئة.'),
     h('li', {}, 'تطلع صورة، واللي عليه الدور يقول وش هي بصوت عالي.'),
     h('li', {}, 'لو الجواب صح، يوقف وقته ويبدأ وقت اللاعب الثاني على صورة جديدة.'),

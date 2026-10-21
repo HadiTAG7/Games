@@ -163,7 +163,7 @@ class MafiaGame {
   checkPick(playerId, target) {
     const role = this.roleOf(playerId);
     const alive = this.alive();
-    if (!alive.includes(playerId)) throw new GameError('أنت طالع من اللعبة 👻');
+    if (!alive.includes(playerId)) throw new GameError('أنت طالع من اللعبة');
     if (target === null) {
       if (role === 'sniper' && !this.bulletUsed) return; // holding the bullet
       throw new GameError('اختر لاعب');
@@ -174,7 +174,7 @@ class MafiaGame {
       return;
     }
     if (target === playerId) throw new GameError('اختر أحد غيرك');
-    if (role === 'mafia' && this.isMafia(target)) throw new GameError('هذا من المافيا معك 😅');
+    if (role === 'mafia' && this.isMafia(target)) throw new GameError('هذا من المافيا معك');
   }
 
   pick(playerId, target = null) {
@@ -291,7 +291,7 @@ class MafiaGame {
   castVote(playerId, target) {
     if (this.phase !== 'vote') throw new GameError('التصويت مو مفتوح');
     const alive = this.alive();
-    if (!alive.includes(playerId)) throw new GameError('أنت طالع من اللعبة 👻');
+    if (!alive.includes(playerId)) throw new GameError('أنت طالع من اللعبة');
     if (target !== 'none') {
       if (target === playerId) throw new GameError('ما تقدر تصوّت على نفسك');
       if (!alive.includes(target)) throw new GameError('اختر لاعب باقي في اللعبة');

@@ -1,5 +1,5 @@
 /* global io, $, h, emit, storage, toast, toLatinDigits, connectionBanner, syncClock, setTheme, sfx, syncCrown, pointsText, useTeamNames,
-   showScreen, motionKind, bumpChanges */
+   showScreen, motionKind, bumpChanges, icon */
 'use strict';
 
 // The player page shell: joining, the room session and dispatch to the
@@ -82,7 +82,7 @@ function renderJoin({ code = '', name = '', error = '' } = {}) {
     if (!/^\d{4}$/.test(room)) return;
     const { names = [] } = await fetch(`/api/rooms/${room}/names`).then((r) => r.json()).catch(() => ({}));
     if (!names.length || toLatinDigits(codeInput.value).trim() !== room) return;
-    picks.replaceChildren(h('small', {}, '👥 من الشلة؟ اضغط اسمك:'), ...names.map((n) => h('button', {
+    picks.replaceChildren(h('small', {}, icon('users'), ' من الشلة؟ اضغط اسمك:'), ...names.map((n) => h('button', {
       type: 'button',
       class: 'category-chip',
       onclick: () => { nameInput.value = n; },
@@ -105,7 +105,7 @@ function renderJoin({ code = '', name = '', error = '' } = {}) {
       button.disabled = false;
     },
   },
-    h('h1', { class: 'center' }, 'ألعاب الشلة 🎲'),
+    h('h1', { class: 'center' }, 'ألعاب الشلة ', icon('dices')),
     error ? h('p', { class: 'banner bad' }, error) : null,
     h('label', { class: 'field' }, h('span', {}, 'رقم الغرفة'), codeInput),
     h('label', { class: 'field' }, h('span', {}, 'اسمك'), nameInput),
@@ -163,7 +163,7 @@ function placeGroupLine() {
   const old = $('#group-line');
   const me = state.groupMe;
   const el = main && state.phase === 'lobby' && state.groupName
-    ? h('div', { class: 'night-me group-line', id: 'group-line' }, h('b', {}, '👥 شلة: '), state.groupName,
+    ? h('div', { class: 'night-me group-line', id: 'group-line' }, h('b', {}, icon('users'), ' شلة: '), state.groupName,
       me ? ` · ترتيبك ${me.rank} من ${me.of} (${pointsText(me.points)})` : null)
     : null;
   if (old && el && old.isEqualNode(el)) return;
@@ -179,11 +179,11 @@ function placeNightMe() {
   const mine = rows.find((row) => row.id === session.playerId);
   const leader = rows[0];
   let text = null;
-  if (mine?.rank === 1) text = `أنت في الصدارة بـ${pointsText(mine.points)} 👑`;
+  if (mine?.rank === 1) text = `أنت في الصدارة بـ${pointsText(mine.points)}`;
   else if (mine) text = `ترتيبك ${mine.rank} بـ${pointsText(mine.points)} · الصدارة لـ${leader.name}`;
   else if (leader) text = `الصدارة لـ${leader.name} بـ${pointsText(leader.points)}`;
   const el = main && state.phase === 'lobby' && text
-    ? h('div', { class: 'night-me', id: 'night-me' }, h('b', {}, '🏆 بطل السهرة: '), text)
+    ? h('div', { class: 'night-me', id: 'night-me' }, h('b', {}, icon('trophy'), ' بطل السهرة: '), text)
     : null;
   if (old && el && old.isEqualNode(el)) return;
   old?.remove();

@@ -1,5 +1,5 @@
 /* global $, h, emit, toast, socket, app, state, screenKey: writable, confetti, timerEl, PLAY_GAMES, otherTeam, teamLabel,
-   teamShort, scoreboardEl, hrBoard, hrSides, hrLetter, hrBuzzStatus, hrRulesList, hrRoundTitle, sfx */
+   teamShort, scoreboardEl, hrBoard, hrSides, hrLetter, hrBuzzStatus, hrRulesList, hrRoundTitle, sfx, icon */
 'use strict';
 
 // Player screens for «حروف»: the board, and a big buzzer while a question is
@@ -11,7 +11,7 @@ let pressedStep = null; // the step this phone already buzzed on
 function topbar() {
   const team = myTeam();
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'حروف 🔤'),
+    h('div', { class: 'brand' }, 'حروف ', icon('hexagon')),
     team ? h('div', { class: `pill team-pill ${team}` }, teamLabel(team)) : null,
     h('div', { class: 'pill' }, state.me.name),
   );
@@ -31,7 +31,7 @@ function teamCard() {
 
 function renderLobby() {
   return h('main', { class: 'stage narrow' },
-    h('div', { class: 'wave' }, '👋'),
+    h('div', { class: 'wave' }, icon('hand')),
     h('h1', { class: 'center' }, `أهلاً ${state.me.name}`),
     teamCard(),
     h('p', { class: 'muted center' }, 'انتظر المضيف يبدأ اللعبة…'),
@@ -43,7 +43,7 @@ function renderPick() {
   const mine = state.picker === myTeam();
   return h('main', { class: 'stage narrow hr-stage' },
     h('div', { class: `tc-turn ${state.picker}${mine ? ' mine' : ''}` },
-      mine ? 'دوركم! اختاروا حرف وقولوه للمضيف 🎯' : `دور ${teamLabel(state.picker)} يختار حرف`),
+      mine ? ['دوركم! اختاروا حرف وقولوه للمضيف ', icon('crosshair')] : `دور ${teamLabel(state.picker)} يختار حرف`),
     hrBoard(state),
     hrSides(),
     scoreboardEl(state),
@@ -66,7 +66,7 @@ function buzzer() {
   const team = myTeam();
   if (!team) return h('p', { class: 'muted center' }, 'ما عندك فريق');
   if (current.locked.includes(team)) {
-    return h('div', { class: 'hr-buzzer locked' }, h('span', {}, '🚫'), h('small', {}, 'فريقكم جاوب غلط، الفرصة للفريق الثاني'));
+    return h('div', { class: 'hr-buzzer locked' }, h('span', {}, icon('ban')), h('small', {}, 'فريقكم جاوب غلط، الفرصة للفريق الثاني'));
   }
   const button = h('button', {
     type: 'button',
@@ -74,7 +74,7 @@ function buzzer() {
     'aria-label': 'البازر',
     onpointerdown: (e) => { e.preventDefault(); pressBuzzer(button); },
     onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') pressBuzzer(button); },
-  }, h('span', {}, '🔔'), h('small', {}, 'اضغط!'));
+  }, h('span', {}, icon('bell-ring')), h('small', {}, 'اضغط!'));
   return button;
 }
 
@@ -88,10 +88,10 @@ function renderQuestion() {
     const me = buzz.playerId === state.me.id;
     const mine = buzz.team === myTeam();
     parts.push(h('div', { class: `tc-turn ${buzz.team}${me ? ' mine' : ''}` },
-      me ? 'أنت ضغطت أول! جاوب بصوت عالي 🔥' : buzz.name ? `🔔 ${buzz.name} ضغط أول${mine ? ' (من فريقك)' : ''}` : `🔔 ${teamLabel(buzz.team)} يجاوب`,
+      me ? 'أنت ضغطت أول! جاوب بصوت عالي' : buzz.name ? [icon('bell-ring'), ` ${buzz.name} ضغط أول${mine ? ' (من فريقك)' : ''}`] : [icon('bell-ring'), ` ${teamLabel(buzz.team)} يجاوب`],
       timerEl(buzz.endsAt)));
   } else {
-    parts.push(h('div', { class: 'sj-result none' }, 'الفريقين غلطوا 😅 المضيف بيقرر'));
+    parts.push(h('div', { class: 'sj-result none' }, 'الفريقين غلطوا المضيف بيقرر'));
   }
   parts.push(h('div', { class: 'hr-mini' }, hrBoard(state, { current: current.cell })), scoreboardEl(state));
   return h('main', { class: 'stage narrow hr-stage' }, parts);
@@ -100,7 +100,7 @@ function renderQuestion() {
 function renderRoundOver() {
   const won = state.result.winner === myTeam();
   return h('main', { class: 'stage narrow hr-stage' },
-    h('div', { class: `verdict ${won ? 'good' : 'bad'}` }, won ? 'فريقكم وصّل وكسب الجولة! 🎉' : hrRoundTitle(state.result)),
+    h('div', { class: `verdict ${won ? 'good' : 'bad'}` }, won ? ['فريقكم وصّل وكسب الجولة! ', icon('party-popper')] : hrRoundTitle(state.result)),
     hrBoard(state),
     scoreboardEl(state),
     h('p', { class: 'hint center' }, state.matchWinner ? 'انتظر النتيجة النهائية…' : 'انتظر الجولة الجاية…'),
@@ -110,11 +110,11 @@ function renderRoundOver() {
 function renderFinal() {
   const winner = state.matchWinner;
   const won = winner && winner === myTeam();
-  let title = 'تعادل! 🤝';
-  if (winner) title = won ? 'فريقكم فاز! 🏆' : `فاز ${teamLabel(winner)}`;
+  let title = 'تعادل!';
+  if (winner) title = won ? 'فريقكم فاز!' : `فاز ${teamLabel(winner)}`;
   return h('main', { class: 'stage narrow final' },
     won ? confetti() : null,
-    h('div', { class: 'trophy' }, won ? '🏆' : winner ? '🎮' : '🤝'),
+    h('div', { class: 'trophy' }, won ? icon('trophy') : winner ? icon('gamepad-2') : icon('handshake')),
     h('h1', { class: 'center' }, title),
     scoreboardEl(state),
     h('p', { class: 'hint center' }, 'المضيف يقدر يبدأ لعبة جديدة'),

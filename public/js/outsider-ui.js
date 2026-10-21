@@ -1,4 +1,4 @@
-/* global h */
+/* global h, icon */
 'use strict';
 
 // Pieces of «برا السالفة» shared by the host and player pages.
@@ -6,7 +6,7 @@
 function osRulesList(s, rules) {
   const two = s.outsiders === 2;
   return h('ul', { class: 'rules-list' },
-    h('li', {}, 'كل جولة تطلع كلمة سرية (السالفة) في جوال الكل، إلا واحد يطلع له «أنت برا السالفة 🤫» ويشوف الفئة بس.'),
+    h('li', {}, 'كل جولة تطلع كلمة سرية (السالفة) في جوال الكل، إلا واحد يطلع له «أنت برا السالفة ', icon('venetian-mask'), '» ويشوف الفئة بس.'),
     two ? h('li', {}, `لو كنتم ${rules.twoOutsidersFrom} أو أكثر، يكونون اثنين برا السالفة.`) : null,
     h('li', {}, 'كل واحد يسأل اللي بعده سؤال عن السالفة، بدون ما يفضحها. واللي برا السالفة يحاول يجاري ويفهم وش هي.'),
     s.freeSeconds ? h('li', {}, `بعدها ${s.freeSeconds} ثانية أسئلة حرة لأي أحد.`) : null,
@@ -18,7 +18,7 @@ function osRulesList(s, rules) {
 }
 
 function osCategory(round) {
-  return h('div', { class: 'os-category' }, h('span', {}, round.category.emoji), h('b', {}, round.category.name));
+  return h('div', { class: 'os-category' }, h('b', {}, round.category.name));
 }
 
 /** Votes per player, most first, with the outsiders marked. */
@@ -26,7 +26,7 @@ function osTally(round) {
   const max = Math.max(1, ...round.tally.map((t) => t.votes));
   const outs = new Set(round.outsiders.map((o) => o.id));
   return h('ol', { class: 'os-tally' }, round.tally.map((t) => h('li', { class: outs.has(t.id) ? 'outsider' : null },
-    h('span', { class: 'os-tally-name' }, t.name, outs.has(t.id) ? ' 🤫' : ''),
+    h('span', { class: 'os-tally-name' }, t.name, outs.has(t.id) ? [' ', icon('venetian-mask')] : ''),
     h('span', { class: 'os-tally-bar' }, h('span', { style: `width:${(t.votes / max) * 100}%` })),
     h('b', {}, t.votes),
   )));
@@ -36,12 +36,12 @@ function osTally(round) {
 function osOutsiderBanner(round) {
   const names = round.outsiders.map((o) => o.name).join(' و');
   const caught = round.outsiders.filter((o) => o.caught);
-  let verdict = 'ما انكشف! 😎';
-  if (caught.length === round.outsiders.length) verdict = round.outsiders.length > 1 ? 'انكشفوا! 🎯' : 'انكشف! 🎯';
+  let verdict = 'ما انكشف!';
+  if (caught.length === round.outsiders.length) verdict = round.outsiders.length > 1 ? 'انكشفوا!' : 'انكشف!';
   else if (caught.length) verdict = `انكشف ${caught.map((o) => o.name).join(' و')} بس`;
   return h('div', { class: `os-outsider ${caught.length ? 'caught' : 'escaped'}` },
     h('small', {}, round.outsiders.length > 1 ? 'اللي برا السالفة كانوا' : 'اللي برا السالفة كان'),
-    h('b', {}, `${names} 🤫`),
+    h('b', {}, `${names} `, icon('venetian-mask')),
     h('span', {}, verdict),
   );
 }

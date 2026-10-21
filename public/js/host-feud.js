@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection, groupBox,
    updateTeamsSection, timerEl, otherTeam, teamLabel, teamShort, sfx, noPhonesCard, remoteButton, isRemote, TEAM_ORDER,
-   ffRoundTitle, ffScore, ffSource, ffBoard, ffStrikes, ffPot, ffResultText, ffWinnerText, ffRulesList, ffFastTable */
+   ffRoundTitle, ffScore, ffSource, ffBoard, ffStrikes, ffPot, ffResultText, ffWinnerText, ffRulesList, ffFastTable, icon */
 'use strict';
 
 // Host screens for «فاميلي فيود». The host opens the answers the teams say
@@ -35,7 +35,7 @@ async function send(event, payload = {}) {
 function topbar() {
   const inGame = !['lobby', 'final'].includes(state.phase);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'فاميلي فيود 👪'),
+    h('div', { class: 'brand' }, 'فاميلي فيود ', icon('chart-bar-big')),
     inGame && !isRemote() ? remoteButton() : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
@@ -51,18 +51,18 @@ function renderLobby() {
       gamePicker(),
       s.phones ? teamsSection() : null,
       s.phones ? h('button', { type: 'button', class: 'btn small sj-nophones-btn', onclick: () => act('host:settings', { phones: false }) },
-        '📺 نلعب بدون جوالات') : null,
+        icon('tv'), ' نلعب بدون جوالات') : null,
       h('h2', {}, 'الإعدادات'),
       h('div', { class: 'settings' },
         field('عدد الجولات', h('select', { id: 'ff-rounds', onchange: (e) => act('host:settings', { rounds: Number(e.target.value) }) },
           state.rules.roundsOptions.map((n) => h('option', { value: n, selected: n === s.rounds }, `${n} جولات`)))),
-        field('⚡ المال السريع', h('select', { id: 'ff-fast', onchange: (e) => act('host:settings', { fastMoney: e.target.value === 'on' }) },
+        field([icon('zap'), ' المال السريع'], h('select', { id: 'ff-fast', onchange: (e) => act('host:settings', { fastMoney: e.target.value === 'on' }) },
           [['on', 'بالنهاية للفريق الفايز'], ['off', 'بدون']].map(([v, label]) => h('option', { value: v, selected: (v === 'on') === s.fastMoney }, label)))),
       ),
       groupBox(),
-      h('p', { class: 'hint' }, `📱 الأجوبة تطلع للمضيف بس: افتح اللعبة على الشاشة الكبيرة، وتحكم من جوالك بزر «📱 تحكم من جوالك» (يطلع أول ما تبدأ). ${state.questionCount} سؤال.`),
+      h('p', { class: 'hint' }, icon('smartphone'), ` الأجوبة تطلع للمضيف بس: افتح اللعبة على الشاشة الكبيرة، وتحكم من جوالك بزر «`, icon('smartphone'), ` تحكم من جوالك» (يطلع أول ما تبدأ). ${state.questionCount} سؤال.`),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة 👪'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'ابدأ اللعبة ', icon('chart-bar-big')),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -81,7 +81,7 @@ function updateLobby() {
 function peekToggle() {
   const on = peeking();
   return h('button', { type: 'button', class: `btn small ff-peek${on ? ' on' : ''}`, onclick: () => setPeek(!on) },
-    on ? '🙈 أخفِ الأجوبة عن هالشاشة' : '👁️ أظهر الأجوبة على هالشاشة');
+    on ? [icon('eye-off'), ' أخفِ الأجوبة عن هالشاشة'] : [icon('eye'), ' أظهر الأجوبة على هالشاشة']);
 }
 
 function faceoffPanel(round) {
@@ -89,7 +89,7 @@ function faceoffPanel(round) {
   const who = (team) => f.players[team]?.name ?? teamShort(team);
   if (!f.turn) {
     return [
-      h('div', { class: 'ff-status' }, `🔔 مواجهة: ${teamShort('red')} ${f.players.red ? `(${who('red')})` : ''} ضد ${teamShort('blue')} ${f.players.blue ? `(${who('blue')})` : ''}`),
+      h('div', { class: 'ff-status' }, icon('bell-ring'), ` مواجهة: ${teamShort('red')} ${f.players.red ? `(${who('red')})` : ''} ضد ${teamShort('blue')} ${f.players.blue ? `(${who('blue')})` : ''}`),
       h('p', { class: 'hint center' }, state.settings.phones ? 'أول واحد يضغط البازر في جواله يجاوب. أو حدد أنت مين سبق:' : 'مين سبق؟'),
       h('div', { class: 'actions' }, TEAM_ORDER.map((team) => h('button', {
         type: 'button', class: `btn ff-team-btn ${team}`, onclick: () => judge('host:ff-buzz', { team }),
@@ -99,10 +99,10 @@ function faceoffPanel(round) {
   const first = f.tries.length === 0;
   return [
     h('div', { class: `ff-status ${f.turn}` }, first && f.buzz?.player
-      ? `🔔 ${f.buzz.player.name} (${teamShort(f.turn)}) ضغط أول! يجاوب`
+      ? [icon('bell-ring'), ` ${f.buzz.player.name} (${teamShort(f.turn)}) ضغط أول! يجاوب`]
       : `${teamLabel(f.turn)} يجاوب${first ? '' : ' (لازم جواب أعلى عشان ياخذون الدور)'}`),
-    h('p', { class: 'hint center' }, 'اضغط الجواب في اللوحة لو موجود، أو ❌'),
-    h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ff-miss', onclick: () => judge('host:ff-miss') }, '❌ مو موجود')),
+    h('p', { class: 'hint center' }, 'اضغط الجواب في اللوحة لو موجود، أو ', icon('circle-x')),
+    h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ff-miss', onclick: () => judge('host:ff-miss') }, icon('circle-x'), ' مو موجود')),
   ];
 }
 
@@ -112,22 +112,22 @@ function controlPanel(round) {
     return [
       h('div', { class: `ff-status ${round.control}` }, `${teamLabel(round.control)} فاز بالمواجهة: يلعبون ولا يمررون؟`),
       h('div', { class: 'actions' },
-        h('button', { type: 'button', class: 'btn primary', onclick: () => judge('host:ff-choose', { play: true }) }, '▶️ يلعبون'),
-        h('button', { type: 'button', class: 'btn', onclick: () => judge('host:ff-choose', { play: false }) }, `↩️ يمررون لـ${teamShort(otherTeam(round.control))}`)),
+        h('button', { type: 'button', class: 'btn primary', onclick: () => judge('host:ff-choose', { play: true }) }, icon('play'), ' يلعبون'),
+        h('button', { type: 'button', class: 'btn', onclick: () => judge('host:ff-choose', { play: false }) }, icon('undo-2'), ` يمررون لـ${teamShort(otherTeam(round.control))}`)),
     ];
   }
   if (state.phase === 'play') {
     return [
       h('div', { class: `ff-status ${round.playing}` }, `دور ${teamLabel(round.playing)}: قولوا أجوبة`),
-      h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ff-miss', onclick: () => judge('host:ff-miss') }, '❌ غلط')),
+      h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ff-miss', onclick: () => judge('host:ff-miss') }, icon('circle-x'), ' غلط')),
     ];
   }
   if (state.phase === 'steal') {
     const thief = otherTeam(round.playing);
     return [
-      h('div', { class: `ff-status ${thief}` }, `🦊 فرصة ${teamLabel(thief)} يسرق ${round.pot} نقطة! جواب واحد بس`),
-      h('p', { class: 'hint center' }, 'لو جوابهم في اللوحة اضغطه، وإلا ❌ والنقاط تروح للفريق الثاني'),
-      h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ff-miss', onclick: () => judge('host:ff-miss') }, '❌ غلط')),
+      h('div', { class: `ff-status ${thief}` }, icon('hand-grab'), ` فرصة ${teamLabel(thief)} يسرق ${round.pot} نقطة! جواب واحد بس`),
+      h('p', { class: 'hint center' }, 'لو جوابهم في اللوحة اضغطه، وإلا ', icon('circle-x'), ' والنقاط تروح للفريق الثاني'),
+      h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ff-miss', onclick: () => judge('host:ff-miss') }, icon('circle-x'), ' غلط')),
     ];
   }
   const text = ffResultText(round.result);
@@ -135,7 +135,7 @@ function controlPanel(round) {
   return [
     h('div', { class: `verdict ff-verdict ${round.result.winner}` }, text.title, h('div', { class: 'verdict-note' }, text.detail)),
     h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:next') },
-      last ? (state.settings.fastMoney ? 'النتيجة ⚡' : 'النتيجة 🏆') : 'الجولة الجاية ▶️')),
+      last ? (state.settings.fastMoney ? ['النتيجة ', icon('zap')] : ['النتيجة ', icon('trophy')]) : ['الجولة الجاية ', icon('play')])),
   ];
 }
 
@@ -151,7 +151,7 @@ function renderRound() {
     ...controlPanel(round),
     h('div', { class: 'actions ff-tools' },
       peekToggle(),
-      h('button', { type: 'button', class: 'btn small', disabled: !round.canUndo, onclick: () => judge('host:ff-undo') }, '↩︎ تراجع'),
+      h('button', { type: 'button', class: 'btn small', disabled: !round.canUndo, onclick: () => judge('host:ff-undo') }, icon('undo-2'), ' تراجع'),
       h('button', { type: 'button', class: 'btn small ghost', onclick: endGame }, 'إنهاء اللعبة')),
     h('p', { class: 'hint center kbd-hint' }, 'الكيبورد: 1–8 = افتح الجواب · X = غلط · Z = تراجع · مسافة = التالي'),
   );
@@ -168,13 +168,13 @@ function renderFastSetup() {
     : h('b', {}, index ? 'اللاعب الثاني' : 'اللاعب الأول'));
   return h('main', { class: 'stage narrow ff-stage' },
     ffScore(state),
-    h('div', { class: 'ff-fast-title' }, '⚡ المال السريع'),
+    h('div', { class: 'ff-fast-title' }, icon('zap'), ' المال السريع'),
     h('p', { class: 'center' }, `${teamLabel(fast.team)} فاز! والحين اثنين منهم يحاولون يجمعون ${fast.target} نقطة.`),
     h('div', { class: 'settings' }, field('اللاعب الأول (20 ثانية)', pick(0)), field('اللاعب الثاني (25 ثانية)', pick(1))),
     h('p', { class: 'hint center' }, state.settings.phones
-      ? '5 أسئلة يكتب أجوبتها في جواله. والثاني ما يسمع أجوبة الأول، فخلّوه يطلع أو يسد أذونه 🙉'
+      ? '5 أسئلة يكتب أجوبتها في جواله. والثاني ما يسمع أجوبة الأول، فخلّوه يطلع أو يسد أذونه'
       : 'المضيف يقرأ الأسئلة، واللاعب يجاوب بصوت عالي، والمضيف يختار الجواب المطابق.'),
-    h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:ff-fast-start') }, 'ابدأ وقت اللاعب الأول ⏱️')),
+    h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:ff-fast-start') }, 'ابدأ وقت اللاعب الأول ', icon('timer'))),
     h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة')),
   );
 }
@@ -187,7 +187,7 @@ function renderFast() {
   const player = fast.players[fast.stage]?.name ?? (fast.stage ? 'اللاعب الثاني' : 'اللاعب الأول');
   const peek = peeking();
   return h('main', { class: 'stage ff-stage' },
-    h('div', { class: 'ff-fast-title' }, `⚡ ${player} يجاوب`),
+    h('div', { class: 'ff-fast-title' }, icon('zap'), ` ${player} يجاوب`),
     timerEl(fast.endsAt),
     h('p', { class: 'center muted' }, state.settings.phones ? 'يكتب أجوبته في جواله…' : 'اقرأ الأسئلة، واختر الجواب المطابق لكل واحد:'),
     !state.settings.phones || peek ? h('ol', { class: 'ff-fast-live' }, fast.questions.map((q, i) => h('li', {},
@@ -209,14 +209,14 @@ function renderFastReview() {
   // The big screen shows only what's been revealed; the host's phone sees it all and can correct.
   const view = peek ? fast : { ...fast, stages: fast.stages.map((col, s) => col.map((c, i) => (s <= fast.stage && i < fast.shown[s] ? c : null))) };
   return h('main', { class: 'stage ff-stage' },
-    h('div', { class: 'ff-fast-title' }, '⚡ المال السريع'),
+    h('div', { class: 'ff-fast-title' }, icon('zap'), ' المال السريع'),
     ffFastTable(view, { onMark: peek ? mark : null }),
     h('div', { class: 'ff-fast-total' }, h('small', {}, 'المجموع'), h('b', {}, fast.shownTotal), h('small', {}, ` من ${fast.target}`)),
     h('div', { class: 'actions' }, !done
-      ? h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:next') }, 'اكشف الجواب التالي ▶️')
+      ? h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:next') }, 'اكشف الجواب التالي ', icon('play'))
       : fast.stage === 0
-        ? h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:ff-fast-start') }, 'ابدأ وقت اللاعب الثاني ⏱️')
-        : h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:next') }, 'النتيجة 🏆')),
+        ? h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:ff-fast-start') }, 'ابدأ وقت اللاعب الثاني ', icon('timer'))
+        : h('button', { type: 'button', class: 'btn primary big', onclick: () => send('host:next') }, 'النتيجة ', icon('trophy'))),
     h('div', { class: 'actions ff-tools' }, peekToggle()),
   );
 }
@@ -228,13 +228,13 @@ function renderFinal() {
   const { fast } = state;
   return h('main', { class: 'stage narrow final ff-stage' },
     winner ? confetti() : null,
-    h('div', { class: 'trophy' }, winner ? '🏆' : '🤝'),
+    h('div', { class: 'trophy' }, winner ? icon('trophy') : icon('handshake')),
     h('h1', { class: 'winner-name' }, ffWinnerText(winner)),
     ffScore(state),
     fast && fast.won !== null ? h('div', { class: `verdict ${fast.won ? 'good' : 'bad'}` },
-      fast.won ? `⚡ فازوا بالمال السريع! ${fast.total} نقطة 🎉` : `⚡ المال السريع: ${fast.total} من ${fast.target}، قريبين!`) : null,
+      fast.won ? [icon('zap'), ` فازوا بالمال السريع! ${fast.total} نقطة `, icon('party-popper')] : [icon('zap'), ` المال السريع: ${fast.total} من ${fast.target}، قريبين!`]) : null,
     fast && fast.won !== null ? ffFastTable(fast) : null,
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة ', icon('repeat'))),
   );
 }
 

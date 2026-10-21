@@ -1,4 +1,4 @@
-/* global h, TEAM_ORDER, teamShort, teamLabel */
+/* global h, TEAM_ORDER, teamShort, teamLabel, icon */
 'use strict';
 
 // Pieces of «فاميلي فيود» shared by the host and player pages: the board of
@@ -20,8 +20,8 @@ function ffScore(s, { myTeam = null } = {}) {
 /** Where the question's points come from: an estimate, or real answers. */
 function ffSource(round) {
   return round.source === 'survey'
-    ? h('span', { class: 'ff-source survey' }, `📊 من أجوبتكم الحقيقية: ${round.responses} جواب`)
-    : h('span', { class: 'ff-source' }, '📝 النقاط تقديرية');
+    ? h('span', { class: 'ff-source survey' }, icon('chart-column'), ` من أجوبتكم الحقيقية: ${round.responses} جواب`)
+    : h('span', { class: 'ff-source' }, icon('notebook-pen'), ' النقاط تقديرية');
 }
 
 /**
@@ -59,23 +59,23 @@ function ffPot(round) {
 
 /** «🔴 الشباب أخذ 120 نقطة» and why. */
 function ffResultText(result) {
-  const why = { cleared: 'فتحوا كل الأجوبة 🎉', steal: 'سرقوا النقاط! 🦊', held: 'فرصة السرقة راحت، والنقاط لهم' }[result.reason];
+  const why = { cleared: 'فتحوا كل الأجوبة', steal: 'سرقوا النقاط!', held: 'فرصة السرقة راحت، والنقاط لهم' }[result.reason];
   return { title: `${teamLabel(result.winner)} أخذ ${result.points} نقطة`, detail: why };
 }
 
 function ffWinnerText(winner) {
-  return winner ? `${teamShort(winner)} فاز! 🏆` : 'تعادل! 🤝';
+  return winner ? `${teamShort(winner)} فاز!` : 'تعادل!';
 }
 
 function ffRulesList(settings) {
   return h('ul', { class: 'rules-list' },
     h('li', {}, 'فريقين، وكل سؤال له أشهر الأجوبة مرتبة من الأكثر، وكل جواب له نقاط حسب كم واحد قاله.'),
     h('li', {}, 'كل جولة تبدأ بمواجهة: واحد من كل فريق، وأول واحد يضغط البازر يجاوب. الجواب الأعلى ترتيب ياخذ الدور لفريقه، وفريقه يقرر: يلعبون ولا يمررون.'),
-    h('li', {}, 'الفريق اللي عليه الدور يقول أجوبة، والمضيف يفتحها. 3 أجوبة غلط ❌❌❌ والفريق الثاني ياخذ فرصة يسرق كل نقاط الجولة بجواب واحد.'),
+    h('li', {}, 'الفريق اللي عليه الدور يقول أجوبة، والمضيف يفتحها. 3 أجوبة غلط ', icon('circle-x'), icon('circle-x'), icon('circle-x'), ' والفريق الثاني ياخذ فرصة يسرق كل نقاط الجولة بجواب واحد.'),
     h('li', {}, `${settings.rounds} جولات، وآخر جولة نقاطها ×2. والفريق اللي نقاطه أكثر يفوز.`),
-    settings.fastMoney ? h('li', {}, '⚡ المال السريع بالنهاية: اثنين من الفريق الفايز يجاوبون 5 أسئلة بسرعة (20 و25 ثانية)، ولو جمعوا 200 نقطة يفوزون.') : null,
+    settings.fastMoney ? h('li', {}, icon('zap'), ' المال السريع بالنهاية: اثنين من الفريق الفايز يجاوبون 5 أسئلة بسرعة (20 و25 ثانية)، ولو جمعوا 200 نقطة يفوزون.') : null,
     settings.phones === false ? h('li', {}, 'نلعب بدون جوالات: المضيف يحدد مين ضغط أول، وكل فريق يجاوب بصوت عالي.') : null,
-    h('li', {}, 'نقاط أسئلة الموقع تقديرية، وفيه أسئلة نقاطها من أجوبة لاعبين حقيقيين في «عقلية القطيع» (📊).'),
+    h('li', {}, 'نقاط أسئلة الموقع تقديرية، وفيه أسئلة نقاطها من أجوبة لاعبين حقيقيين في «عقلية القطيع» (', icon('chart-column'), ').'),
   );
 }
 

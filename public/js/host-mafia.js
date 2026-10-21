@@ -1,5 +1,5 @@
 /* global $, h, act, state, app, field, joinCard, gamePicker, kickButton, endGame, confetti, timerEl, HOST_GAMES, sfx,
-   MF_ROLES, mfRole, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText */
+   MF_ROLES, mfRole, mfRoleTag, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText, icon */
 'use strict';
 
 // Host screens for «مافيا». This screen is the narrator, in front of
@@ -23,7 +23,7 @@ async function send(event, payload = {}) {
 function topbar() {
   const inGame = !['lobby', 'final'].includes(state.phase);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'مافيا 🎭'),
+    h('div', { class: 'brand' }, 'مافيا ', icon('drama')),
     inGame && state.dayNumber ? h('div', { class: 'pill' }, `الليلة ${state.dayNumber}`) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
@@ -59,12 +59,12 @@ function renderLobby() {
               class: 'category-chip',
               'data-role': role,
               onclick: () => act('host:settings', { roles: { [role]: !state.settings.roles[role] } }),
-            }, mfRole(role)))),
+            }, mfRoleTag(role)))),
         ),
       ),
       h('div', { class: 'mf-lineup-box' }, h('b', { id: 'mf-lineup-title' }), h('div', { id: 'mf-lineup' })),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'وزّع الأدوار 🎭'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start') }, 'وزّع الأدوار ', icon('drama')),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -94,44 +94,44 @@ const mayorName = () => state.players.find((p) => p.id === state.mayor)?.name;
 
 function renderRoles() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('div', { class: 'mf-big' }, '🎭'),
+    h('div', { class: 'mf-big' }, icon('drama')),
     h('h1', { class: 'center' }, 'كل واحد يشوف دوره في جواله'),
-    h('p', { class: 'center muted' }, 'خلّ جوالك لنفسك، ولا تفضح دورك 🤫'),
+    h('p', { class: 'center muted' }, 'خلّ جوالك لنفسك، ولا تفضح دورك ', icon('venetian-mask')),
     mfLineup(state.lineup),
-    state.mayor ? h('p', { class: 'center mf-mayor' }, `🎩 العمدة: ${mayorName()}، صوته بصوتين`) : null,
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:mf-night') }, 'ابدأ الليل الأول 🌙')),
+    state.mayor ? h('p', { class: 'center mf-mayor' }, icon('award'), ` العمدة: ${mayorName()}، صوته بصوتين`) : null,
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:mf-night') }, 'ابدأ الليل الأول ', icon('moon'))),
   );
 }
 
 function renderNight() {
   const night = state.nightProgress;
   return h('main', { class: 'stage narrow mf-stage mf-night' },
-    h('div', { class: 'mf-big' }, '🌙'),
+    h('div', { class: 'mf-big' }, icon('moon')),
     h('h1', { class: 'center' }, `الليلة ${state.dayNumber}… الكل يختار من جواله`),
     h('p', { class: 'center muted' }, 'المافيا يتفقون على ضحية، والدكتور ينقذ، والشرطي يسأل… والباقين يختارون مين يشكّون فيه.'),
     timerEl(state.endsAt),
     h('p', { class: 'center' }, h('b', {}, `${night.acted} من ${night.total}`), ' اختاروا'),
     mfPlayers(state.players),
-    h('div', { class: 'actions' }, h('button', { class: 'btn ghost', onclick: () => send('host:mf-end-night') }, 'خلّص الليل ☀️')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn ghost', onclick: () => send('host:mf-end-night') }, 'خلّص الليل ', icon('sun'))),
   );
 }
 
 function nextButtons() {
   if (state.winner) {
-    return h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:next') }, 'النتيجة النهائية 🏆'));
+    return h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:next') }, 'النتيجة النهائية ', icon('trophy')));
   }
   if (state.phase === 'morning') {
     return h('div', { class: 'actions' },
-      h('button', { class: 'btn primary big', onclick: () => send('host:mf-discuss') }, 'ابدأ النقاش 🗣️'),
-      h('button', { class: 'btn ghost', onclick: () => send('host:mf-vote') }, 'صوّتوا على طول 🗳️'),
+      h('button', { class: 'btn primary big', onclick: () => send('host:mf-discuss') }, 'ابدأ النقاش ', icon('megaphone')),
+      h('button', { class: 'btn ghost', onclick: () => send('host:mf-vote') }, 'صوّتوا على طول ', icon('vote')),
     );
   }
-  return h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:mf-night') }, 'الليل 🌙'));
+  return h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:mf-night') }, 'الليل ', icon('moon')));
 }
 
 function renderMorning() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('div', { class: 'mf-big' }, '☀️'),
+    h('div', { class: 'mf-big' }, icon('sun')),
     h('h1', { class: 'center' }, 'صباح الخير!'),
     mfAnnouncement(state.announcement),
     state.winner ? h('div', { class: `verdict ${state.winner === 'town' ? 'good' : 'bad'}` }, mfWinnerText(state.winner)) : null,
@@ -142,11 +142,11 @@ function renderMorning() {
 
 function renderDiscuss() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, '🗣️ تناقشوا: مين المافيا؟'),
+    h('h1', { class: 'center' }, icon('megaphone'), ' تناقشوا: مين المافيا؟'),
     timerEl(state.endsAt),
-    state.mayor ? h('p', { class: 'center mf-mayor' }, `🎩 العمدة: ${mayorName()}`) : null,
+    state.mayor ? h('p', { class: 'center mf-mayor' }, icon('award'), ` العمدة: ${mayorName()}`) : null,
     mfPlayers(state.players),
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:mf-vote') }, 'يلا نصوّت 🗳️')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:mf-vote') }, 'يلا نصوّت ', icon('vote'))),
   );
 }
 
@@ -154,9 +154,9 @@ function renderVote() {
   const voted = new Set(state.voted);
   const alive = state.players.filter((p) => p.alive);
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, '🗳️ صوّتوا من جوالاتكم: مين يطلع؟'),
+    h('h1', { class: 'center' }, icon('vote'), ' صوّتوا من جوالاتكم: مين يطلع؟'),
     h('ul', { class: 'chips os-voters' }, alive.map((p) => h('li', { class: `chip${voted.has(p.id) ? ' done' : ''}` },
-      voted.has(p.id) ? '✅ ' : '⏳ ', p.name))),
+      voted.has(p.id) ? [icon('circle-check'), ' '] : [icon('hourglass'), ' '], p.name))),
     h('p', { class: 'center' }, h('b', {}, `${voted.size} من ${alive.length}`), ' صوّتوا'),
     h('div', { class: 'actions' }, h('button', { class: 'btn', onclick: () => send('host:mf-end-vote') }, 'اقفل التصويت')),
   );
@@ -176,11 +176,11 @@ function renderFinal() {
   const { winner } = state;
   return h('main', { class: 'stage narrow final mf-stage' },
     winner ? confetti() : null,
-    h('div', { class: 'trophy' }, { mafia: '🔪', jester: '🃏', town: '🏆' }[winner] ?? '🎭'),
+    h('div', { class: 'trophy' }, icon({ mafia: 'swords', jester: 'laugh', town: 'trophy' }[winner] ?? 'drama')),
     h('h1', { class: 'winner-name' }, winner ? mfWinnerText(winner) : 'انتهت اللعبة'),
     h('h2', { class: 'center' }, 'الأدوار كانت'),
     mfPlayers(state.players),
-    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁')),
+    h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة ', icon('repeat'))),
   );
 }
 

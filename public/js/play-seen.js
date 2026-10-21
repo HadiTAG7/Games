@@ -1,5 +1,5 @@
 /* global $, h, app, state, screenKey: writable, confetti, timerEl, PLAY_GAMES, otherTeam, teamLabel, teamShort,
-   sjAnswering, sjScoreboard, sjBoard, sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList */
+   sjAnswering, sjScoreboard, sjBoard, sjQuestion, sjHead, sjResult, sjWinnerText, sjRulesList, icon */
 'use strict';
 
 // Player screens for «سين جيم»: the board, the question and both teams'
@@ -10,7 +10,7 @@ const myTeam = () => state.me.team;
 function topbar() {
   const team = myTeam();
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'سين جيم ❓'),
+    h('div', { class: 'brand' }, 'سين جيم ', icon('circle-help')),
     team ? h('div', { class: `pill team-pill ${team}` }, teamLabel(team)) : null,
     h('div', { class: 'pill' }, state.me.name),
   );
@@ -29,7 +29,7 @@ function teamCard() {
 
 function renderLobby() {
   return h('main', { class: 'stage narrow' },
-    h('div', { class: 'wave' }, '👋'),
+    h('div', { class: 'wave' }, icon('hand')),
     h('h1', { class: 'center' }, `أهلاً ${state.me.name}`),
     teamCard(),
     h('p', { class: 'muted center' }, 'انتظر المضيف يختار الفئات ويبدأ…'),
@@ -42,11 +42,11 @@ function turnBanner() {
   const mine = team === myTeam();
   const { phase, current } = state;
   let text;
-  if (phase === 'board') text = mine ? 'دوركم! قولوا للمضيف أي سؤال تبون 🎯' : `دور ${teamLabel(team)} يختار سؤال`;
+  if (phase === 'board') text = mine ? 'دوركم! قولوا للمضيف أي سؤال تبون' : `دور ${teamLabel(team)} يختار سؤال`;
   else if (phase === 'picked') text = mine ? 'دوركم! تبون وسيلة قبل السؤال؟' : `${teamLabel(team)} اختار سؤال`;
-  else if (phase === 'steal') text = mine ? 'فرصتكم! جاوبوا وخذوا النقاط 🔥' : `${teamLabel(team)} يحاول يسرق النقاط`;
-  else if (current?.during.includes('call')) text = mine ? '📞 اتصلوا بصديقكم!' : `📞 ${teamLabel(team)} يتصل بصديق`;
-  else text = mine ? 'دوركم! جاوبوا بصوت عالي 🔥' : `${teamLabel(team)} يجاوب`;
+  else if (phase === 'steal') text = mine ? 'فرصتكم! جاوبوا وخذوا النقاط' : `${teamLabel(team)} يحاول يسرق النقاط`;
+  else if (current?.during.includes('call')) text = mine ? 'اتصلوا بصديقكم!' : `${teamLabel(team)} يتصل بصديق`;
+  else text = mine ? 'دوركم! جاوبوا بصوت عالي' : `${teamLabel(team)} يجاوب`;
   return h('div', { class: `tc-turn ${team}${mine ? ' mine' : ''}` }, text,
     phase === 'question' || phase === 'steal' ? timerEl(current.endsAt) : null);
 }
@@ -64,7 +64,7 @@ function renderPicked() {
   return h('main', { class: 'stage narrow sj-stage' },
     turnBanner(),
     h('div', { class: `sj-picked ${current.team}` },
-      h('div', { class: 'sj-picked-cat' }, `${current.category.emoji} ${current.category.name}`),
+      h('div', { class: 'sj-picked-cat' }, `${current.category.name}`),
       h('div', { class: 'sj-picked-value' }, current.value),
     ),
     sjHead(current),
@@ -99,10 +99,10 @@ function renderFinal() {
   const { winner } = state;
   const won = winner && winner === myTeam();
   let title = sjWinnerText(state);
-  if (won) title = 'فريقكم فاز! 🏆';
+  if (won) title = 'فريقكم فاز!';
   return h('main', { class: 'stage narrow final' },
     won ? confetti() : null,
-    h('div', { class: 'trophy' }, won ? '🏆' : winner ? '🎮' : '🤝'),
+    h('div', { class: 'trophy' }, won ? icon('trophy') : winner ? icon('gamepad-2') : icon('handshake')),
     h('h1', { class: 'center' }, title),
     sjScoreboard(state, { myTeam: myTeam() }),
     h('p', { class: 'hint center' }, 'المضيف يقدر يبدأ لعبة جديدة'),

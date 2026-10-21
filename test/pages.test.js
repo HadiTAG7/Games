@@ -41,3 +41,26 @@ test('the counts on the pages match the question files', () => {
     assert.ok(home.includes(`data-theme="${id}"`) && home.includes(`>${count} `), `home tile for ${id} says ${count}`);
   }
 });
+
+test('the interface uses line icons, not emoji (scripts/check_emoji.js)', () => {
+  const { leftovers } = require('../scripts/check_emoji');
+  assert.deepEqual(leftovers(), []);
+});
+
+test('every icon the pages and scripts ask for is in icons.svg', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const pub = path.join(__dirname, '..', 'public');
+  const sprite = fs.readFileSync(path.join(pub, 'icons.svg'), 'utf8');
+  const have = new Set([...sprite.matchAll(/<symbol id="i-([\w-]+)"/g)].map((m) => m[1]));
+  const wanted = new Set();
+  for (const dir of ['', 'js']) {
+    for (const file of fs.readdirSync(path.join(pub, dir)).filter((f) => /\.(html|js)$/.test(f))) {
+      const text = fs.readFileSync(path.join(pub, dir, file), 'utf8');
+      for (const m of text.matchAll(/icons\.svg#i-([\w-]+)|\bicon\('([\w-]+)'/g)) wanted.add(m[1] ?? m[2]);
+      for (const m of text.matchAll(/\bicon: '([\w-]+)'|: '([\w-]+)' \/\/ icon/g)) wanted.add(m[1] ?? m[2]);
+    }
+  }
+  const missing = [...wanted].filter((name) => !have.has(name));
+  assert.deepEqual(missing, [], `add them to scripts/build_icons.py: ${missing.join(' ')}`);
+});

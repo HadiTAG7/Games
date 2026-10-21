@@ -1,6 +1,6 @@
 /* global $, h, storage, act, state, app, field, joinCard, gamePicker, endGame, confetti, HOST_GAMES, teamsSection, updateTeamsSection,
    TEAM_ORDER, teamLabel, roundsText, cardFace, preloadImages, preloadNote, clockMs, clocksEl, startClockTicker,
-   spinRemaining, SPIN_MS, sfx, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList, banksBox, groupBox, TEAM_INFO, duelEl */
+   spinRemaining, SPIN_MS, sfx, wheelEl, scoreboardEl, roundResultText, recapEl, timeRulesList, banksBox, groupBox, TEAM_INFO, duelEl, icon */
 'use strict';
 
 // Host screens for «تحدي الوقت». The host is the judge: this screen shows
@@ -132,14 +132,14 @@ document.addEventListener('keydown', (e) => {
 function topbar() {
   const inGame = !['lobby', 'final'].includes(state.phase);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'تحدي الوقت ⏱️'),
+    h('div', { class: 'brand' }, 'تحدي الوقت ', icon('timer')),
     inGame && state.round ? h('div', { class: 'pill' }, `الجولة ${state.round.number}`) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
 }
 
 function categoryTitle(category) {
-  return h('div', { class: 'category-tag' }, `${category.emoji} ${category.name}`);
+  return h('div', { class: 'category-tag' }, `${category.name}`);
 }
 
 /* ---------- Lobby ---------- */
@@ -184,7 +184,7 @@ function renderLobby() {
       class: 'category-chip',
       'data-category': c.id,
       onclick: () => toggleCategory(c.id),
-    }, h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' }, c.count))));
+    }, h('span', {}, c.name), h('small', { class: 'category-count' }, c.count))));
 
   return h('main', { class: 'lobby' },
     joinCard(),
@@ -199,13 +199,13 @@ function renderLobby() {
         h('details', { class: 'field wide tc-cat-details' },
           h('summary', {}, 'الفئات اللي تختار منها العجلة: ', h('b', { id: 'tc-category-count' })),
           h('div', { class: 'field-head' },
-            h('a', { class: 'inline-link', href: '/time-preview', target: '_blank', rel: 'noopener' }, '👀 شوف كل الصور وأجوبتها'),
+            h('a', { class: 'inline-link', href: '/time-preview', target: '_blank', rel: 'noopener' }, icon('eye'), ' شوف كل الصور وأجوبتها'),
             h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories(state.categories.map((c) => c.id)) }, 'الكل'),
             h('button', { type: 'button', class: 'link-btn small', onclick: () => setCategories([]) }, 'ولا وحدة'),
           ),
           categories,
           excludedCards().length
-            ? h('p', { class: 'hint' }, `🚫 استبعدت ${excludedCards().length} صورة من هالجهاز، وما راح تطلع. `,
+            ? h('p', { class: 'hint' }, icon('ban'), ` استبعدت ${excludedCards().length} صورة من هالجهاز، وما راح تطلع. `,
               h('a', { class: 'inline-link', href: '/time-preview#excluded', target: '_blank', rel: 'noopener' }, 'شوفها'))
             : null,
         ),
@@ -213,7 +213,7 @@ function renderLobby() {
       banksBox(),
       groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start', { excluded: excludedCards() }) }, 'ابدأ اللعبة ⏱️'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: () => send('host:start', { excluded: excludedCards() }) }, 'ابدأ اللعبة ', icon('timer')),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -251,7 +251,7 @@ function duelPicker() {
   const side = (team) => {
     const members = state.teams[team];
     return h('label', { class: `tc-duel-side ${team}` },
-      h('small', {}, `${TEAM_INFO[team].emoji} ${TEAM_INFO[team].name}${members.length > 1 ? ' · اضغط وغيّره' : ''}`),
+      h('small', {}, `${TEAM_INFO[team].name}${members.length > 1 ? ' · اضغط وغيّره' : ''}`),
       members.length > 1
         ? h('select', {
           'aria-label': `لاعب ${teamLabel(team)}`,
@@ -269,12 +269,12 @@ const starterName = (team) => state.duel?.[team]?.name ?? teamLabel(team);
 function renderWheel() {
   return h('main', { class: 'stage tc-stage' },
     scoreboardEl(state),
-    h('div', { class: 'tc-big-emoji' }, '🎡'),
+    h('div', { class: 'tc-big-emoji' }, icon('ferris-wheel')),
     h('h1', { class: 'center' }, `الجولة ${state.roundNumber + 1}: شخص ضد شخص`),
     duelPicker(),
     h('p', { class: 'center' }, `${starterName(state.nextStartTeam)} يبدأ هالجولة`),
     h('div', { class: 'actions' },
-      h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:tc-spin') }, '🎡 دوّر العجلة'),
+      h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:tc-spin') }, icon('ferris-wheel'), ' دوّر العجلة'),
     ),
     h('p', { class: 'hint center kbd-hint' }, 'أو اضغط مسافة'),
     h('div', { class: 'actions' }, h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة')),
@@ -296,11 +296,11 @@ function renderReady() {
     left > 0
       ? h('p', { class: 'tc-landed muted' }, 'العجلة تدور…')
       : h('div', { class: 'tc-landed' },
-        h('div', { class: 'tc-landed-name' }, `${round.category.emoji} ${round.category.name}`),
+        h('div', { class: 'tc-landed-name' }, `${round.category.name}`),
         h('p', {}, `${starterName(round.startTeam)} يبدأ · ${state.settings.seconds} ثانية لكل واحد`),
         h('div', { class: 'actions' },
-          h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:tc-go') }, 'ابدأ الوقت ⏱️'),
-          h('button', { class: 'btn', onclick: () => send('host:tc-spin') }, '🎡 دوّر مرة ثانية'),
+          h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:tc-go') }, 'ابدأ الوقت ', icon('timer')),
+          h('button', { class: 'btn', onclick: () => send('host:tc-spin') }, icon('ferris-wheel'), ' دوّر مرة ثانية'),
         ),
         h('p', { class: 'hint center kbd-hint' }, 'مسافة = ابدأ · R = دوّر مرة ثانية'),
       ),
@@ -323,8 +323,8 @@ function renderPlaying() {
     ),
     clocksEl(round, { seconds: state.settings.seconds, duel: state.duel }),
     h('div', { class: 'tc-card' },
-      cardFace(card, { brokenText: '😕 الصورة ما فتحت — اضغط «🚫 استبعد»' }),
-      round.paused ? h('div', { class: 'tc-paused' }, '⏸️ الوقت موقّف') : null,
+      cardFace(card, { brokenText: 'الصورة ما فتحت — اضغط «استبعد»' }),
+      round.paused ? h('div', { class: 'tc-paused' }, icon('pause'), ' الوقت موقّف') : null,
     ),
     h('button', {
       type: 'button',
@@ -332,25 +332,25 @@ function renderPlaying() {
       title: masked ? 'اضغط عشان تشوف الجواب' : 'اضغط عشان تخفي الجواب (لو الشاشة قدام الكل)',
       onclick: () => savePrefs({ answer: masked }),
     },
-      h('small', {}, masked ? '🙈 الجواب مخفي — اضغط عشان تشوفه' : 'الجواب'),
+      h('small', {}, masked ? [icon('eye-off'), ' الجواب مخفي — اضغط عشان تشوفه'] : 'الجواب'),
       h('b', {}, card.answer),
       card.alt ? h('span', { class: 'tc-alt', dir: 'ltr' }, card.alt) : null,
     ),
     h('div', { class: 'tc-judge' },
-      h('button', { class: 'btn tc-correct', disabled: round.paused, onclick: () => judge('host:tc-correct') }, '✅ صح'),
+      h('button', { class: 'btn tc-correct', disabled: round.paused, onclick: () => judge('host:tc-correct') }, icon('circle-check'), ' صح'),
       h('button', { class: 'btn tc-skip', disabled: round.paused, onclick: () => judge('host:tc-skip') },
-        '⏭️ تخطي', penalty ? h('small', {}, `−${penalty} ث`) : null),
+        icon('skip-forward'), ' تخطي', penalty ? h('small', {}, `−${penalty} ث`) : null),
     ),
     h('div', { class: 'actions tc-tools' },
       round.paused
-        ? h('button', { class: 'btn primary', onclick: () => judge('host:tc-resume') }, '▶️ كمّل')
-        : h('button', { class: 'btn', onclick: () => judge('host:tc-pause') }, '⏸️ إيقاف'),
-      h('button', { class: 'btn', disabled: !round.canUndo, onclick: () => judge('host:tc-undo') }, '↩︎ تراجع'),
+        ? h('button', { class: 'btn primary', onclick: () => judge('host:tc-resume') }, icon('play'), ' كمّل')
+        : h('button', { class: 'btn', onclick: () => judge('host:tc-pause') }, icon('pause'), ' إيقاف'),
+      h('button', { class: 'btn', disabled: !round.canUndo, onclick: () => judge('host:tc-undo') }, icon('undo-2'), ' تراجع'),
       h('button', {
         class: 'btn',
         title: 'صورة غلط أو تفضح الجواب؟ تتبدل بدون ما ينخصم وقت، وما تطلع لك مرة ثانية',
         onclick: excludeCard,
-      }, '🚫 استبعد الصورة'),
+      }, icon('ban'), ' استبعد الصورة'),
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
     h('p', { class: 'hint center kbd-hint' }, 'الكيبورد: مسافة = صح · S = تخطي · P = إيقاف · Z = تراجع · X = استبعد'),
@@ -370,10 +370,10 @@ function renderRoundOver() {
     scoreboardEl(state),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary big tc-main-btn', onclick: () => send('host:next') },
-        last ? 'النتيجة النهائية 🏆' : 'الجولة الجاية 🎡'),
+        last ? ['النتيجة النهائية ', icon('trophy')] : ['الجولة الجاية ', icon('ferris-wheel')]),
       last ? null : h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
-    h('h2', { class: 'tc-recap-title' }, `صور الجولة · ${round.category.emoji} ${round.category.name}`),
+    h('h2', { class: 'tc-recap-title' }, `صور الجولة · ${round.category.name}`),
     recapEl(round.recap),
   );
 }
@@ -382,14 +382,14 @@ function renderFinal() {
   const winner = state.matchWinner;
   return h('main', { class: 'stage narrow final' },
     winner ? confetti() : null,
-    h('div', { class: 'trophy' }, winner ? '🏆' : '🤝'),
+    h('div', { class: 'trophy' }, winner ? icon('trophy') : icon('handshake')),
     h('h1', { class: 'winner-name' }, winner ? `${teamLabel(winner)} فاز!` : 'تعادل!'),
     winner && state.teams[winner].length
       ? h('p', { class: 'center' }, state.teams[winner].map((p) => p.name).join(' · '))
       : null,
     scoreboardEl(state),
     h('div', { class: 'actions' },
-      h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁'),
+      h('button', { class: 'btn primary big', onclick: () => act('host:restart') }, 'لعبة جديدة ', icon('repeat')),
     ),
     h('p', { class: 'hint center' }, 'تقدرون تغيّرون الفرق أو تختارون لعبة ثانية من اللوبي'),
   );

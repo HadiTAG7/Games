@@ -1,4 +1,4 @@
-/* global $, h, range, emit, toast, socket, app, state, screenKey: writable, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, PLAY_GAMES, serverNow */
+/* global $, h, range, emit, toast, socket, app, state, screenKey: writable, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, PLAY_GAMES, serverNow, icon */
 'use strict';
 
 // Player screens for «عقلية القطيع».
@@ -65,7 +65,7 @@ function render() {
 
 function topbar() {
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, `${GAME_NAME} ${MODES[state.mode].emoji}`),
+    h('div', { class: 'brand' }, `${GAME_NAME} `, icon('users-round')),
     state.phase === 'question' || state.phase === 'reveal'
       ? h('div', { class: 'pill' }, `${state.roundNumber}/${state.totalRounds}`)
       : null,
@@ -75,7 +75,7 @@ function topbar() {
 
 function modePill() {
   const mode = MODES[state.mode];
-  return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
+  return h('div', { class: `mode-pill ${state.mode}` }, icon(mode.icon), ` ${mode.name}: ${mode.goal}`);
 }
 
 function answeredText() {
@@ -84,7 +84,7 @@ function answeredText() {
 
 function renderLobby() {
   return h('main', { class: 'stage narrow' },
-    h('div', { class: 'wave' }, '👋'),
+    h('div', { class: 'wave' }, icon('hand')),
     h('h1', { class: 'center' }, `أهلاً ${state.me.name}`),
     h('p', { class: 'muted center' }, 'انتظر المضيف يبدأ اللعبة…'),
     h('p', { class: 'center' }, `عدد اللاعبين: ${state.playerCount}`),
@@ -156,7 +156,7 @@ function renderAnswerForm() {
       h('div', { class: 'step' }, h('span', { class: 'step-num' }, '2'), MODES[state.mode].prompt),
       input,
       send,
-      h('p', { class: 'hint center' }, '⏱️ لو خلص الوقت، اللي كتبته ينرسل لحاله'),
+      h('p', { class: 'hint center' }, icon('timer'), ' لو خلص الوقت، اللي كتبته ينرسل لحاله'),
       editing ? h('button', {
         type: 'button',
         class: 'btn ghost',
@@ -180,7 +180,7 @@ function renderSent() {
     categoryTag(state.category),
     h('h1', { class: 'question' }, state.question),
     h('div', { class: 'card sent' },
-      h('div', { class: 'big-emoji' }, '✅'),
+      h('div', { class: 'big-emoji' }, icon('circle-check')),
       h('p', { class: 'muted' }, 'وصل جوابك'),
       h('div', { class: 'my-answer' }, state.myAnswer.text),
       h('div', { class: 'pill' }, `راهنت بـ ${state.myAnswer.value}`),
@@ -213,7 +213,7 @@ function renderReveal() {
 function renderVote(vote) {
   const progress = h('p', { class: 'muted center' }, `صوّت ${vote.votedCount} من ${vote.eligibleCount}`);
   const header = [
-    h('div', { class: 'vote-title' }, '🗳️ تصويت'),
+    h('div', { class: 'vote-title' }, icon('vote'), ' تصويت'),
     h('p', { class: 'muted center' }, state.question),
     h('div', { class: 'vote-answer' }, vote.text),
   ];
@@ -222,7 +222,7 @@ function renderVote(vote) {
   }
   if (vote.isAuthor) {
     return h('main', { class: 'stage narrow' }, header,
-      h('div', { class: 'card center' }, 'هذا جوابك، الباقين يصوّتون عليه 🤞'), progress);
+      h('div', { class: 'card center' }, 'هذا جوابك، الباقين يصوّتون عليه'), progress);
   }
   if (!vote.canVote) {
     return h('main', { class: 'stage narrow' }, header, h('p', { class: 'center' }, 'فيه تصويت على هالجواب، انتظر…'), progress);
@@ -238,12 +238,12 @@ function renderVote(vote) {
         class: `btn big vote-choice keep${vote.myVote === 'keep' ? ' picked' : ''}`,
         'aria-pressed': String(vote.myVote === 'keep'),
         onclick: () => choose('keep'),
-      }, '✅ صحيح، يُقبل'),
+      }, icon('circle-check'), ' صحيح، يُقبل'),
       h('button', {
         class: `btn big vote-choice reject${vote.myVote === 'reject' ? ' picked' : ''}`,
         'aria-pressed': String(vote.myVote === 'reject'),
         onclick: () => choose('reject'),
-      }, '🚫 غلط، ينرفض'),
+      }, icon('ban'), ' غلط، ينرفض'),
     ),
     vote.myVote ? h('p', { class: 'hint center' }, 'وصل صوتك، تقدر تغيّره لين يخلص التصويت') : null,
     progress,
@@ -251,23 +251,23 @@ function renderVote(vote) {
 }
 
 function verdict(last) {
-  if (!last) return h('div', { class: 'verdict' }, h('div', { class: 'big-emoji' }, '👋'), 'دخلت جديد، انتظر السؤال الجاي');
+  if (!last) return h('div', { class: 'verdict' }, h('div', { class: 'big-emoji' }, icon('hand')), 'دخلت جديد، انتظر السؤال الجاي');
   if (!last.answered) {
-    return h('div', { class: 'verdict bad' }, h('div', { class: 'big-emoji' }, '⌛'), 'ما جاوبت هالمرة',
+    return h('div', { class: 'verdict bad' }, h('div', { class: 'big-emoji' }, icon('hourglass')), 'ما جاوبت هالمرة',
       last.value ? h('div', { class: 'verdict-note' }, `انحرق أقل رقم عندك: ${last.value}`) : null);
   }
   if (last.won) {
     return h('div', { class: 'verdict good' },
-      h('div', { class: 'big-emoji' }, state.mode === 'different' ? '🦄' : '🎉'),
+      h('div', { class: 'big-emoji' }, state.mode === 'different' ? icon('sparkles') : icon('party-popper')),
       state.mode === 'different' ? 'ما أحد قال جوابك!' : 'فزت!',
       h('div', { class: 'points' }, `+${last.gained}`));
   }
   let reason = null;
-  if (last.rejected) reason = 'المضيف رفض جوابك 🚫';
+  if (last.rejected) reason = 'المضيف رفض جوابك';
   else if (state.mode === 'different' && last.groupSize > 1) {
     reason = last.groupSize === 2 ? 'فيه واحد ثاني قال نفس جوابك' : `فيه ${last.groupSize - 1} غيرك قالوا نفس جوابك`;
   }
-  return h('div', { class: 'verdict bad' }, h('div', { class: 'big-emoji' }, '😬'), `راحت عليك الـ ${last.value}`,
+  return h('div', { class: 'verdict bad' }, h('div', { class: 'big-emoji' }, icon('circle-x')), `راحت عليك الـ ${last.value}`,
     reason ? h('div', { class: 'verdict-note' }, reason) : null);
 }
 
@@ -280,7 +280,7 @@ function renderResults() {
       ? [`${mode.winnersTitle}: `, h('b', {}, winners.join(' / '))]
       : mode.noWinners),
     state.last?.answered ? h('p', { class: 'muted center' }, `جوابك: ${state.last.text}`) : null,
-    state.last?.auto ? h('p', { class: 'hint center' }, `⏱️ انرسل جوابك تلقائياً لما خلص الوقت (على رقم ${state.last.value})`) : null,
+    state.last?.auto ? h('p', { class: 'hint center' }, icon('timer'), ` انرسل جوابك تلقائياً لما خلص الوقت (على رقم ${state.last.value})`) : null,
     h('div', { class: 'card score-card' },
       h('div', {}, h('small', {}, 'مجموعك'), h('b', {}, state.me.score)),
       h('div', {}, h('small', {}, 'ترتيبك'), h('b', {}, `#${state.me.rank}`)),
@@ -294,7 +294,7 @@ function renderFinal() {
   const { me, isWinner, winners } = state;
   return h('main', { class: 'stage narrow final' },
     isWinner ? confetti() : null,
-    h('div', { class: 'trophy' }, isWinner ? '🏆' : '🎮'),
+    h('div', { class: 'trophy' }, isWinner ? icon('trophy') : icon('gamepad-2')),
     h('h1', { class: 'center' }, isWinner ? 'أنت الفائز!' : 'انتهت اللعبة'),
     !isWinner && winners.length ? h('p', { class: 'center' }, 'الفائز: ', h('b', {}, winners.join(' و '))) : null,
     h('div', { class: 'card score-card' },

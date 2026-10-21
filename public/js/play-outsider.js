@@ -1,5 +1,5 @@
 /* global $, h, emit, toast, socket, app, state, screenKey: writable, confetti, timerEl, standingsList, PLAY_GAMES, sfx, pointsText,
-   osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle */
+   osRulesList, osCategory, osTally, osOutsiderBanner, osGains, osRoundTitle, icon */
 'use strict';
 
 // Player screens for «برا السالفة». Your card (the word, or «أنت برا السالفة»)
@@ -7,7 +7,7 @@
 (() => {
 function topbar() {
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, 'برا السالفة 🤫'),
+    h('div', { class: 'brand' }, 'برا السالفة ', icon('venetian-mask')),
     state.phase !== 'lobby' ? h('div', { class: 'pill' }, pointsText(state.me.score)) : null,
     h('div', { class: 'pill' }, state.me.name),
   );
@@ -17,7 +17,7 @@ function topbar() {
 function secretCard() {
   const { me, round } = state;
   const face = me.outsider
-    ? [h('span', { class: 'os-card-emoji' }, '🤫'), h('b', { class: 'os-card-word' }, 'أنت برا السالفة!'),
+    ? [h('span', { class: 'os-card-emoji' }, icon('venetian-mask')), h('b', { class: 'os-card-word' }, 'أنت برا السالفة!'),
       h('small', {}, 'جارِهم بالأسئلة وحاول تعرف وش السالفة')]
     : [h('small', {}, 'السالفة'), h('b', { class: 'os-card-word' }, me.word), h('small', {}, 'لا تفضحها، بس بيّن إنك تعرفها')];
   const card = h('button', {
@@ -27,10 +27,10 @@ function secretCard() {
     oncontextmenu: (e) => e.preventDefault(),
   },
     h('div', { class: 'os-card-cover' },
-      h('span', { class: 'os-card-emoji' }, '🃏'),
+      h('span', { class: 'os-card-emoji' }, icon('eye-off')),
       h('b', {}, 'اضغط مطولاً عشان تشوف بطاقتك'),
-      h('small', {}, `الفئة: ${round.category.emoji} ${round.category.name}`)),
-    h('div', { class: 'os-card-face' }, ...face, h('small', { class: 'os-card-cat' }, `${round.category.emoji} ${round.category.name}`)),
+      h('small', {}, `الفئة: ${round.category.name}`)),
+    h('div', { class: 'os-card-face' }, ...face, h('small', { class: 'os-card-cat' }, `${round.category.name}`)),
   );
   const show = (on) => card.classList.toggle('open', on);
   card.addEventListener('pointerdown', (e) => { e.preventDefault(); show(true); });
@@ -42,7 +42,7 @@ function secretCard() {
 
 function renderLobby() {
   return h('main', { class: 'stage narrow' },
-    h('div', { class: 'wave' }, '🤫'),
+    h('div', { class: 'wave' }, icon('venetian-mask')),
     h('h1', { class: 'center' }, `أهلاً ${state.me.name}`),
     h('p', { class: 'muted center' }, 'انتظر المضيف يبدأ اللعبة…'),
     h('div', { class: 'card' }, h('h2', {}, 'طريقة اللعب'), osRulesList(state.settings, state.rules)),
@@ -51,7 +51,7 @@ function renderLobby() {
 
 function renderWaiting() {
   return h('main', { class: 'stage narrow os-stage' },
-    h('div', { class: 'os-big' }, '⏳'),
+    h('div', { class: 'os-big' }, icon('hourglass')),
     h('h1', { class: 'center' }, 'دخلت والجولة شغّالة'),
     h('p', { class: 'center muted' }, 'تلعب معهم من الجولة الجاية.'),
   );
@@ -68,8 +68,8 @@ function renderRoles() {
 function askingLine() {
   const { round, me } = state;
   const pair = round.pairs[round.askIndex];
-  if (pair.asker.id === me.id) return h('div', { class: 'tc-turn mine os-turn' }, `دورك! اسأل ${pair.target.name} 🎤`);
-  if (pair.target.id === me.id) return h('div', { class: 'tc-turn mine os-turn' }, `${pair.asker.name} بيسألك 👂`);
+  if (pair.asker.id === me.id) return h('div', { class: 'tc-turn mine os-turn' }, `دورك! اسأل ${pair.target.name} `, icon('mic'));
+  if (pair.target.id === me.id) return h('div', { class: 'tc-turn mine os-turn' }, `${pair.asker.name} بيسألك`);
   return h('div', { class: 'tc-turn os-turn' }, `${pair.asker.name} يسأل ${pair.target.name}`);
 }
 
@@ -82,7 +82,7 @@ function renderAsking() {
 
 function renderFree() {
   return h('main', { class: 'stage narrow os-stage' },
-    h('div', { class: 'tc-turn os-turn' }, 'أسئلة حرة! اسأل أي أحد 🗣️', timerEl(state.round.endsAt)),
+    h('div', { class: 'tc-turn os-turn' }, 'أسئلة حرة! اسأل أي أحد ', icon('megaphone'), timerEl(state.round.endsAt)),
     secretCard(),
   );
 }
@@ -95,13 +95,13 @@ async function vote(target) {
 function renderVote() {
   const { round, me } = state;
   return h('main', { class: 'stage narrow os-stage' },
-    h('h1', { class: 'center' }, '🗳️ مين برا السالفة؟'),
+    h('h1', { class: 'center' }, icon('vote'), ' مين برا السالفة؟'),
     h('p', { class: 'center muted' }, me.vote ? 'تقدر تغيّر صوتك لين يقفل التصويت' : 'اختر واحد'),
     h('div', { class: 'os-vote-grid' }, round.players.filter((p) => p.id !== me.id).map((p) => h('button', {
       type: 'button',
       class: `btn big os-vote-btn${me.vote === p.id ? ' picked' : ''}`,
       onclick: () => vote(p.id),
-    }, p.name, me.vote === p.id ? ' ✅' : ''))),
+    }, p.name, me.vote === p.id ? [' ', icon('circle-check')] : ''))),
     h('p', { class: 'hint center' }, `صوّت ${round.voted.length} من ${round.players.length}`),
     secretCard(),
   );
@@ -118,17 +118,17 @@ function renderGuess() {
   const parts = [];
   if (mine && !mine.guessed) {
     parts.push(
-      h('div', { class: `verdict ${mine.caught ? 'bad' : 'good'}` }, mine.caught ? 'انكشفت! 😅 بس لسا تقدر تكسب' : 'ما انكشفت! 😎'),
+      h('div', { class: `verdict ${mine.caught ? 'bad' : 'good'}` }, mine.caught ? 'انكشفت! بس لسا تقدر تكسب' : 'ما انكشفت!'),
       h('h1', { class: 'center' }, 'وش السالفة؟'),
-      h('p', { class: 'center muted' }, `${round.category.emoji} ${round.category.name} · لو جبتها تاخذ نقطتين`),
+      h('p', { class: 'center muted' }, `${round.category.name} · لو جبتها تاخذ نقطتين`),
       h('div', { class: 'os-choices' }, me.choices.map((w) => h('button', { type: 'button', class: 'btn big', onclick: () => guess(w) }, w))),
     );
   } else {
     const waiting = round.outsiders.filter((o) => !o.guessed).map((o) => o.name);
     parts.push(
       osOutsiderBanner(round),
-      mine ? h('p', { class: 'center' }, `خمّنت «${me.guess}» 🤞`) : null,
-      waiting.length ? h('div', { class: 'os-waiting' }, `🤔 ${waiting.join(' و')} ${waiting.length > 1 ? 'يخمّنون' : 'يخمّن'} السالفة…`) : null,
+      mine ? h('p', { class: 'center' }, `خمّنت «${me.guess}»`) : null,
+      waiting.length ? h('div', { class: 'os-waiting' }, `${waiting.join(' و')} ${waiting.length > 1 ? 'يخمّنون' : 'يخمّن'} السالفة…`) : null,
       osTally(round),
     );
   }
@@ -139,14 +139,14 @@ function renderRoundOver() {
   const { round, me } = state;
   if (round.aborted) {
     return h('main', { class: 'stage narrow os-stage' },
-      h('div', { class: 'verdict bad' }, 'اللي برا السالفة طلع من الغرفة 🙃'),
+      h('div', { class: 'verdict bad' }, 'اللي برا السالفة طلع من الغرفة'),
       h('p', { class: 'hint center' }, 'انتظر الجولة الجاية…'));
   }
   const gained = round.gains?.[me.id] ?? 0;
   return h('main', { class: 'stage narrow os-stage' },
     h('div', { class: 'os-word' }, h('small', {}, 'السالفة كانت'), h('b', {}, round.word)),
     osOutsiderBanner(round),
-    h('div', { class: `verdict ${gained ? 'good' : 'bad'}` }, gained ? `كسبت +${gained} 🎉` : 'ما كسبت شي هالجولة'),
+    h('div', { class: `verdict ${gained ? 'good' : 'bad'}` }, gained ? [`كسبت +${gained} `, icon('party-popper')] : 'ما كسبت شي هالجولة'),
     osGains(round),
     standingsList(state.standings, { highlightId: me.id, showGain: false }),
     h('p', { class: 'hint center' }, state.roundNumber >= state.totalRounds ? 'انتظر النتيجة النهائية…' : 'انتظر الجولة الجاية…'),
@@ -159,7 +159,7 @@ function renderFinal() {
   const top = state.standings.filter((r) => r.rank === 1 && r.score > 0).map((r) => r.name);
   return h('main', { class: 'stage narrow final' },
     won ? confetti() : null,
-    h('div', { class: 'trophy' }, won ? '🏆' : '🎮'),
+    h('div', { class: 'trophy' }, won ? icon('trophy') : icon('gamepad-2')),
     h('h1', { class: 'center' }, won ? 'أنت الفائز!' : 'انتهت اللعبة'),
     !won && top.length ? h('p', { class: 'center' }, 'الفائز: ', h('b', {}, top.join(' و '))) : null,
     standingsList(state.standings, { highlightId: me.id, showGain: false }),

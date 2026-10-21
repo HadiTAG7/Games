@@ -1,4 +1,4 @@
-/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES, sfx, sendToSite, banksBox, groupBox */
+/* global $, h, range, toast, act, state, info, app, field, joinCard, gamePicker, kickButton, endGame, timerEl, standingsList, rulesList, confetti, GAME_NAME, MODES, categoryTag, lastVoteBanner, HOST_GAMES, sfx, sendToSite, banksBox, groupBox, icon */
 'use strict';
 
 // Host screens for «عقلية القطيع».
@@ -9,7 +9,7 @@ let selectedGroup = null;
 function topbar() {
   const playing = state.phase !== 'lobby' && state.phase !== 'final';
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, `${GAME_NAME} ${MODES[state.mode].emoji}`),
+    h('div', { class: 'brand' }, `${GAME_NAME} `, icon('users-round')),
     playing ? h('div', { class: 'pill' }, `سؤال ${state.roundNumber} من ${state.totalRounds}`) : null,
     h('div', { class: 'pill' }, 'الغرفة ', h('b', {}, state.code)),
   );
@@ -17,7 +17,7 @@ function topbar() {
 
 function modePill() {
   const mode = MODES[state.mode];
-  return h('div', { class: `mode-pill ${state.mode}` }, `${mode.emoji} ${mode.name}: ${mode.goal}`);
+  return h('div', { class: `mode-pill ${state.mode}` }, icon(mode.icon), ` ${mode.name}: ${mode.goal}`);
 }
 
 
@@ -33,7 +33,7 @@ function renderLobby() {
       'data-mode': key,
       role: 'radio',
       onclick: () => act('host:settings', { mode: key }),
-    }, h('span', { class: 'mode-emoji' }, mode.emoji), h('b', {}, mode.name), h('small', {}, mode.goal))));
+    }, h('span', { class: 'mode-emoji' }, icon(mode.icon)), h('b', {}, mode.name), h('small', {}, mode.goal))));
   const rounds = h('select', { id: 'rounds', onchange: (e) => act('host:settings', { rounds: Number(e.target.value) }) },
     range(3, 15).map((n) => h('option', { value: n, selected: n === s.rounds }, `${n} ${n <= 10 ? 'أسئلة' : 'سؤال'}`)));
   const timer = h('select', { id: 'timer', onchange: (e) => act('host:settings', { timer: Number(e.target.value) }) },
@@ -51,7 +51,7 @@ function renderLobby() {
     state.categories.map((c) => h('div', { class: 'cat-row', 'data-category': c.id },
       h('div', { class: 'cat-head' },
         h('button', { type: 'button', class: 'category-chip', 'data-category': c.id, onclick: () => toggleCategory(c) },
-          h('span', {}, c.emoji), h('span', {}, c.name), h('small', { class: 'category-count' })),
+          h('span', {}, c.name), h('small', { class: 'category-count' })),
         h('button', {
           type: 'button',
           class: 'expand-btn',
@@ -100,8 +100,8 @@ function renderLobby() {
           h('label', { class: 'field' }, h('span', {}, 'أسئلتك'), custom),
           h('div', { class: 'custom-share' },
             h('select', { id: 'herd-share-sub', 'aria-label': 'القسم' },
-              h('option', { value: '' }, '📤 تبي ترسلها للموقع للكل؟ اختر قسمها…'),
-              state.categories.flatMap((c) => c.subcategories.map((sub) => h('option', { value: sub.id }, `${c.emoji} ${c.name} · ${sub.name}`)))),
+              h('option', { value: '' }, icon('send'), ' تبي ترسلها للموقع للكل؟ اختر قسمها…'),
+              state.categories.flatMap((c) => c.subcategories.map((sub) => h('option', { value: sub.id }, `${c.name} · ${sub.name}`)))),
             h('button', {
               type: 'button',
               class: 'btn small',
@@ -113,7 +113,7 @@ function renderLobby() {
                 }
                 sendToSite('herd', state.settings.customQuestions.map((q) => ({ subcategory, mode: state.settings.mode, q })));
               },
-            }, '📤 أرسل'),
+            }, icon('send'), ' أرسل'),
           ),
           h('p', { class: 'hint' }, 'تنرسل بطور اللعبة المختار فوق، وتطلع للكل بعد موافقة صاحب الموقع.'),
         ),
@@ -121,7 +121,7 @@ function renderLobby() {
       banksBox(),
       groupBox(),
       h('details', { class: 'rules' }, h('summary', {}, 'طريقة اللعب'), h('div', { id: 'rules-body' })),
-      h('button', { id: 'start', class: 'btn primary big', onclick: startGame }, 'ابدأ اللعبة 🎉'),
+      h('button', { id: 'start', class: 'btn primary big', onclick: startGame }, 'ابدأ اللعبة ', icon('party-popper')),
       h('p', { id: 'start-hint', class: 'hint center' }),
     ),
   );
@@ -253,7 +253,7 @@ function renderQuestion() {
       class: `chip${p.answered ? ' done' : ''}${p.connected ? '' : ' away'}`,
     }, p.answered ? '✓ ' : '… ', p.name))),
     h('div', { class: 'actions' },
-      h('button', { class: 'btn primary', onclick: () => act('host:reveal') }, 'اكشف الأجوبة 👀'),
+      h('button', { class: 'btn primary', onclick: () => act('host:reveal') }, 'اكشف الأجوبة ', icon('eye')),
       h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
   );
@@ -286,7 +286,7 @@ function groupCard(group, { editable = false, settled = false } = {}) {
         settled && group.winner ? `+${m.value}` : m.value),
     ))),
     group.winner ? h('div', { class: 'crown' }, MODES[state.mode].winLabel) : null,
-    group.rejected ? h('div', { class: 'rejected-label' }, '🚫 مرفوض') : null,
+    group.rejected ? h('div', { class: 'rejected-label' }, icon('ban'), ' مرفوض') : null,
     editable
       ? h('div', { class: 'card-actions' },
         h('button', {
@@ -296,7 +296,7 @@ function groupCard(group, { editable = false, settled = false } = {}) {
             e.stopPropagation();
             act('host:reject', { groupId: group.id });
           },
-        }, group.rejected ? '↺ اقبله' : '🚫 رفض'),
+        }, group.rejected ? '↺ اقبله' : [icon('ban'), ' رفض']),
         h('button', {
           type: 'button',
           class: 'vote-btn',
@@ -305,9 +305,9 @@ function groupCard(group, { editable = false, settled = false } = {}) {
             e.stopPropagation();
             act('host:vote-start', { groupId: group.id });
           },
-        }, '🗳️ تصويت'))
+        }, icon('vote'), ' تصويت'))
       : null,
-    state.vote?.groupId === group.id ? h('div', { class: 'voting-label' }, '🗳️ عليه تصويت الحين') : null,
+    state.vote?.groupId === group.id ? h('div', { class: 'voting-label' }, icon('vote'), ' عليه تصويت الحين') : null,
   );
 }
 
@@ -316,16 +316,16 @@ function votePanel() {
   if (!vote) return null;
   if (vote.status === 'tie') {
     return h('div', { class: 'vote-panel tie' },
-      h('h3', {}, `🗳️ تعادل على «${vote.text}»: ${vote.keep} يقبلونه و ${vote.reject} يرفضونه`),
+      h('h3', {}, icon('vote'), ` تعادل على «${vote.text}»: ${vote.keep} يقبلونه و ${vote.reject} يرفضونه`),
       h('p', { class: 'muted' }, 'القرار لك:'),
       h('div', { class: 'actions' },
-        h('button', { class: 'btn primary', onclick: () => act('host:vote-decide', { reject: false }) }, '✅ اقبله'),
-        h('button', { class: 'btn danger', onclick: () => act('host:vote-decide', { reject: true }) }, '🚫 ارفضه'),
+        h('button', { class: 'btn primary', onclick: () => act('host:vote-decide', { reject: false }) }, icon('circle-check'), ' اقبله'),
+        h('button', { class: 'btn danger', onclick: () => act('host:vote-decide', { reject: true }) }, icon('ban'), ' ارفضه'),
       ),
     );
   }
   return h('div', { class: 'vote-panel' },
-    h('h3', {}, `🗳️ تصويت على «${vote.text}»`),
+    h('h3', {}, icon('vote'), ` تصويت على «${vote.text}»`),
     h('p', { class: 'muted' }, `صوّت ${vote.votedCount} من ${vote.eligibleCount} · النتيجة تطلع لما يخلص التصويت`),
     h('ul', { class: 'chips center' }, vote.voters.map((p) => h('li', {
       class: `chip${p.voted ? ' done' : ''}${p.connected ? '' : ' away'}`,
@@ -364,8 +364,8 @@ function renderReveal() {
       ? h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { editable: !voting })))
       : h('p', { class: 'empty center' }, 'ما أحد جاوب هالسؤال'),
     voting ? null : h('div', { class: 'actions' },
-      state.canUndo ? h('button', { class: 'btn ghost', onclick: () => act('host:undo') }, '↩︎ تراجع') : null,
-      h('button', { class: 'btn primary', onclick: () => act('host:confirm') }, 'اعتمد النتيجة ✅'),
+      state.canUndo ? h('button', { class: 'btn ghost', onclick: () => act('host:undo') }, icon('undo-2'), ' تراجع') : null,
+      h('button', { class: 'btn primary', onclick: () => act('host:confirm') }, 'اعتمد النتيجة ', icon('circle-check')),
     ),
   );
 }
@@ -380,14 +380,14 @@ function renderResults() {
       : h('div', { class: 'banner bad' }, mode.noWinners),
     h('div', { class: 'groups' }, state.groups.map((g) => groupCard(g, { settled: true }))),
     state.missed.length
-      ? h('p', { class: 'muted center missed' }, '⌛ ما جاوبوا: ',
+      ? h('p', { class: 'muted center missed' }, icon('hourglass'), ' ما جاوبوا: ',
         state.missed.map((m) => `${m.name} (انحرق ${m.value})`).join('، '))
       : null,
     h('h2', { class: 'center' }, 'الترتيب'),
     standingsList(state.standings),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary', onclick: () => act('host:next') },
-        state.isLastRound ? 'النتيجة النهائية 🏆' : 'السؤال التالي ⬅︎'),
+        state.isLastRound ? ['النتيجة النهائية ', icon('trophy')] : ['السؤال التالي ', icon('arrow-left')]),
       state.isLastRound ? null : h('button', { class: 'btn ghost', onclick: endGame }, 'إنهاء اللعبة'),
     ),
   );
@@ -399,12 +399,12 @@ function renderFinal() {
   const { winners } = state;
   return h('main', { class: 'stage final' },
     confetti(),
-    h('div', { class: 'trophy' }, '🏆'),
+    h('div', { class: 'trophy' }, icon('trophy')),
     winners.length ? h('h1', { class: 'winner-name' }, winners.join(' و ')) : null,
     winners.length ? h('p', { class: 'muted center' }, `بـ ${state.standings[0].score} نقطة`) : null,
     standingsList(state.standings, { showGain: false }),
     h('div', { class: 'actions' },
-      h('button', { class: 'btn primary', onclick: () => act('host:restart') }, 'لعبة جديدة 🔁'),
+      h('button', { class: 'btn primary', onclick: () => act('host:restart') }, 'لعبة جديدة ', icon('repeat')),
     ),
   );
 }
