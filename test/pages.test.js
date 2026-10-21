@@ -19,6 +19,7 @@ const COUNTS = {
   outsider: () => require('../data/outsider.json').categories.reduce((n, c) => n + c.words.length, 0),
   feud: () => require('../data/feud.json').questions.length,
   who: () => require('../data/who.json').questions.length,
+  truth: () => require('../data/truth.json').questions.length,
 };
 
 test('every game has its own themed page with a create-room button', () => {

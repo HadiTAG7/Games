@@ -10,6 +10,7 @@ const { OutsiderGame } = require('./games/outsider');
 const { MafiaGame } = require('./games/mafia');
 const { FeudGame } = require('./games/feud');
 const { WhoGame } = require('./games/who');
+const { TruthGame } = require('./games/truth');
 const herdViews = require('./games/herd-views');
 const timeViews = require('./games/time-views');
 const seenViews = require('./games/seen-views');
@@ -18,6 +19,7 @@ const outsiderViews = require('./games/outsider-views');
 const mafiaViews = require('./games/mafia-views');
 const feudViews = require('./games/feud-views');
 const whoViews = require('./games/who-views');
+const truthViews = require('./games/truth-views');
 const { normalizeAnswer } = require('./normalize');
 const { NightBoard, WIN_POINTS } = require('./night');
 const { GroupHistory, NO_HISTORY, nameKey, rankRows } = require('./groups');
@@ -36,6 +38,7 @@ const GAMES = {
   mafia: { Game: MafiaGame, views: mafiaViews, name: 'مافيا', emoji: '🎭', needsContent: false },
   feud: { Game: FeudGame, views: feudViews, name: 'فاميلي فيود', emoji: '👪' },
   who: { Game: WhoGame, views: whoViews, name: 'مين فينا؟', emoji: '🫵' },
+  truth: { Game: TruthGame, views: truthViews, name: 'صح ولا خطأ', emoji: '✅' },
 };
 
 function cleanName(name) {
@@ -219,6 +222,7 @@ class Room {
     this.maybeCloseOutsiderVote();
     this.maybeMoveMafia();
     this.maybeRevealWho();
+    this.maybeRevealTruth();
   }
 
   connect(playerId, socketId) {
@@ -231,6 +235,7 @@ class Room {
     this.maybeCloseOutsiderVote();
     this.maybeMoveMafia();
     this.maybeRevealWho();
+    this.maybeRevealTruth();
   }
 
   isConnected(playerId) {
@@ -347,6 +352,19 @@ class Room {
     if (this.game.allVoted(this.connectedIds())) this.game.reveal();
   }
 
+  /* ---------- «صح ولا خطأ» room rules ---------- */
+
+  truthAnswer(playerId, value) {
+    this.gameOf('truth').answer(playerId, value);
+    this.maybeRevealTruth();
+  }
+
+  /** The answer shows once everyone still connected has answered. */
+  maybeRevealTruth() {
+    if (this.gameType !== 'truth' || this.game.phase !== 'statement') return;
+    if (this.game.allAnswered(this.connectedIds())) this.game.reveal();
+  }
+
   /** Adds a finished game to «بطل السهرة»; called on every change. */
   settleNight() {
     const done = this.night.settle(this.game);
@@ -395,15 +413,16 @@ class Room {
 class RoomManager {
   /**
    * categories: «عقلية القطيع»; timeCategories: «تحدي الوقت»; seenCategories: «سين جيم»; letters: «حروف»;
-   * outsiderCategories: «برا السالفة»; feudQuestions: «فاميلي فيود»; whoCategories: «مين فينا؟».
+   * outsiderCategories: «برا السالفة»; feudQuestions: «فاميلي فيود»; whoCategories: «مين فينا؟»;
+   * truthCategories: «صح ولا خطأ».
    */
   constructor({
     categories = [], timeCategories = [], seenCategories = [], letters = [], outsiderCategories = [], feudQuestions = [],
-    whoCategories = [], random = Math.random,
+    whoCategories = [], truthCategories = [], random = Math.random,
   } = {}) {
     this.content = {
       herd: categories, time: timeCategories, seen: seenCategories, letters, outsider: outsiderCategories, feud: feudQuestions,
-      who: whoCategories,
+      who: whoCategories, truth: truthCategories,
     };
     this.random = random;
     this.rooms = new Map();

@@ -99,6 +99,15 @@
   --accent-ink: #032521;
   --watermark: url('/icons/pointer.svg');
 }
+[data-theme="truth"] {
+  --bg: #160d33;
+  --glow1: #7c3aed;
+  --glow2: #0e7490;
+  --muted: #d9cffb;
+  --accent: #c4f04d;
+  --accent-ink: #1d2600;
+  --watermark: url('/icons/circle-check-big.svg');
+}
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -1839,3 +1848,38 @@ button.ff-slot:hover { border-color: var(--accent); }
 .who-titles li.me { outline: 2px solid var(--accent); }
 .who-demo { width: 100%; max-width: 420px; padding: 18px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); }
 .who-demo-q { margin: 0 0 10px; font-size: 20px; font-weight: 800; text-align: center; }
+
+/* ---------- «صح ولا خطأ» ---------- */
+.game-tile[data-theme="truth"] b, body[data-theme="truth"] .landing-intro h1 { view-transition-name: title-truth; }
+.tf-stage { gap: 14px; }
+.tf-statement { margin: 6px 0; }
+.tf-asked { margin: 0; text-align: center; font-size: 20px; font-weight: 700; color: var(--muted); }
+.host .tf-asked { font-size: 26px; }
+.tf-answered { font-size: 22px; margin: 0; }
+.tf-choices-hint { display: flex; justify-content: center; gap: 14px; font-size: 22px; font-weight: 800; }
+.tf-choices-hint span { padding: 8px 18px; border-radius: 999px; }
+.tf-choices-hint .yes, .tf-btn.yes, .tf-split-box.yes.right { background: var(--good-soft); border: 2px solid var(--good); }
+.tf-choices-hint .no, .tf-btn.no, .tf-split-box.no.right { background: var(--bad-soft); border: 2px solid var(--bad); }
+.tf-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0; }
+.tf-btn { min-height: 132px; border-radius: 22px; color: var(--text); font: inherit; font-size: 30px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+.tf-btn .icon { width: 1.4em; height: 1.4em; }
+.tf-btn.yes.picked { background: var(--good); color: #04261a; }
+.tf-btn.no.picked { background: var(--bad); color: #2b0610; }
+.tf-btn:disabled { cursor: default; }
+.tf-btn:disabled:not(.picked) { opacity: 0.35; }
+.tf-answer { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 18px; border-radius: 18px; background: var(--card); text-align: center; }
+.tf-answer b { font-size: clamp(34px, 5vw, 56px); }
+.tf-answer.yes { border: 2px solid var(--good); }
+.tf-answer.yes b { color: var(--good); }
+.tf-answer.no { border: 2px solid var(--bad); }
+.tf-answer.no b { color: var(--bad); }
+.tf-why { margin: 0; font-size: 20px; color: var(--text); }
+.tf-split { display: flex; justify-content: center; gap: 10px; }
+.tf-split-box { min-width: 110px; padding: 10px 14px; border-radius: 16px; background: var(--card); border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; }
+.tf-split-box b { font-size: 30px; }
+.tf-split-box small { color: var(--muted); font-weight: 700; }
+.tf-best { justify-content: center; }
+.tf-best b { color: var(--good); margin-inline-start: 6px; }
+.tf-demo { width: 100%; max-width: 420px; padding: 18px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
+.tf-demo-statement { margin: 0; font-size: 22px; font-weight: 800; text-align: center; }
+.tf-demo .tf-btn { min-height: 84px; font-size: 22px; }
