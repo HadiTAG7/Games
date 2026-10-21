@@ -12,6 +12,7 @@ const { GameError } = require('./src/errors');
 const { openStore } = require('./src/community');
 const contrib = require('./src/contrib');
 const { openSurvey, roundRecord, toFeudQuestions } = require('./src/survey');
+const { whoCategories } = require('./src/games/who');
 const { limiter } = require('./src/limits');
 const { openAccounts, hashPassword } = require('./src/accounts');
 const { accountRouter, pictureRoute, accountFromCookie } = require('./src/web-accounts');
@@ -27,11 +28,14 @@ const optional = (file, key) => (fs.existsSync(path.join(__dirname, file)) ? req
 const letters = optional('data/letters.json', 'letters');
 const outsiderCategories = optional('data/outsider.json', 'categories');
 const feudQuestions = optional('data/feud.json', 'questions');
+const whoQuestions = optional('data/who.json', 'questions');
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0']);
 
-const rooms = new RoomManager({ categories, timeCategories, seenCategories, letters, outsiderCategories, feudQuestions });
+const rooms = new RoomManager({
+  categories, timeCategories, seenCategories, letters, outsiderCategories, feudQuestions, whoCategories: whoCategories(whoQuestions),
+});
 
 const app = express();
 app.set('trust proxy', 1); // Render sits in front, so req.ip is the visitor's address
@@ -558,6 +562,9 @@ io.on('connection', (socket) => {
   hostAction('host:os-close', (room, { step }) => os(room).closeVote(step));
   hostAction('host:os-skip-guess', (room, { step }) => os(room).skipGuess(step));
 
+  // «مين فينا؟»
+  hostAction('host:who-reveal', (room, { step }) => room.gameOf('who').reveal(step));
+
   // «مافيا»
   const mf = (room) => room.gameOf('mafia');
   hostAction('host:mf-night', (room, { step }) => mf(room).startNight(step));
@@ -642,6 +649,12 @@ io.on('connection', (socket) => {
   on('player:mf-vote', ({ target }) => {
     const room = currentRoom('player');
     room.mafiaVote(socket.data.playerId, target);
+    broadcast(room);
+  });
+
+  on('player:who-vote', ({ target }) => {
+    const room = currentRoom('player');
+    room.whoVote(socket.data.playerId, target);
     broadcast(room);
   });
 
