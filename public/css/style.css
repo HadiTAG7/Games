@@ -1883,3 +1883,77 @@ button.ff-slot:hover { border-color: var(--accent); }
 .tf-demo { width: 100%; max-width: 420px; padding: 18px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
 .tf-demo-statement { margin: 0; font-size: 22px; font-weight: 800; text-align: center; }
 .tf-demo .tf-btn { min-height: 84px; font-size: 22px; }
+
+/* ---------- «مافيا»: the narrator's story ---------- */
+.mf-story-title { margin-bottom: 4px; }
+.mf-story {
+  position: relative; overflow: hidden; width: 100%; max-width: 680px; margin: 0 auto; padding: 18px;
+  display: flex; flex-direction: column; gap: 10px; border-radius: 22px;
+  background: rgba(6, 8, 24, 0.6); border: 1px solid var(--line);
+}
+/* The night sky slowly turns to dawn over the story (resumes at the right point after a reload). */
+.mf-story.night { background: linear-gradient(180deg, #050816 0%, #0d1033 70%, #1b1440 100%); }
+.mf-story.night::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 90% 60% at 50% 115%, rgba(255, 168, 92, 0.6), rgba(244, 63, 94, 0.18) 55%, transparent 75%);
+  opacity: 0; animation: mf-sunrise var(--story-length) ease-in both; animation-delay: var(--story-elapsed);
+}
+.mf-story.night.told::before { opacity: 1; animation: none; }
+@keyframes mf-sunrise { 0%, 62% { opacity: 0; } 100% { opacity: 1; } }
+
+.mf-beat {
+  position: relative; z-index: 1; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 12px;
+  padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid transparent; text-align: start;
+  transition: opacity 0.5s ease;
+}
+.mf-beat p { margin: 0; font-size: clamp(17px, 4.2vw, 22px); font-weight: 700; line-height: 1.5; }
+.host .mf-beat p { font-size: clamp(20px, 2.4vw, 30px); }
+.mf-beat-icon { display: grid; place-items: center; width: 2.2em; height: 2.2em; border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: var(--muted); }
+.mf-beat-icon .icon { width: 1.2em; height: 1.2em; }
+.mf-beat .mf-name { color: var(--accent); }
+.mf-beat-role { grid-column: 2; color: var(--muted); font-size: 15px; font-weight: 800; }
+.host .mf-beat-role { font-size: 19px; }
+/* Earlier lines step back while the story goes on. */
+.mf-story:not(.told) .mf-beat:not(:last-child) { opacity: 0.5; }
+
+.mf-beat.scene { background: transparent; }
+.mf-beat.scene p { font-weight: 500; color: var(--muted); font-style: italic; }
+.mf-beat.danger .mf-beat-icon { color: var(--bad); background: var(--bad-soft); }
+.mf-beat.suspense p { color: #ffd9de; }
+.mf-story:not(.told) .mf-beat.suspense:last-child .mf-beat-icon { animation: mf-thump 0.85s ease infinite; }
+.mf-beat.reveal p, .mf-beat.role p { font-size: clamp(20px, 5vw, 28px); font-weight: 800; }
+.host .mf-beat.reveal p, .host .mf-beat.role p { font-size: clamp(24px, 3vw, 40px); }
+.mf-beat.reveal.good, .mf-beat.role.good { border-color: var(--good); background: var(--good-soft); }
+.mf-beat.reveal.bad, .mf-beat.role.bad { border-color: var(--bad); background: var(--bad-soft); }
+.mf-beat.good .mf-beat-icon { color: var(--good); background: var(--good-soft); }
+.mf-beat.bad .mf-beat-icon { color: var(--bad); background: var(--bad-soft); }
+.mf-beat.reveal.good .mf-name { color: var(--good); }
+.mf-beat.reveal.bad .mf-name { color: #ff8a9b; }
+.mf-beat.tally { padding: 8px 14px; }
+.mf-beat.tally p { display: grid; grid-template-columns: minmax(80px, 34%) 1fr 32px; align-items: center; gap: 10px; }
+.mf-beat-bar { height: 12px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
+.mf-beat-bar span { display: block; height: 100%; width: calc(var(--fill) * 100%); border-radius: inherit; background: var(--accent); }
+.mf-beat-votes { text-align: center; }
+
+/* Once told, the story steps back to make room for the outcome and what's next. */
+.mf-story.told { padding: 12px; gap: 6px; }
+.mf-story.told .mf-beat { padding: 6px 12px; }
+.mf-story.told .mf-beat p, .host .mf-story.told .mf-beat p { font-size: clamp(15px, 3.6vw, 19px); }
+.mf-story.told .mf-beat.reveal p, .mf-story.told .mf-beat.role p,
+.host .mf-story.told .mf-beat.reveal p, .host .mf-story.told .mf-beat.role p { font-size: clamp(17px, 4vw, 22px); }
+.mf-story.told .mf-beat-icon { width: 1.8em; height: 1.8em; }
+
+/* A new line: it rises out of the dark; a name comes into focus; a bar fills. */
+.mf-beat.enter { animation: mf-beat-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.mf-beat.reveal.enter .mf-name, .mf-beat.role.enter p { display: inline-block; animation: mf-name-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s both; }
+.mf-beat.reveal.bad.enter { animation: mf-beat-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both, mf-shake 0.5s ease 0.7s; }
+.mf-beat.tally.enter .mf-beat-bar span { animation: mf-bar 0.8s ease-out both; }
+@keyframes mf-beat-in { from { opacity: 0; transform: translateY(16px); filter: blur(6px); } }
+@keyframes mf-name-in { from { opacity: 0; transform: scale(1.7); filter: blur(10px); } }
+@keyframes mf-thump { 0%, 40%, 100% { transform: scale(1); } 15% { transform: scale(1.18); } 28% { transform: scale(1.06); } }
+@keyframes mf-shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+@keyframes mf-bar { from { width: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .mf-story *, .mf-story::before { animation: none !important; }
+  .mf-story.night::before { opacity: 0.5; }
+}

@@ -113,6 +113,9 @@ const sfx = (() => {
     turn: () => notes([660, 990], { type: 'sine', gap: 0.12, dur: 0.22, vol: 0.16 }),
     night: () => { tone(110, 0, 2.2, { vol: 0.2, attack: 0.5 }); tone(164.8, 0.3, 1.9, { vol: 0.12, attack: 0.5 }); tone(98, 0.8, 1.6, { type: 'triangle', vol: 0.1, attack: 0.4 }); },
     morning: () => notes([784, 987.8, 1174.7, 1568], { type: 'sine', gap: 0.14, dur: 0.5, vol: 0.13 }),
+    // «مافيا»'s story: a heartbeat while something is about to happen, and the sniper's shot.
+    heartbeat: () => [0, 0.85].forEach((at) => { tone(62, at, 0.16, { vol: 0.42, to: 45 }); tone(55, at + 0.2, 0.2, { vol: 0.3, to: 40 }); }),
+    shot: () => { noise(0, 0.09, { freq: 2600, vol: 0.5, q: 0.3 }); tone(110, 0, 0.5, { type: 'triangle', vol: 0.35, to: 38 }); noise(0.06, 0.9, { freq: 700, vol: 0.12, q: 0.5 }); },
   };
 
   function play(name) {

@@ -1,5 +1,5 @@
 /* global $, h, act, state, app, field, joinCard, gamePicker, kickButton, endGame, confetti, timerEl, HOST_GAMES, sfx,
-   MF_ROLES, mfRole, mfRoleTag, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText, icon */
+   MF_ROLES, mfRole, mfRoleTag, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfStory, mfWinnerText, icon */
 'use strict';
 
 // Host screens for «مافيا». This screen is the narrator, in front of
@@ -129,14 +129,20 @@ function nextButtons() {
   return h('div', { class: 'actions' }, h('button', { class: 'btn primary big', onclick: () => send('host:mf-night') }, 'الليل ', icon('moon')));
 }
 
+/** While the story is told: the host can skip to the end. */
+const told = () => !state.story || state.story.told;
+const skipButton = () => h('div', { class: 'actions' },
+  h('button', { class: 'btn ghost', onclick: () => send('host:mf-tell') }, 'تخطّ القصة ', icon('skip-forward')));
+
+/** The story first; once it's told, the outcome in short, the players and what's next. */
 function renderMorning() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('div', { class: 'mf-big' }, icon('sun')),
-    h('h1', { class: 'center' }, 'صباح الخير!'),
-    mfAnnouncement(state.announcement),
-    state.winner ? h('div', { class: `verdict ${state.winner === 'town' ? 'good' : 'bad'}` }, mfWinnerText(state.winner)) : null,
-    mfPlayers(state.players),
-    nextButtons(),
+    h('h1', { class: 'center mf-story-title' }, told() ? [icon('sun'), ' صباح الخير!'] : [icon('moon'), ` الليلة ${state.dayNumber}`]),
+    state.story ? mfStory(state.story, { sound: true }) : null,
+    told() ? mfAnnouncement(state.announcement) : null,
+    told() && state.winner ? h('div', { class: `verdict ${state.winner === 'town' ? 'good' : 'bad'}` }, mfWinnerText(state.winner)) : null,
+    told() ? mfPlayers(state.players) : null,
+    told() ? nextButtons() : skipButton(),
   );
 }
 
@@ -164,11 +170,12 @@ function renderVote() {
 
 function renderVerdict() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, 'نتيجة التصويت'),
-    mfAnnouncement(state.announcement),
-    state.winner ? h('div', { class: `verdict ${state.winner === 'town' ? 'good' : 'bad'}` }, mfWinnerText(state.winner)) : null,
-    mfPlayers(state.players),
-    nextButtons(),
+    h('h1', { class: 'center mf-story-title' }, icon('vote'), ' نتيجة التصويت'),
+    state.story ? mfStory(state.story, { sound: true }) : null,
+    told() ? mfAnnouncement(state.announcement, { tally: !state.story }) : null,
+    told() && state.winner ? h('div', { class: `verdict ${state.winner === 'town' ? 'good' : 'bad'}` }, mfWinnerText(state.winner)) : null,
+    told() ? mfPlayers(state.players) : null,
+    told() ? nextButtons() : skipButton(),
   );
 }
 
@@ -199,7 +206,8 @@ function render() {
     app.replaceChildren(topbar(), renderLobby());
     return;
   }
-  const key = JSON.stringify([state.phase, state.step, state.players, state.nightProgress, state.voted, state.announcement, state.winner]);
+  const key = JSON.stringify([state.phase, state.step, state.players, state.nightProgress, state.voted, state.announcement, state.winner,
+    state.story && [state.story.startedAt, state.story.told]]);
   if ($('#mf-root')?.dataset.key === key) return;
   const main = SCREENS[state.phase]();
   main.id = 'mf-root';
@@ -215,10 +223,9 @@ function sounds(prev, next) {
   const to = next.phase;
   if (to === 'roles') sfx.play('reveal');
   else if (to === 'night') sfx.play('night');
-  else if (to === 'morning') sfx.play(next.announcement?.deaths.length ? 'lose' : 'morning');
   else if (to === 'discuss') sfx.play('turn');
   else if (to === 'vote') sfx.play('drumroll');
-  else if (to === 'verdict') sfx.play(next.announcement?.out ? 'wrong' : 'skip');
+  // The morning and the verdict: the story plays its own sounds, line by line.
 }
 
 HOST_GAMES.mafia = { render, updateLobby, sounds };

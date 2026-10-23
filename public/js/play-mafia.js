@@ -1,5 +1,5 @@
 /* global $, h, emit, toast, socket, app, state, screenKey: writable, confetti, timerEl, PLAY_GAMES, sfx,
-   MF_ROLES, mfRole, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfWinnerText, mfWon, icon */
+   MF_ROLES, mfRole, mfLineup, mfRulesList, mfPlayers, mfAnnouncement, mfStory, mfWinnerText, mfWon, icon */
 'use strict';
 
 // Player screens for «مافيا». Your role card shows only while you press on
@@ -51,11 +51,16 @@ function renderLobby() {
   );
 }
 
+/** The story of the night or the vote, on every phone with the TV (without its sounds). */
+const storyNow = () => (state.story && ['morning', 'verdict'].includes(state.phase) ? mfStory(state.story) : null);
+const told = () => !state.story || state.story.told;
+
 function renderWatching() {
   return h('main', { class: 'stage narrow mf-stage' },
     h('div', { class: 'mf-big' }, icon('eye')),
     h('h1', { class: 'center' }, 'دخلت واللعبة شغّالة'),
     h('p', { class: 'center muted' }, 'تابع من الشاشة، وتلعب معهم من اللعبة الجاية.'),
+    storyNow(),
   );
 }
 
@@ -65,7 +70,8 @@ function renderGhost() {
     h('div', { class: 'mf-big' }, icon('ghost')),
     h('h1', { class: 'center' }, 'طلعت من اللعبة'),
     h('p', { class: 'center muted' }, 'تقدر تشوف أدوار الكل… بس لا تتكلم ولا تلمّح!'),
-    state.announcement && ['morning', 'verdict'].includes(state.phase) ? mfAnnouncement(state.announcement) : null,
+    storyNow(),
+    state.announcement && ['morning', 'verdict'].includes(state.phase) ? mfAnnouncement(state.announcement, { tally: !state.story }) : null,
     state.phase === 'discuss' || state.phase === 'night' ? timerEl(state.endsAt) : null,
     mfPlayers(state.players, { meId: state.me.id }),
   );
@@ -162,10 +168,11 @@ function renderNight() {
 
 function renderMorning() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, icon('sun'), ' صباح الخير'),
-    mfAnnouncement(state.announcement),
-    state.winner ? h('div', { class: 'verdict good' }, mfWinnerText(state.winner)) : null,
-    h('p', { class: 'hint center' }, 'شوفوا الشاشة، والمضيف بيبدأ النقاش.'),
+    h('h1', { class: 'center mf-story-title' }, told() ? [icon('sun'), ' صباح الخير'] : [icon('moon'), ` الليلة ${state.dayNumber}`]),
+    storyNow(),
+    told() ? mfAnnouncement(state.announcement) : null,
+    told() && state.winner ? h('div', { class: 'verdict good' }, mfWinnerText(state.winner)) : null,
+    h('p', { class: 'hint center' }, told() ? 'المضيف بيبدأ النقاش.' : 'اسمعوا الراوي…'),
     roleCard(),
   );
 }
@@ -205,9 +212,10 @@ function renderVote() {
 
 function renderVerdict() {
   return h('main', { class: 'stage narrow mf-stage' },
-    h('h1', { class: 'center' }, 'نتيجة التصويت'),
-    mfAnnouncement(state.announcement),
-    state.winner ? h('div', { class: 'verdict good' }, mfWinnerText(state.winner)) : null,
+    h('h1', { class: 'center mf-story-title' }, icon('vote'), ' نتيجة التصويت'),
+    storyNow(),
+    told() ? mfAnnouncement(state.announcement, { tally: !state.story }) : null,
+    told() && state.winner ? h('div', { class: 'verdict good' }, mfWinnerText(state.winner)) : null,
     roleCard(),
   );
 }
@@ -253,9 +261,13 @@ function render() {
 }
 
 function sounds(prev, next) {
+  // You're out (killed at night or voted out) as the story ends.
+  if (prev.me.alive && !next.me.alive && next.phase !== 'final') {
+    sfx.play('lose');
+    return;
+  }
   if (prev.phase === next.phase) return;
   if (next.phase === 'night' && next.me.alive) sfx.play('night');
-  else if (next.phase === 'morning' && prev.me.alive && !next.me.alive) sfx.play('lose');
 }
 
 const won = (s) => mfWon(s.me.role, s.winner);

@@ -27,6 +27,7 @@ function night(game, picks) {
     else game.pick(id, target);
   }
   game.endNight();
+  game.tell();
 }
 
 test('the lineup: mafia by player count, special roles while a citizen is left', () => {
@@ -58,6 +59,7 @@ test('the doctor saves the mafia\'s victim; the police learn the truth at once',
   game.pick('a', 'f');
   game.pick('b', 'f');
   game.endNight();
+  game.tell();
   assert.equal(game.phase, 'morning');
   assert.deepEqual(game.announcement, { kind: 'morning', deaths: [], saved: true, shot: false });
   assert.ok(game.players.get('f').alive);
@@ -65,6 +67,7 @@ test('the doctor saves the mafia\'s victim; the police learn the truth at once',
   game.startDiscussion();
   game.startVote();
   game.endVote();
+  game.tell();
   game.startNight();
   assert.throws(() => game.pick('b', 'f'), /ليلتين/);
 });
@@ -78,6 +81,7 @@ test('the sniper has one bullet; a kill without the doctor lands', () => {
   game.startDiscussion();
   game.startVote();
   game.endVote();
+  game.tell();
   game.startNight();
   assert.throws(() => game.pick('d', null), /اختر لاعب/, 'no bullet left to hold');
 });
@@ -91,14 +95,17 @@ test('the mayor\'s vote counts twice; a tie sends nobody out', () => {
   game.castVote('f', 'b');
   game.castVote('g', 'b'); // 2 – 2
   game.endVote();
+  game.tell();
   assert.equal(game.announcement.out, null, 'a tie');
   game.startNight();
   game.endNight();
+  game.tell();
   game.startDiscussion();
   game.startVote();
   game.castVote('e', 'a');
   game.castVote('f', 'b');
   game.endVote();
+  game.tell();
   assert.equal(game.announcement.out, 'a');
   assert.equal(game.winner, 'town', 'the only mafia is out');
   game.next();
@@ -114,6 +121,7 @@ test('«ما نطلّع أحد» on top keeps everyone in', () => {
   game.castVote('c', 'none');
   game.castVote('f', 'a');
   game.endVote();
+  game.tell();
   assert.equal(game.announcement.out, null);
 });
 
@@ -125,6 +133,7 @@ test('the mafia win once they match the rest', () => {
   game.castVote('a', 'c');
   game.castVote('d', 'c');
   game.endVote(); // c out: a vs d, e
+  game.tell();
   night(game, { a: 'd' }); // d dead: a vs e
   assert.equal(game.winner, 'mafia');
   assert.deepEqual(game.nightPoints(), { a: 3 });
@@ -143,6 +152,7 @@ test('two mafia: they point, see each other, and only an agreed and confirmed vi
   game.pick('h', 'g');
   assert.throws(() => game.confirmPick('a'), /اتفقوا/, 'f and g: no agreement');
   game.endNight();
+  game.tell();
   assert.deepEqual(game.announcement.deaths, [], 'no agreement, nobody dies');
 
   game.phase = 'verdict';
@@ -152,6 +162,7 @@ test('two mafia: they point, see each other, and only an agreed and confirmed vi
   game.confirmPick('a');
   assert.equal(game.mafiaPlan().locked, false, 'h still to confirm');
   game.endNight();
+  game.tell();
   assert.deepEqual(game.announcement.deaths, [], 'agreed but not confirmed by both');
 
   game.phase = 'verdict';
@@ -169,6 +180,7 @@ test('two mafia: they point, see each other, and only an agreed and confirmed vi
   game.confirmPick('h');
   assert.equal(game.mafiaPlan().victim, 'f');
   game.endNight();
+  game.tell();
   assert.deepEqual(game.announcement.deaths, ['f']);
 });
 
@@ -192,6 +204,7 @@ test('two mafia: the doctor still saves their victim; the night waits for their 
   game.maybeEndNight(online);
   assert.equal(game.night.ending, true);
   game.endNight();
+  game.tell();
   assert.deepEqual([game.announcement.deaths, game.announcement.saved], [[], true]);
   game.dispose();
 });
@@ -204,6 +217,7 @@ test('a lone mafia (the other one out) picks with one tap', () => {
   assert.equal(game.hasActed('a'), true);
   game.confirmPick('a'); // harmless
   game.endNight();
+  game.tell();
   assert.deepEqual(game.announcement.deaths, ['f']);
 });
 
@@ -214,10 +228,12 @@ test('the jester voted out wins alone and the game ends', () => {
   game.startNight();
   assert.equal(game.endsAt - Date.now() > 55000, true, 'a minute by default');
   game.endNight();
+  game.tell();
   game.startVote();
   for (const id of ['a', 'b', 'c', 'd', 'g']) game.castVote(id, 'f');
   game.castVote('f', 'a');
   game.endVote();
+  game.tell();
   assert.equal(game.winner, 'jester');
   assert.deepEqual(game.nightPoints(), { f: 3 });
   game.next();
@@ -233,6 +249,7 @@ test('the jester killed at night just loses; a town win gives him nothing', () =
   game.startVote();
   for (const id of game.alive()) game.castVote(id, id === 'a' ? 'b' : 'a');
   game.endVote();
+  game.tell();
   assert.equal(game.winner, 'town');
   const points = game.nightPoints();
   assert.equal(points.f, undefined);
@@ -319,6 +336,7 @@ test('screens: roles go to their owner, the mafia see each other, the big screen
   for (const p of mafia) room.mafiaConfirm(p.id);
   assert.equal(room.game.night.ending, true);
   room.game.endNight();
+  room.game.tell();
   const dead = room.game.announcement.deaths;
   for (const id of dead) {
     const ghost = room.playerView(id);
@@ -340,11 +358,187 @@ test('«بطل السهرة» reaches the screens when a mafia game ends', () =>
   const mafia = ps.find((p) => game.roleOf(p.id) === 'mafia');
   game.startNight();
   game.endNight();
+  game.tell();
   game.startVote();
   for (const p of ps) if (p !== mafia) game.castVote(p.id, mafia.id);
   game.endVote();
+  game.tell();
   game.next();
   room.settleNight();
   assert.equal(room.hostView().night.standings.length, 4);
   assert.equal(room.playerView(mafia.id).night.standings.length, 4);
+});
+
+/* ---------- The story of the night and of the vote ---------- */
+
+const { nightStory, voteStory, LINES } = require('../src/games/mafia-story');
+
+/** Everyone alive picks (as in night()), and the story starts; it isn't told yet. */
+function untoldNight(game, picks) {
+  game.startNight();
+  for (const id of game.alive()) {
+    const target = picks[id] !== undefined ? picks[id] : game.alive().find((t) => t !== id && game.roleOf(t) !== 'mafia');
+    if (game.roleOf(id) === 'sniper' && picks[id] === undefined) game.pick(id, null);
+    else game.pick(id, target);
+  }
+  game.endNight();
+}
+
+/** A room with seven named players dealt SEVEN's roles, in order. */
+function storyRoom() {
+  const room = new RoomManager({ categories: [] }).create();
+  const names = ['أحمد', 'سارة', 'فهد', 'نورة', 'خالد', 'ريم', 'سلطان'];
+  const ids = names.map((name, i) => {
+    const p = room.join({ name });
+    room.connect(p.id, `s${i}`);
+    return p.id;
+  });
+  room.setGameType('mafia');
+  room.game.start();
+  Object.values(SEVEN).forEach((role, i) => room.game.players.set(ids[i], { role, alive: true }));
+  const [mafia, doctor, police, sniper, mayor, f, g] = ids;
+  return { room, game: room.game, ids: { mafia, doctor, police, sniper, mayor, f, g }, name: (id) => room.nameOf(id) };
+}
+
+const has = (list, text) => list.includes(text);
+
+test('the night is told as a story first: nobody dies, and no screen knows, until it is told', () => {
+  const { room, game, ids, name } = storyRoom();
+  untoldNight(game, { [ids.mafia]: ids.f, [ids.doctor]: ids.g });
+  assert.equal(game.phase, 'morning');
+  assert.equal(game.story.told, false);
+  assert.ok(game.players.get(ids.f).alive, 'not dead yet');
+  const host = room.hostView();
+  assert.equal(host.announcement, null);
+  assert.equal(host.players.find((p) => p.id === ids.f).alive, true);
+  assert.equal(room.playerView(ids.f).me.alive, true, 'their own phone doesn\'t know');
+  const { beats } = host.story;
+  assert.deepEqual(beats.map((b) => b.kind), ['scene', 'line', 'suspense', 'reveal', 'scene']);
+  assert.ok(beats.every((b, i) => i === 0 || b.at > beats[i - 1].at), 'one after the other');
+  assert.equal(beats[2].name, name(ids.f));
+  assert.equal(beats[2].sound, 'heartbeat');
+  assert.ok(has(LINES.died, beats[3].text));
+  assert.deepEqual([beats[3].tone, beats[3].role], ['bad', 'citizen']);
+  assert.ok(!beats.some((b) => b.name === name(ids.g)), 'a save nobody needed isn\'t told');
+  // Nothing moves on until it's told.
+  assert.throws(() => game.startDiscussion(), /القصة/);
+  assert.throws(() => game.startVote(), /القصة/);
+  game.tell(game.step - 1); // a stale tap does nothing
+  assert.equal(game.story.told, false);
+  game.tell(game.step);
+  assert.equal(game.players.get(ids.f).alive, false);
+  assert.deepEqual(room.hostView().announcement.deaths.map((p) => p.id), [ids.f]);
+  assert.equal(room.playerView(ids.f).me.alive, false);
+  assert.throws(() => game.tell(), /مو وقتها/);
+  game.startDiscussion();
+  room.dispose();
+});
+
+test('the doctor saves the mafia\'s victim: the story names them, and nobody dies', () => {
+  const { room, game, ids, name } = storyRoom();
+  untoldNight(game, { [ids.mafia]: ids.f, [ids.doctor]: ids.f });
+  const { beats } = room.hostView().story;
+  const save = beats.find((b) => b.kind === 'reveal');
+  assert.deepEqual([save.tone, save.name, save.sound, save.role], ['good', name(ids.f), 'correct', null]);
+  assert.ok(has(LINES.saved, save.text));
+  assert.ok(has(LINES.dawnSafe, beats.at(-1).text));
+  assert.equal(beats.at(-1).sound, 'morning');
+  game.tell();
+  assert.deepEqual(game.announcement, { kind: 'morning', deaths: [], saved: true, shot: false });
+  room.dispose();
+});
+
+test('the sniper: a shot of its own is told after the mafia, one on the mafia\'s victim only once', () => {
+  let { room, game, ids, name } = storyRoom();
+  untoldNight(game, { [ids.mafia]: ids.f, [ids.sniper]: ids.g, [ids.doctor]: ids.doctor });
+  let { beats } = room.hostView().story;
+  assert.ok(beats.some((b) => b.sound === 'shot' && has(LINES.shotRing, b.text)));
+  assert.deepEqual(beats.filter((b) => b.kind === 'reveal').map((b) => [b.name, b.tone]), [[name(ids.f), 'bad'], [name(ids.g), 'bad']]);
+  assert.ok(beats.at(-1).text.includes('اثنين'));
+  room.dispose();
+
+  ({ room, game, ids, name } = storyRoom());
+  untoldNight(game, { [ids.mafia]: ids.f, [ids.sniper]: ids.f, [ids.doctor]: ids.doctor });
+  beats = room.hostView().story.beats;
+  assert.equal(beats.filter((b) => b.kind === 'reveal').length, 1, 'one outcome for one person');
+  assert.ok(beats.some((b) => has(LINES.sameShot, b.text)));
+  game.tell();
+  assert.deepEqual(game.announcement.deaths, [ids.f]);
+  room.dispose();
+});
+
+test('the mafia\'s night: split, hesitating or idle is told without a victim', () => {
+  const told = (plan) => nightStory({ dayNumber: 2, plan, victim: null, shot: null, deaths: [], random: () => 0 }).beats;
+  assert.ok(has(LINES.mafiaSplit, told({ pointed: true, agreed: false })[1].text));
+  assert.ok(has(LINES.mafiaHesitated, told({ pointed: true, agreed: true })[1].text));
+  assert.ok(has(LINES.mafiaIdle, told({ pointed: false, agreed: false })[1].text));
+  assert.ok(told({ pointed: false, agreed: false })[0].text.includes('الثانية'), 'the night by its name');
+  const { length, beats } = nightStory({ dayNumber: 1, plan: { pointed: true, agreed: true }, victim: 'x', shot: null, deaths: ['x'] });
+  assert.ok(length > beats.at(-1).at && length >= 10000 && length <= 20000, `a story of ${length} ms`);
+});
+
+test('roles in the story show only when roles show on death (or for the mayor)', () => {
+  const { room, game, ids } = storyRoom();
+  game.settings.revealOnDeath = false;
+  untoldNight(game, { [ids.mafia]: ids.f });
+  assert.equal(room.hostView().story.beats.find((b) => b.kind === 'reveal').role, null);
+  game.tell();
+  game.startVote();
+  game.endVote();
+  assert.ok(!room.hostView().story.beats.some((b) => b.kind === 'role'), 'no «and they were…» either');
+  room.dispose();
+});
+
+test('the vote is counted out loud, fewest first, then who goes and what they were', () => {
+  const game = dealt(SEVEN);
+  night(game, { a: 'f', b: 'f' }); // saved, nobody out
+  game.startVote();
+  for (const id of ['b', 'c', 'd', 'g']) game.castVote(id, 'a');
+  game.castVote('e', 'f'); // the mayor: two
+  game.castVote('f', 'none');
+  game.castVote('a', 'f');
+  game.endVote();
+  assert.equal(game.phase, 'verdict');
+  assert.ok(game.players.get('a').alive, 'still in until it\'s told');
+  assert.equal(game.winner, null);
+  const { beats } = game.story;
+  assert.deepEqual(beats.filter((b) => b.kind === 'tally').map((b) => [b.who ?? 'none', b.votes]), [['none', 1], ['f', 3], ['a', 4]]);
+  assert.deepEqual(beats.slice(-4).map((b) => b.kind), ['suspense', 'reveal', 'suspense', 'role']);
+  assert.deepEqual([beats.at(-1).who, beats.at(-1).tone], ['a', 'good']);
+  game.tell();
+  assert.equal(game.players.get('a').alive, false);
+  assert.equal(game.winner, 'town');
+  assert.equal(game.announcement.out, 'a');
+});
+
+test('the vote\'s story: a tie, «ما نطلّع أحد» on top, and nobody voting', () => {
+  const told = (tally) => voteStory({ tally, out: null, role: null, revealOnDeath: true, random: () => 0 }).beats.at(-1).text;
+  assert.ok(has(LINES.tie, told([{ target: 'a', votes: 2 }, { target: 'b', votes: 2 }])));
+  assert.ok(has(LINES.noneWins, told([{ target: 'none', votes: 3 }, { target: 'b', votes: 1 }])));
+  assert.ok(has(LINES.noVotes, told([])));
+  const jester = voteStory({ tally: [{ target: 'j', votes: 3 }], out: 'j', role: 'jester', revealOnDeath: true, random: () => 0 }).beats.at(-1);
+  assert.ok(has(LINES.roleJester, jester.text));
+});
+
+test('the story tells itself when its time is up', () => {
+  const game = dealt(SEVEN);
+  let scheduled = null;
+  game.schedule = (ms, action) => { scheduled = { ms, action }; };
+  untoldNight(game, { a: 'f' });
+  const { startedAt, endsAt } = game.story;
+  assert.equal(scheduled.ms, endsAt - startedAt + 400);
+  scheduled.action();
+  assert.equal(game.story.told, true);
+  assert.equal(game.players.get('f').alive, false);
+});
+
+test('someone leaving mid-story decides nothing early, and the story is still told', () => {
+  const game = dealt(SEVEN);
+  untoldNight(game, { a: 'f' });
+  game.removePlayer('a'); // the only mafia leaves: the town would win
+  assert.equal(game.winner, null, 'not before the story is told');
+  game.removePlayer('f'); // the victim leaves too
+  game.tell();
+  assert.deepEqual(game.announcement.deaths, []);
+  assert.equal(game.winner, 'town');
 });

@@ -3,7 +3,9 @@
 // What each screen sees of «مافيا». Roles go only to their owner; the mafia
 // see each other (and, at night, who each points at); the mayor is known to
 // all; the dead see everyone. The big screen sees a role only once its
-// player is out (if the host chose that) or when the game is over.
+// player is out (if the host chose that) or when the game is over. Deaths
+// only happen once the story of the night (or vote) is told, so nothing
+// here can give them away early.
 
 const { MIN_PLAYERS, DISCUSS_OPTIONS, NIGHT_OPTIONS } = require('./mafia');
 
@@ -35,6 +37,25 @@ function announcementView(room, { all }) {
   };
 }
 
+/** The night's or the vote's story, line by line; a death's role shows under the same rule as the announcement's. */
+function storyView(room, { all }) {
+  const { game } = room;
+  const { story } = game;
+  if (!story) return null;
+  const roleShown = (id) => all || game.settings.revealOnDeath || game.roleOf(id) === 'mayor';
+  return {
+    kind: story.kind,
+    startedAt: story.startedAt,
+    endsAt: story.endsAt,
+    told: story.told,
+    beats: story.beats.map(({ who, death, ...beat }) => ({
+      ...beat,
+      name: who ? room.nameOf(who) ?? '…' : null,
+      role: death && who && roleShown(who) ? game.roleOf(who) : null,
+    })),
+  };
+}
+
 function baseView(room, { all }) {
   const { game } = room;
   const alive = game.alive();
@@ -51,6 +72,7 @@ function baseView(room, { all }) {
     nightProgress: game.night ? { acted: alive.filter((id) => game.night.picks.has(id)).length, total: alive.length } : null,
     voted: game.vote ? alive.filter((id) => game.vote.votes.has(id)) : null,
     announcement: announcementView(room, { all }),
+    story: storyView(room, { all }),
     rules: { minPlayers: MIN_PLAYERS, discussOptions: DISCUSS_OPTIONS, nightOptions: NIGHT_OPTIONS },
   };
 }

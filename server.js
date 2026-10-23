@@ -578,6 +578,7 @@ io.on('connection', (socket) => {
   hostAction('host:mf-discuss', (room, { step }) => mf(room).startDiscussion(step));
   hostAction('host:mf-vote', (room, { step }) => mf(room).startVote(step));
   hostAction('host:mf-end-vote', (room, { step }) => mf(room).endVote(step));
+  hostAction('host:mf-tell', (room, { step }) => mf(room).tell(step));
 
   on('player:join', ({ code, name, playerId }) => {
     const room = rooms.get(code);

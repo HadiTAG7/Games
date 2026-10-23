@@ -1,4 +1,4 @@
-/* global h, icon */
+/* global h, icon, serverNow, sfx */
 'use strict';
 
 // Pieces of «مافيا» shared by the host and player pages.
@@ -45,7 +45,8 @@ function mfPlayers(players, { meId = null } = {}) {
 const mfWho = (p) => (p.role ? `${p.name} (${mfRole(p.role)})` : p.name);
 
 /** What happened in the night, or in the vote. */
-function mfAnnouncement(a) {
+/** The outcome in short, under the story. `tally: false` leaves out the votes (the story counted them). */
+function mfAnnouncement(a, { tally: withTally = true } = {}) {
   if (!a) return null;
   if (a.kind === 'morning') {
     const lines = [];
@@ -54,7 +55,7 @@ function mfAnnouncement(a) {
       lines.push(...a.deaths.map((p) => h('div', { class: 'mf-death' }, icon('skull'), ' ', h('b', {}, p.name), ' مات',
         p.role ? h('span', {}, ` · كان ${mfRole(p.role)}`) : null)));
     } else {
-      lines.push(h('div', { class: 'mf-safe' }, a.saved ? [icon('stethoscope'), ' الدكتور أنقذ أحد، محد مات الليلة!'] : 'محد مات الليلة'));
+      lines.push(h('div', { class: 'mf-safe' }, a.saved ? [icon('stethoscope'), ' محد مات الليلة، والفضل للدكتور!'] : 'محد مات الليلة'));
     }
     return h('div', { class: 'mf-announce' }, lines);
   }
@@ -64,8 +65,61 @@ function mfAnnouncement(a) {
     a.out
       ? h('div', { class: 'mf-death' }, icon('vote'), ' طلع ', h('b', {}, a.out.name), ' بالتصويت', a.out.role ? h('span', {}, ` · كان ${mfRole(a.out.role)}`) : null)
       : h('div', { class: 'mf-safe' }, icon('handshake'), ' محد طلع هالمرة'),
-    a.tally.length ? tally : null,
+    withTally && a.tally.length ? tally : null,
   );
+}
+
+/* ---------- The narrator ---------- */
+
+/** One line of the story: «{name}» in bold, «{role}» by name; a tally line has a bar. */
+function mfBeatText(beat) {
+  if (beat.kind === 'tally') {
+    return [
+      h('b', { class: 'mf-name' }, beat.none ? 'ما نطلّع أحد' : beat.name),
+      h('span', { class: 'mf-beat-bar' }, h('span', { style: `--fill:${beat.votes / beat.max}` })),
+      h('b', { class: 'mf-beat-votes' }, beat.votes),
+    ];
+  }
+  const text = beat.text.replace('{role}', beat.role ? mfRole(beat.role) : '…');
+  return text.split('{name}').flatMap((part, i) => (i ? [h('b', { class: 'mf-name' }, beat.name), part] : [part]));
+}
+
+function mfBeat(beat, enter) {
+  return h('div', { class: `mf-beat ${beat.kind} ${beat.tone}${enter ? ' enter' : ''}` },
+    h('span', { class: 'mf-beat-icon' }, icon(beat.icon)),
+    h('p', {}, mfBeatText(beat)),
+    beat.kind === 'reveal' && beat.role ? h('small', { class: 'mf-beat-role' }, `كان ${mfRole(beat.role)}`) : null,
+  );
+}
+
+/**
+ * The night's (or the vote's) story, told line by line at the moments the
+ * server set, so the TV and every phone tell it together; a page opened
+ * midway shows what's been told and goes on from there. With `sound` (the
+ * TV), each new line plays its sound. A redraw stops the old copy's timers.
+ */
+function mfStory(story, { sound = false } = {}) {
+  const length = story.endsAt - story.startedAt;
+  const elapsed = story.told ? length : Math.min(length, Math.max(0, serverNow() - story.startedAt));
+  const box = h('section', {
+    class: `mf-story ${story.kind}${story.told ? ' told' : ''}`,
+    style: `--story-length:${length}ms; --story-elapsed:${-elapsed}ms`,
+    'aria-live': 'polite',
+  });
+  for (const beat of story.beats) {
+    if (beat.at <= elapsed) {
+      box.append(mfBeat(beat, false));
+      continue;
+    }
+    setTimeout(() => {
+      if (!box.isConnected) return;
+      const line = mfBeat(beat, true);
+      box.append(line);
+      line.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+      if (sound && beat.sound) sfx.play(beat.sound);
+    }, beat.at - elapsed);
+  }
+  return box;
 }
 
 function mfWinnerText(winner) {

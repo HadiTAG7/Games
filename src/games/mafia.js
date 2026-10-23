@@ -8,11 +8,15 @@
 // someone out; the mayor's vote counts twice. «الانتحاري» plays for himself:
 // voted out, he wins alone and the game ends.
 //
+// The night's outcome and the vote's are told as a story first (mafia-story.js);
+// they only take effect once it's told, so no screen gives them away early.
+//
 // Phases: lobby → roles → night → morning → discuss → vote → verdict → night … → final
 
 const { GameError } = require('../errors');
 const { shuffle } = require('../shuffle');
 const { WIN_POINTS } = require('../night');
+const { nightStory, voteStory } = require('./mafia-story');
 
 const MIN_PLAYERS = 5;
 const SPECIAL_ROLES = ['doctor', 'police', 'mayor', 'sniper', 'jester']; // handed out in this order while there's room
@@ -60,6 +64,7 @@ class MafiaGame {
     this.night = null;
     this.vote = null;
     this.announcement = null;
+    this.story = null; // { kind: 'night' | 'vote', beats, startedAt, endsAt, told, outcome }
     this.endsAt = null;
     this.lastSaved = null;
     this.bulletUsed = false;
@@ -149,9 +154,11 @@ class MafiaGame {
   startNight(step) {
     if (this.isStale(step)) return;
     if (!['roles', 'verdict'].includes(this.phase) || this.winner) throw new GameError('مو وقت الليل');
+    this.ensureTold();
     this.dayNumber += 1;
     this.night = { picks: new Map(), confirmed: new Set(), ending: false };
     this.announcement = null;
+    this.story = null;
     this.vote = null;
     this.phase = 'night';
     this.endsAt = this.now() + this.settings.nightSeconds * 1000;
@@ -242,14 +249,18 @@ class MafiaGame {
     this.schedule(min + this.random() * (max - min), () => this.endNight());
   }
 
-  /** Morning: the mafia's victim (if they agreed) and the sniper's shot fall, unless the doctor saved them. */
+  /**
+   * Morning: the mafia's victim (if they agreed) and the sniper's shot fall,
+   * unless the doctor saved them. The story of the night comes first.
+   */
   endNight(step) {
     if (this.isStale(step)) return;
     if (this.phase !== 'night') throw new GameError('مو وقت الليل');
     this.clearTimer();
     const { picks } = this.night;
     const byRole = (role) => this.alive().filter((id) => this.roleOf(id) === role);
-    const { victim } = this.mafiaPlan();
+    const plan = this.mafiaPlan();
+    const { victim } = plan;
     const [doctor] = byRole('doctor');
     const saved = doctor ? picks.get(doctor) ?? null : null;
     const [sniper] = byRole('sniper');
@@ -258,19 +269,55 @@ class MafiaGame {
     this.lastSaved = saved;
     const attacked = [...new Set([victim, shot].filter(Boolean))];
     const deaths = attacked.filter((id) => id !== saved);
-    for (const id of deaths) this.players.get(id).alive = false;
-    this.announcement = { kind: 'morning', deaths, saved: attacked.length > deaths.length, shot: Boolean(shot) };
+    const story = nightStory({
+      dayNumber: this.dayNumber, plan: { pointed: plan.pointed.length > 0, agreed: Boolean(plan.agreed) }, victim, shot, deaths, random: this.random,
+    });
     this.night = null;
     this.endsAt = null;
     this.phase = 'morning';
+    this.tellStory('night', story, { deaths, saved: attacked.length > deaths.length, shot: Boolean(shot) });
+  }
+
+  /** The story starts on every screen; the outcome holds until it's told (or the host skips it). */
+  tellStory(kind, { beats, length }, outcome) {
+    const startedAt = this.now();
+    this.announcement = null;
+    this.story = { kind, beats, startedAt, endsAt: startedAt + length, told: false, outcome };
     this.step += 1;
-    this.checkWinner();
+    this.schedule(length + TIMER_GRACE_MS, () => this.tell());
+  }
+
+  /** The story is over: the deaths, or the vote's outcome, take effect. */
+  tell(step) {
+    if (this.isStale(step)) return;
+    if (!this.story || this.story.told) throw new GameError('مو وقتها');
+    this.clearTimer();
+    const { kind, outcome } = this.story;
+    this.story.told = true;
+    this.step += 1;
+    if (kind === 'night') {
+      const deaths = outcome.deaths.filter((id) => this.players.has(id)); // someone may have left meanwhile
+      for (const id of deaths) this.players.get(id).alive = false;
+      this.announcement = { kind: 'morning', deaths, saved: outcome.saved, shot: outcome.shot };
+      this.checkWinner();
+      return;
+    }
+    const out = outcome.out && this.players.has(outcome.out) ? outcome.out : null;
+    if (out) this.players.get(out).alive = false;
+    this.announcement = { kind: 'verdict', out, tally: outcome.tally, votes: outcome.votes };
+    this.checkWinner(Boolean(out) && this.roleOf(out) === 'jester');
+  }
+
+  /** Nothing moves on while the story is still being told. */
+  ensureTold() {
+    if (this.story && !this.story.told) throw new GameError('استنوا القصة تخلص');
   }
 
   /** Talk it over, with a timer if the host set one. */
   startDiscussion(step) {
     if (this.isStale(step)) return;
     if (this.phase !== 'morning' || this.winner) throw new GameError('مو وقتها');
+    this.ensureTold();
     this.phase = 'discuss';
     const seconds = this.settings.discussSeconds;
     this.endsAt = seconds ? this.now() + seconds * 1000 : null;
@@ -281,6 +328,7 @@ class MafiaGame {
   startVote(step) {
     if (this.isStale(step)) return;
     if (!['morning', 'discuss'].includes(this.phase) || this.winner) throw new GameError('مو وقت التصويت');
+    this.ensureTold();
     this.clearTimer();
     this.endsAt = null;
     this.vote = { votes: new Map() }; // voter → target id, or 'none'
@@ -304,7 +352,7 @@ class MafiaGame {
     return this.alive().every((id) => this.vote.votes.has(id) || !online.has(id));
   }
 
-  /** The most votes goes out (the mayor's count twice); a tie, or «ما نطلّع أحد» on top, and nobody does. */
+  /** The most votes goes out (the mayor's count twice); a tie, or «ما نطلّع أحد» on top, and nobody does. Counted out loud first. */
   endVote(step) {
     if (this.isStale(step)) return;
     if (this.phase !== 'vote') throw new GameError('التصويت مو مفتوح');
@@ -316,11 +364,10 @@ class MafiaGame {
     const tally = [...weights].map(([target, votes]) => ({ target, votes })).sort((a, b) => b.votes - a.votes);
     const [first, second] = tally;
     const out = first && first.target !== 'none' && (!second || second.votes < first.votes) ? first.target : null;
-    if (out) this.players.get(out).alive = false;
-    this.announcement = { kind: 'verdict', out, tally, votes: [...this.vote.votes].map(([voter, target]) => ({ voter, target })) };
+    const votes = [...this.vote.votes].map(([voter, target]) => ({ voter, target }));
+    const story = voteStory({ tally, out, role: out ? this.roleOf(out) : null, revealOnDeath: this.settings.revealOnDeath, random: this.random });
     this.phase = 'verdict';
-    this.step += 1;
-    this.checkWinner(out && this.roleOf(out) === 'jester');
+    this.tellStory('vote', story, { out, tally, votes });
   }
 
   /**
@@ -329,6 +376,7 @@ class MafiaGame {
    */
   checkWinner(jesterOut = false) {
     if (['lobby', 'roles', 'final'].includes(this.phase)) return;
+    if (this.story && !this.story.told) return; // decided once the story is told
     const alive = this.alive();
     const mafia = alive.filter((id) => this.isMafia(id)).length;
     if (jesterOut) this.winner = 'jester';
@@ -344,6 +392,7 @@ class MafiaGame {
   next(step) {
     if (this.isStale(step)) return;
     if (!this.winner) throw new GameError('اللعبة ما خلصت');
+    this.ensureTold();
     this.phase = 'final';
     this.step += 1;
   }
