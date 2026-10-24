@@ -23,7 +23,7 @@ OUT = ROOT / 'public' / 'icons.svg'
 LICENSE_OUT = ROOT / 'public' / 'icons-LICENSE.txt'
 # Single files too, for CSS masks (each game's faint emblem in the corner) and the favicon.
 SINGLE_DIR = ROOT / 'public' / 'icons'
-SINGLE = ['dices', 'users-round', 'timer', 'circle-help', 'hexagon', 'venetian-mask', 'drama', 'chart-bar-big', 'pointer', 'circle-check-big']
+SINGLE = ['dices', 'users-round', 'timer', 'circle-help', 'hexagon', 'venetian-mask', 'drama', 'chart-bar-big', 'pointer', 'circle-check-big', 'fingerprint']
 FAVICON = ROOT / 'public' / 'favicon.svg'
 
 ICONS = sorted(set('''
@@ -37,6 +37,7 @@ ICONS = sorted(set('''
     search send settings shield shuffle skip-back skip-forward skull smartphone sparkles split square-pen star
     stethoscope sun swords tag thumbs-up timer timer-reset trash-2 trending-up triangle-alert trophy tv undo-2
     user user-round users users-round venetian-mask volume-2 volume-x vote wand-sparkles wrench x zap laugh
+    fingerprint gavel siren
 '''.split()))
 
 

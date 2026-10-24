@@ -11,6 +11,7 @@ const { MafiaGame } = require('./games/mafia');
 const { FeudGame } = require('./games/feud');
 const { WhoGame } = require('./games/who');
 const { TruthGame } = require('./games/truth');
+const { ScamGame } = require('./games/scam');
 const herdViews = require('./games/herd-views');
 const timeViews = require('./games/time-views');
 const seenViews = require('./games/seen-views');
@@ -20,6 +21,7 @@ const mafiaViews = require('./games/mafia-views');
 const feudViews = require('./games/feud-views');
 const whoViews = require('./games/who-views');
 const truthViews = require('./games/truth-views');
+const scamViews = require('./games/scam-views');
 const { normalizeAnswer } = require('./normalize');
 const { NightBoard, WIN_POINTS } = require('./night');
 const { GroupHistory, NO_HISTORY, nameKey, rankRows } = require('./groups');
@@ -39,6 +41,8 @@ const GAMES = {
   feud: { Game: FeudGame, views: feudViews, name: 'فاميلي فيود', emoji: '👪' },
   who: { Game: WhoGame, views: whoViews, name: 'مين فينا؟', emoji: '🫵' },
   truth: { Game: TruthGame, views: truthViews, name: 'صح ولا خطأ', emoji: '✅' },
+  // «مين النصاب؟» plays «برا السالفة»'s words.
+  scam: { Game: ScamGame, views: scamViews, name: 'مين النصاب؟', emoji: '🕵️' },
 };
 
 function cleanName(name) {
@@ -223,6 +227,7 @@ class Room {
     this.maybeMoveMafia();
     this.maybeRevealWho();
     this.maybeRevealTruth();
+    this.maybeCloseScamVote();
   }
 
   connect(playerId, socketId) {
@@ -236,6 +241,7 @@ class Room {
     this.maybeMoveMafia();
     this.maybeRevealWho();
     this.maybeRevealTruth();
+    this.maybeCloseScamVote();
   }
 
   isConnected(playerId) {
@@ -365,6 +371,19 @@ class Room {
     if (this.game.allAnswered(this.connectedIds())) this.game.reveal();
   }
 
+  /* ---------- «مين النصاب؟» room rules ---------- */
+
+  scamVote(playerId, answers) {
+    this.gameOf('scam').vote(playerId, answers);
+    this.maybeCloseScamVote();
+  }
+
+  /** The vote closes once everyone still connected has answered both questions. */
+  maybeCloseScamVote() {
+    if (this.gameType !== 'scam' || this.game.phase !== 'vote') return;
+    if (this.game.allVoted(this.connectedIds())) this.game.closeVote();
+  }
+
   /** Adds a finished game to «بطل السهرة»; called on every change. */
   settleNight() {
     const done = this.night.settle(this.game);
@@ -422,7 +441,7 @@ class RoomManager {
   } = {}) {
     this.content = {
       herd: categories, time: timeCategories, seen: seenCategories, letters, outsider: outsiderCategories, feud: feudQuestions,
-      who: whoCategories, truth: truthCategories,
+      who: whoCategories, truth: truthCategories, scam: outsiderCategories,
     };
     this.random = random;
     this.rooms = new Map();

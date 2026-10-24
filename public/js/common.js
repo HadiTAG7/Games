@@ -48,6 +48,7 @@ const GAME_ICONS = {
   feud: 'chart-bar-big',
   who: 'pointer',
   truth: 'circle-check-big',
+  scam: 'fingerprint',
 };
 function gameLogo(id, size = '') {
   return h('span', { class: `game-logo${size ? ` ${size}` : ''}`, 'data-theme': id }, icon(GAME_ICONS[id] ?? 'dices'));
@@ -275,6 +276,7 @@ function rulesList(mode = 'same') {
 
 /** «نقطة وحدة», «نقطتين», «3 نقاط», «11 نقطة». */
 function pointsText(n) {
+  if (n < 0) return `\u2066−${-n}\u2069 نقطة`; // the minus stays in front, in Arabic text too
   if (n === 1) return 'نقطة وحدة';
   if (n === 2) return 'نقطتين';
   return n >= 3 && n <= 10 ? `${n} نقاط` : `${n} نقطة`;

@@ -571,6 +571,17 @@ io.on('connection', (socket) => {
   // «صح ولا خطأ»
   hostAction('host:tf-reveal', (room, { step }) => room.gameOf('truth').reveal(step));
 
+  // «مين النصاب؟»
+  const sc = (room) => room.gameOf('scam');
+  hostAction('host:sc-begin', (room, { step }) => sc(room).begin(step));
+  hostAction('host:sc-next', (room, { step }) => sc(room).nextHinter(step));
+  hostAction('host:sc-discuss', (room, { step }) => sc(room).startDiscussion(step));
+  hostAction('host:sc-vote', (room, { step }) => sc(room).openVote(step));
+  hostAction('host:sc-close', (room, { step }) => sc(room).closeVote(step));
+  hostAction('host:sc-judge', (room, { done, step }) => sc(room).toGuess(typeof done === 'boolean' ? done : undefined, step));
+  hostAction('host:sc-skip-guess', (room, { step }) => sc(room).skipGuess(step));
+  hostAction('host:sc-spin', (room, { step }) => sc(room).spinPunishment(step));
+
   // «مافيا»
   const mf = (room) => room.gameOf('mafia');
   hostAction('host:mf-night', (room, { step }) => mf(room).startNight(step));
@@ -662,6 +673,24 @@ io.on('connection', (socket) => {
   on('player:who-vote', ({ target }) => {
     const room = currentRoom('player');
     room.whoVote(socket.data.playerId, target);
+    broadcast(room);
+  });
+
+  on('player:sc-vote', ({ target, mission }) => {
+    const room = currentRoom('player');
+    room.scamVote(socket.data.playerId, { target, mission });
+    broadcast(room);
+  });
+
+  on('player:sc-guess', ({ word }) => {
+    const room = currentRoom('player');
+    room.gameOf('scam').guess(socket.data.playerId, word);
+    broadcast(room);
+  });
+
+  on('player:sc-swap', () => {
+    const room = currentRoom('player');
+    room.gameOf('scam').swapMission(socket.data.playerId);
     broadcast(room);
   });
 

@@ -108,6 +108,15 @@
   --accent-ink: #1d2600;
   --watermark: url('/icons/circle-check-big.svg');
 }
+[data-theme="scam"] {
+  --bg: #0a0b24;
+  --glow1: #4338ca;
+  --glow2: #be123c;
+  --muted: #cdd0f5;
+  --accent: #ff6a3d;
+  --accent-ink: #2a0a00;
+  --watermark: url('/icons/fingerprint.svg');
+}
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -1957,3 +1966,51 @@ button.ff-slot:hover { border-color: var(--accent); }
   .mf-story *, .mf-story::before { animation: none !important; }
   .mf-story.night::before { opacity: 0.5; }
 }
+
+/* ---------- «مين النصاب؟» ---------- */
+.game-tile[data-theme="scam"] b, body[data-theme="scam"] .landing-intro h1 { view-transition-name: title-scam; }
+.sc-stage { gap: 12px; padding-bottom: 72px; } /* clear of the sound button */
+/* A negative score keeps its minus in front. */
+.standings .score { direction: ltr; unicode-bidi: isolate; }
+.sc-card-wrap { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.sc-card.impostor.open { border-color: var(--accent); background: linear-gradient(160deg, rgba(255, 106, 61, 0.22), rgba(190, 18, 60, 0.18)); }
+.sc-card.impostor .os-card-word { color: #ff8a65; }
+.sc-card-mission { margin-top: 8px; padding: 10px 14px; border-radius: 14px; border: 1px dashed var(--accent); background: rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; gap: 4px; }
+.sc-card-mission b { font-size: 20px; line-height: 1.4; }
+.sc-swap { align-self: center; }
+.sc-turn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px; border-radius: 20px; background: var(--card); border: 2px solid var(--accent); text-align: center; }
+.sc-turn small { color: var(--muted); font-weight: 700; }
+.sc-turn b { font-size: clamp(30px, 5vw, 56px); color: var(--accent); }
+.sc-turn span { font-size: 20px; }
+.sc-circle { list-style: none; margin: 0 auto; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 720px; }
+.sc-circle li { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-weight: 700; transition: opacity 0.3s ease; }
+.sc-circle li b { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); font-size: 14px; }
+.sc-circle li.now { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, var(--card)); }
+.sc-circle li.now b { background: var(--accent); color: var(--accent-ink); }
+.sc-circle li.done { opacity: 0.5; }
+.sc-rules-mini { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; color: var(--muted); font-weight: 700; }
+.sc-mission-choices { display: flex; flex-direction: column; gap: 8px; }
+.sc-mission-btn { margin: 0; justify-content: flex-start; text-align: start; white-space: normal; line-height: 1.4; min-height: 52px; }
+.sc-mission-btn.picked { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.sc-mission-reveal { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 18px; border-radius: 18px; background: var(--card); border: 2px solid var(--line); text-align: center; animation: pop 0.35s ease; }
+.sc-mission-reveal small { color: var(--muted); font-weight: 700; }
+.sc-mission-reveal b { font-size: clamp(20px, 3vw, 30px); color: var(--accent); }
+.sc-mission-reveal.exposed { border-color: var(--good); background: var(--good-soft); }
+.sc-mission-reveal.done { border-color: var(--bad); background: var(--bad-soft); }
+.sc-judge { display: flex; flex-direction: column; gap: 4px; }
+.sc-lines { width: 100%; max-width: 480px; margin: 0 auto; padding: 12px 16px; border-radius: 16px; background: var(--card); }
+.sc-lines ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sc-lines li { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; }
+.sc-lines p { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--line); text-align: center; font-weight: 800; font-size: 18px; }
+.sc-lines .good, .os-gains .good { color: var(--good); }
+.sc-lines .bad { color: var(--bad); }
+.sc-punish-box { width: 100%; max-width: 560px; margin: 8px auto; }
+.sc-wheel { display: flex; flex-direction: column; align-items: center; }
+.sc-wheel .tc-wheel { width: min(78vw, 42vh, 380px); }
+.sc-punishment { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 18px; border-radius: 18px; border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); text-align: center; opacity: 0; transform: scale(0.85); }
+.sc-punishment small { color: var(--muted); font-weight: 700; }
+.sc-punishment b { font-size: clamp(20px, 3.4vw, 30px); }
+.sc-punishment.shown { opacity: 1; transform: none; transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.3); }
+.sc-punishment.calm { transition: none; }
+.sc-demo { width: 100%; max-width: 440px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sc-demo .os-card { min-height: 220px; pointer-events: none; }

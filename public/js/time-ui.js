@@ -183,7 +183,8 @@ function wheelTarget(round) {
   return 360 * 6 - (index * seg + seg / 2) - jitter;
 }
 
-function wheelEl(round) {
+/** The wheel turning to round.category; «مين النصاب؟»'s punishment wheel uses it too (with its own hub icon). */
+function wheelEl(round, { hubIcon = 'timer' } = {}) {
   const disk = h('div', { class: 'tc-wheel-disk', html: wheelSvg(round.wheel) });
   const target = wheelTarget(round);
   const left = spinRemaining(round.spinId);
@@ -200,7 +201,7 @@ function wheelEl(round) {
   return h('div', { class: 'tc-wheel' },
     h('div', { class: 'tc-wheel-pointer' }),
     h('div', { class: 'tc-wheel-clip' }, disk),
-    h('div', { class: 'tc-wheel-hub' }, icon('timer')),
+    h('div', { class: 'tc-wheel-hub' }, icon(hubIcon)),
   );
 }
 
