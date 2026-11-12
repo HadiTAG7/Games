@@ -2,7 +2,8 @@
 'use strict';
 
 // «تسمح لـClaude…؟»: an AI app wants to add question banks to your account.
-// Log in here if needed, then allow or refuse; the app gets its answer.
+// Allowing always takes your username and password, even if this browser is
+// logged in, so the app is linked to the account of whoever is allowing it.
 (() => {
 const app = $('#app');
 const reqId = new URLSearchParams(location.search).get('req') ?? '';
@@ -22,65 +23,50 @@ function frame(...children) {
   app.replaceChildren(h('section', { class: 'card join-form consent' }, h('div', { class: 'logo center' }, icon('dices')), ...children));
 }
 
-function renderLogin(info, error = '') {
-  const username = h('input', { autocomplete: 'username', maxlength: 20 });
-  const password = h('input', { type: 'password', autocomplete: 'current-password' });
+function renderConsent(info, error = '', typed = '') {
+  const username = h('input', { autocomplete: 'username', maxlength: 20, required: true, value: typed });
+  const password = h('input', { type: 'password', autocomplete: 'current-password', required: true });
   frame(
-    h('h1', { class: 'center' }, 'ادخل بحسابك'),
-    h('p', { class: 'center muted' }, '«', h('bdi', {}, info.client.name), '» يبي يربط حسابك في ألعاب الشلة.'),
+    h('h1', { class: 'center' }, 'تسمح بالربط؟'),
+    h('p', { class: 'center consent-who' }, h('b', {}, '«', h('bdi', {}, info.client.name), '»'), ' ', h('small', { class: 'muted' }, '(', h('bdi', {}, info.client.host), ')')),
+    h('p', { class: 'center' }, 'يبي يضيف ويعدّل بنوك الأسئلة في حسابك في ألعاب الشلة.'),
+    h('ul', { class: 'rules-list' },
+      h('li', {}, 'يقدر يشوف بنوكك، ويسوي بنوك جديدة، ويضيف أسئلة وصور، ويحذف من بنوكك.'),
+      h('li', {}, 'وفي كل محادثة جديدة بيعطيك رابط تأكد فيه إنك أنت صاحب الحساب.'),
+      h('li', {}, 'ما يقدر يشوف كلمة السر، ولا يلعب بدالك. وتقدر تلغي الربط أي وقت من صفحة حسابك.')),
     error ? h('p', { class: 'banner bad' }, error) : null,
     h('form', {
       onsubmit: async (e) => {
         e.preventDefault();
-        try {
-          await call('/api/account/login', { username: username.value, password: password.value });
-          start();
-        } catch (err) {
-          renderLogin(info, err.message);
-        }
+        await decide(true, { username: username.value, password: password.value }, info);
       },
     },
+      h('p', { class: 'hint' }, 'ادخل بحسابك أنت عشان تسمح:'),
       h('label', { class: 'field' }, h('span', {}, 'اسم المستخدم'), username),
       h('label', { class: 'field' }, h('span', {}, 'كلمة السر'), password),
-      h('button', { class: 'btn primary big', type: 'submit' }, 'ادخل')),
+      h('div', { class: 'review-actions consent-actions' },
+        h('button', { type: 'submit', class: 'btn primary big' }, icon('circle-check'), ' اسمح'),
+        h('button', { type: 'button', class: 'btn big', onclick: () => decide(false, {}, info) }, 'لا'))),
     h('p', { class: 'hint center' }, 'ما عندك حساب؟ ',
       h('a', { href: `/account?signup=1&next=${encodeURIComponent(location.pathname + location.search)}` }, 'سوّ حساب')),
   );
-  username.focus();
+  (typed ? password : username).focus();
 }
 
-async function decide(allow) {
+async function decide(allow, login, info) {
   try {
-    const { redirect } = await call('/oauth/decision', { req: reqId, allow });
-    frame(h('p', { class: 'center' }, allow ? [icon('circle-check'), ' تم الربط، نرجّعك للتطبيق…'] : 'رجعناك للتطبيق.'));
+    const { redirect, username } = await call('/oauth/decision', { req: reqId, allow, ...login });
+    frame(h('p', { class: 'center' }, allow ? [icon('circle-check'), ' تم الربط بحساب ', h('bdi', {}, h('b', {}, username)), '، نرجّعك للتطبيق…'] : 'رجعناك للتطبيق.'));
     location.href = redirect;
   } catch (err) {
-    frame(h('p', { class: 'banner bad' }, err.message));
+    if (allow) renderConsent(info, err.message, login.username);
+    else frame(h('p', { class: 'banner bad' }, err.message));
   }
-}
-
-function renderConsent(info) {
-  frame(
-    h('h1', { class: 'center' }, 'تسمح بالربط؟'),
-    h('p', { class: 'center consent-who' }, h('b', {}, '«', h('bdi', {}, info.client.name), '»'), ' ', h('small', { class: 'muted' }, '(', h('bdi', {}, info.client.host), ')')),
-    h('p', { class: 'center' }, 'يبي يضيف ويعدّل بنوك الأسئلة في حسابك ', h('bdi', {}, h('b', {}, info.account.username)), '.'),
-    h('ul', { class: 'rules-list' },
-      h('li', {}, 'يقدر يشوف بنوكك، ويسوي بنوك جديدة، ويضيف أسئلة وصور، ويحذف من بنوكك.'),
-      h('li', {}, 'ما يقدر يشوف كلمة السر، ولا يلعب بدالك.'),
-      h('li', {}, 'تقدر تلغي الربط أي وقت من صفحة حسابك.')),
-    h('div', { class: 'review-actions consent-actions' },
-      h('button', { type: 'button', class: 'btn primary big', onclick: () => decide(true) }, icon('circle-check'), ' اسمح'),
-      h('button', { type: 'button', class: 'btn big', onclick: () => decide(false) }, 'لا')),
-    h('p', { class: 'hint center' }, 'مو أنت ', h('bdi', {}, info.account.username), '؟ ',
-      h('button', { type: 'button', class: 'link-btn', onclick: async () => { await call('/api/account/logout', {}); start(); } }, 'ادخل بحساب ثاني')),
-  );
 }
 
 async function start() {
   try {
-    const info = await call(`/oauth/request?req=${encodeURIComponent(reqId)}`);
-    if (info.account) renderConsent(info);
-    else renderLogin(info);
+    renderConsent(await call(`/oauth/request?req=${encodeURIComponent(reqId)}`));
   } catch (err) {
     frame(h('p', { class: 'banner bad' }, err.message));
   }

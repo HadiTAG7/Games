@@ -94,12 +94,14 @@ function connectSection() {
       h('ol', { class: 'rules-list' },
         h('li', {}, 'افتح الإعدادات ← Connectors ← Add custom connector.'),
         h('li', {}, 'الصق الرابط فوق، وسمّه «ألعاب الشلة».'),
-        h('li', {}, 'اضغط Connect، وبتطلع لك صفحة موقعنا: ادخل بحسابك واضغط «اسمح».'))),
+        h('li', {}, 'اضغط Connect، وبتطلع لك صفحة موقعنا: اكتب اسم المستخدم وكلمة السر واضغط «اسمح».'),
+        h('li', {}, 'وفي كل محادثة جديدة، Claude بيعطيك رابط «اربط حسابك»: افتحه وادخل بحسابك، وكل البنوك في هالمحادثة تنحفظ في حسابك أنت.'))),
     h('details', { class: 'rules' }, h('summary', {}, 'في ChatGPT'),
       h('ol', { class: 'rules-list' },
         h('li', {}, 'افتح الإعدادات ← Apps & Connectors، وشغّل Developer mode من الإعدادات المتقدمة.'),
         h('li', {}, 'اضغط Create، والصق الرابط فوق، واختر OAuth.'),
-        h('li', {}, 'بتطلع لك صفحة موقعنا: ادخل بحسابك واضغط «اسمح».'),
+        h('li', {}, 'بتطلع لك صفحة موقعنا: اكتب اسم المستخدم وكلمة السر واضغط «اسمح».'),
+        h('li', {}, 'وفي كل محادثة جديدة بيعطيك رابط «اربط حسابك»: افتحه وادخل بحسابك.'),
         h('li', {}, 'مهم: في كل محادثة جديدة اضغط «+» ← «المزيد» وفعّل «ألعاب الشلة» قبل ما تطلب منه، وإلا بيقول لك إن الأدوات مو متاحة.'))),
     h('p', { class: 'hint' }, 'الميزة هذي تعتمد على اشتراكك في Claude أو ChatGPT. لو قال إنه ما يقدر يحفظ: شيّك إن التطبيق موجود في «', icon('plug'), ' الأجهزة المربوطة» تحت (لو مو موجود اربطه من جديد)، أو انسخ اللي كتبه والصقه في «بنك جديد بالصق»، والأرقام والعناوين تنشال لحالها.'),
     h('div', { class: 'mcp-url' }, h('span', {}, `مثال: «${example}»`), h('button', { type: 'button', class: 'btn small', onclick: () => copy(example) }, 'نسخ')),
@@ -226,7 +228,7 @@ function newBankForm() {
 }
 
 async function connectionsSection() {
-  const { connections } = await api('/connections');
+  const [{ connections }, { links }] = await Promise.all([api('/connections'), api('/links')]);
   return h('section', { class: 'card contrib-card' },
     h('h2', {}, icon('plug'), ' الأجهزة المربوطة'),
     connections.length
@@ -241,7 +243,18 @@ async function connectionsSection() {
             await refresh();
           },
         }, 'إلغاء الربط'))))
-      : h('p', { class: 'hint' }, 'ما فيه شي مربوط.'),
+      : links.length ? null : h('p', { class: 'hint' }, 'ما فيه شي مربوط.'),
+    links.length ? h('div', { class: 'mcp-url' },
+      h('span', {}, `محادثات مربوطة بحسابك: ${links.length}`),
+      h('button', {
+        type: 'button',
+        class: 'btn small',
+        onclick: async () => {
+          await api('/links/revoke', {});
+          toast('انلغى ربط المحادثات', 'ok');
+          await refresh();
+        },
+      }, 'إلغاء ربط كل المحادثات')) : null,
   );
 }
 

@@ -21,6 +21,7 @@ const banks = require('./src/banks');
 const groups = require('./src/groups');
 const { createOAuth } = require('./src/oauth');
 const { mcpHandler } = require('./src/mcp');
+const { linkRouter } = require('./src/links');
 const { categories } = require('./data/questions.json');
 const timeCategories = require('./data/time-challenge.json').categories;
 const seenCategories = require('./data/seen-jeem.json').categories;
@@ -287,6 +288,7 @@ if (base.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(base.hostn
   const oauth = createOAuth({ accountsReady, baseUrl: BASE_URL });
   app.use(oauth.router);
   app.use('/oauth', oauth.consent);
+  app.use('/api/link', linkRouter({ accountsReady })); // «اربط حسابك»: each conversation's link page
   app.post('/mcp', oauth.bearer, express.json({ limit: '10mb' }), mcpHandler({ accountsReady, content: () => rooms.content, baseUrl: BASE_URL }));
   app.all('/mcp', (req, res) => res.status(405).set('allow', 'POST').json({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed.' }, id: null }));
 } else {

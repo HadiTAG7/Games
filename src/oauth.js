@@ -5,13 +5,16 @@
 // SDK serves the standard endpoints (/authorize, /token, /register, the
 // .well-known metadata); this file supplies the parts that are ours: the
 // consent page («تسمح لـClaude…؟»), and codes and tokens tied to an account.
+// Allowing always takes the account's username and password, never just
+// whoever is logged in on that browser.
 
 const express = require('express');
 const { mcpAuthRouter } = require('@modelcontextprotocol/sdk/server/auth/router.js');
 const { requireBearerAuth } = require('@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js');
 const { InvalidTokenError, InvalidGrantError } = require('@modelcontextprotocol/sdk/server/auth/errors.js');
 const { sha256, token } = require('./accounts');
-const { accountFromCookie } = require('./web-accounts');
+const { checkLogin } = require('./web-accounts');
+const { limiter } = require('./limits');
 
 const PENDING_MS = 10 * 60 * 1000; // to log in and allow
 const CODE_MS = 5 * 60 * 1000;
@@ -24,6 +27,7 @@ const SCOPE = 'banks';
 
 function createOAuth({ accountsReady, baseUrl }) {
   const mcpUrl = new URL('/mcp', baseUrl);
+  const loginLimit = limiter(10, 15 * 60 * 1000);
   const pending = new Map(); // request id → { client, params, expires }
   const codes = new Map(); // code → { clientId, accountId, challenge, redirectUri, scopes, resource, expires }
   const sweep = () => {
@@ -119,11 +123,7 @@ function createOAuth({ accountsReady, baseUrl }) {
     try {
       const p = pending.get(String(req.query.req ?? ''));
       if (!p || p.expires < Date.now()) return res.status(404).json({ error: 'الطلب انتهى، ارجع للتطبيق وجرّب الربط مرة ثانية' });
-      const account = await accountFromCookie(await accountsReady, req.headers.cookie);
-      return res.json({
-        client: { name: p.client.client_name || 'تطبيق', host: new URL(p.params.redirectUri).host },
-        account: account ? { username: account.username } : null,
-      });
+      return res.json({ client: { name: p.client.client_name || 'تطبيق', host: new URL(p.params.redirectUri).host } });
     } catch (err) {
       return next(err);
     }
@@ -135,11 +135,17 @@ function createOAuth({ accountsReady, baseUrl }) {
       const id = String(req.body?.req ?? '');
       const p = pending.get(id);
       if (!p || p.expires < Date.now()) return res.status(404).json({ error: 'الطلب انتهى، ارجع للتطبيق وجرّب الربط مرة ثانية' });
-      const account = await accountFromCookie(await accountsReady, req.headers.cookie);
-      if (!account) return res.status(401).json({ error: 'سجّل دخول أول' });
+      const allow = req.body?.allow === true;
+      let account = null;
+      if (allow) {
+        const username = String(req.body?.username ?? '').trim();
+        if (!loginLimit(`${req.ip}:${username.toLowerCase()}`)) return res.status(429).json({ error: 'محاولات كثير، جرّب بعد ربع ساعة' });
+        account = await checkLogin(await accountsReady, username, req.body?.password);
+        if (!account) return res.status(401).json({ error: 'اسم المستخدم أو كلمة السر غلط' });
+      }
       pending.delete(id);
       const back = new URL(p.params.redirectUri);
-      if (req.body?.allow === true) {
+      if (allow) {
         const code = token();
         codes.set(code, {
           clientId: p.client.client_id,
@@ -155,7 +161,7 @@ function createOAuth({ accountsReady, baseUrl }) {
         back.searchParams.set('error', 'access_denied');
       }
       if (p.params.state) back.searchParams.set('state', p.params.state);
-      return res.json({ redirect: back.href });
+      return res.json({ redirect: back.href, username: account?.username ?? null });
     } catch (err) {
       return next(err);
     }

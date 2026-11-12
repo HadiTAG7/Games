@@ -32,6 +32,12 @@ async function accountFromCookie(accounts, cookieHeader) {
   return session ? accounts.getAccount(session.accountId) : null;
 }
 
+/** The account these credentials open, or null. For pages that must know who's there now (not who's logged in on this browser). */
+async function checkLogin(accounts, username, password) {
+  const found = await accounts.findAccount(String(username ?? '').trim());
+  return found && (await checkPassword(String(password ?? ''), found.passwordHash)) ? accounts.getAccount(found.id) : null;
+}
+
 async function startSession(accounts, req, res, accountId) {
   const raw = token();
   const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
@@ -223,6 +229,16 @@ function accountRouter({ accountsReady, content, community, games = () => [] }) 
     res.json({ ok: true });
   }));
 
+  // AI conversations linked to this account («اربط حسابك» in links.js).
+  router.get('/links', mine(async (req, res, account) => {
+    res.json({ links: await accounts.listLinks(account.id) });
+  }));
+
+  router.post('/links/revoke', mine(async (req, res, account) => {
+    await accounts.deleteLinks({ accountId: account.id });
+    res.json({ ok: true });
+  }));
+
   router.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     if (err instanceof GameError) return res.status(400).json({ error: err.message });
     console.error('[account]', err);
@@ -246,4 +262,4 @@ function pictureRoute(accountsReady) {
   };
 }
 
-module.exports = { accountRouter, pictureRoute, accountFromCookie, startSession, cookies, COOKIE };
+module.exports = { accountRouter, pictureRoute, accountFromCookie, checkLogin, startSession, cookies, COOKIE };

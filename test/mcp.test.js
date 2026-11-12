@@ -165,7 +165,69 @@ test('accounts over HTTP: sign up, log in, paste a bank, share it, and the owner
   assert.equal((await noura.get('/api/account/me')).json.account, null);
 });
 
-test('MCP: an AI app registers, the user allows it, and its tools fill the account\'s banks', async (t) => {
+/**
+ * Connects an MCP client the way Claude does: registers, "opens the browser" at /authorize, and on our
+ * consent page allows it with these credentials. Returns { client, saved, consentAsked }.
+ */
+async function connectAI(t, base, { username, password, name = 'Test AI' }) {
+  const saved = {};
+  let consentAsked = null;
+  const provider = {
+    redirectUrl: 'http://127.0.0.1:1/callback',
+    clientMetadata: { client_name: name, redirect_uris: ['http://127.0.0.1:1/callback'], grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'] },
+    clientInformation: () => saved.client,
+    saveClientInformation: (c) => { saved.client = c; },
+    tokens: () => saved.tokens,
+    saveTokens: (tk) => { saved.tokens = tk; },
+    saveCodeVerifier: (v) => { saved.verifier = v; },
+    codeVerifier: () => saved.verifier,
+    state: () => 'state-123',
+    async redirectToAuthorization(url) {
+      // The browser: /authorize sends it to our consent page…
+      const start = await fetch(url, { redirect: 'manual' });
+      assert.equal(start.status, 302);
+      const consent = new URL(start.headers.get('location'), base);
+      assert.equal(consent.pathname, '/oauth/consent');
+      const req = consent.searchParams.get('req');
+      const page = browser(base);
+      consentAsked = (await page.get(`/oauth/request?req=${req}`)).json;
+      assert.equal((await page.post('/oauth/decision', { req, allow: true })).status, 401, 'allowing takes a login');
+      assert.equal((await page.post('/oauth/decision', { req, allow: true, username, password: 'غلط غلط غلط' })).status, 401, 'the right password');
+      // …where the person types their username and password and presses «اسمح».
+      const { json } = await page.post('/oauth/decision', { req, allow: true, username, password });
+      assert.equal(json.username.toLowerCase(), username.toLowerCase());
+      const back = new URL(json.redirect);
+      assert.equal(back.searchParams.get('state'), 'state-123');
+      saved.code = back.searchParams.get('code');
+    },
+  };
+  const mcpUrl = new URL('/mcp', base);
+  const client = new Client({ name: 'test-ai', version: '1.0.0' });
+  await assert.rejects(client.connect(new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider })), UnauthorizedError);
+  await new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider }).finishAuth(saved.code);
+  await client.connect(new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider }));
+  t.after(() => client.close());
+  return { client, saved, consentAsked };
+}
+
+const json = (result) => JSON.parse(result.content[0].text);
+
+/** «اربط حسابك»: the AI asks for a link, and whoever opens it logs in. Returns the link_id. */
+async function linkConversation(base, client, { username, password }) {
+  const out = json(await client.callTool({ name: 'link_account', arguments: {} }));
+  const url = new URL(out.link_url);
+  assert.equal(url.pathname, '/link');
+  const code = url.searchParams.get('code');
+  assert.equal(code, out.link_id);
+  const page = browser(base);
+  assert.equal((await page.get(`/api/link/info?code=${encodeURIComponent(code)}`)).json.linked, false);
+  assert.equal((await page.post('/api/link/confirm', { code, username, password: 'غلط غلط غلط' })).status, 401);
+  const done = await page.post('/api/link/confirm', { code, username, password });
+  assert.equal(done.status, 200);
+  return out.link_id;
+}
+
+test('MCP: an AI app registers, the user allows it, links the conversation, and its tools fill the account\'s banks', async (t) => {
   const base = await startServer(t);
   const pics = await pictureServer(t);
   const user = browser(base);
@@ -178,62 +240,36 @@ test('MCP: an AI app registers, the user allows it, and its tools fill the accou
   const meta = await (await fetch(`${base}/.well-known/oauth-authorization-server`)).json();
   assert.deepEqual(meta.code_challenge_methods_supported, ['S256']);
 
-  // An OAuth client like Claude's: stores what it's given, and "opens the browser" at /authorize.
-  const saved = {};
-  let consentAsked = null;
-  const provider = {
-    redirectUrl: 'http://127.0.0.1:1/callback',
-    clientMetadata: { client_name: 'Test AI', redirect_uris: ['http://127.0.0.1:1/callback'], grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'] },
-    clientInformation: () => saved.client,
-    saveClientInformation: (c) => { saved.client = c; },
-    tokens: () => saved.tokens,
-    saveTokens: (tk) => { saved.tokens = tk; },
-    saveCodeVerifier: (v) => { saved.verifier = v; },
-    codeVerifier: () => saved.verifier,
-    state: () => 'state-123',
-    async redirectToAuthorization(url) {
-      // The user's browser: /authorize sends it to our consent page…
-      const start = await fetch(url, { redirect: 'manual' });
-      assert.equal(start.status, 302);
-      const consent = new URL(start.headers.get('location'), base);
-      assert.equal(consent.pathname, '/oauth/consent');
-      const req = consent.searchParams.get('req');
-      assert.equal((await browser(base).post('/oauth/decision', { req, allow: true })).status, 401, 'not logged in');
-      consentAsked = (await user.get(`/oauth/request?req=${req}`)).json;
-      // …where the logged-in user presses «اسمح».
-      const { json } = await user.post('/oauth/decision', { req, allow: true });
-      const back = new URL(json.redirect);
-      assert.equal(back.searchParams.get('state'), 'state-123');
-      saved.code = back.searchParams.get('code');
-    },
-  };
-
-  const mcpUrl = new URL('/mcp', base);
-  const client = new Client({ name: 'test-ai', version: '1.0.0' });
-  await assert.rejects(client.connect(new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider })), UnauthorizedError);
-  assert.deepEqual(consentAsked, { client: { name: 'Test AI', host: '127.0.0.1:1' }, account: { username: 'reem' } });
-  const first = new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider });
-  await first.finishAuth(saved.code);
+  const { client, saved, consentAsked } = await connectAI(t, base, { username: 'reem', password: 'كلمة سر ريم' });
+  assert.deepEqual(consentAsked, { client: { name: 'Test AI', host: '127.0.0.1:1' } }, 'the consent page doesn\'t assume who\'s there');
   assert.ok(saved.tokens.access_token && saved.tokens.refresh_token);
   assert.equal(saved.client.client_secret_expires_at, 0, 'the app\'s secret never expires');
-  await client.connect(new StreamableHTTPClientTransport(mcpUrl, { authProvider: provider }));
-  t.after(() => client.close());
 
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((x) => x.name).sort(), [
     'add_herd_questions', 'add_letters_questions', 'add_outsider_words', 'add_seen_questions', 'add_time_cards',
-    'delete_bank', 'games_guide', 'get_bank', 'list_my_banks', 'remove_from_bank',
+    'check_link', 'delete_bank', 'games_guide', 'get_bank', 'link_account', 'list_my_banks', 'remove_from_bank',
   ]);
-  const json = (result) => JSON.parse(result.content[0].text);
   assert.match((await client.callTool({ name: 'games_guide', arguments: {} })).content[0].text, /سين جيم/);
 
-  // A سين جيم bank, one question with a picture.
+  // Nothing goes into an account before the conversation is linked.
   const questions = [200, 200, 400, 400, 600, 600].map((value, i) => ({ value, q: `سؤال عن الدوري ${i}`, a: `جواب ${i}` }));
+  const unlinked = await client.callTool({ name: 'add_seen_questions', arguments: { link_id: 'nope', bank_name: 'x', questions } });
+  assert.equal(unlinked.isError, true);
+  assert.match(unlinked.content[0].text, /link_account/);
+  const waiting = json(await client.callTool({ name: 'link_account', arguments: {} }));
+  const early = await client.callTool({ name: 'list_my_banks', arguments: { link_id: waiting.link_id } });
+  assert.equal(early.isError, true, 'not until someone logs in on the link');
+  assert.equal(json(await client.callTool({ name: 'check_link', arguments: { link_id: waiting.link_id } })).linked, false);
+  const link = await linkConversation(base, client, { username: 'reem', password: 'كلمة سر ريم' });
+  assert.deepEqual(json(await client.callTool({ name: 'check_link', arguments: { link_id: link } })), { linked: true, username: 'reem' });
+
+  // A سين جيم bank, one question with a picture.
   questions[5].image_url = `${pics}/pic.png`;
-  const seen = json(await client.callTool({ name: 'add_seen_questions', arguments: { bank_name: 'دوري روشن', emoji: '⚽', questions } }));
+  const seen = json(await client.callTool({ name: 'add_seen_questions', arguments: { link_id: link, bank_name: 'دوري روشن', emoji: '⚽', questions } }));
   assert.equal(seen.added, 6);
   assert.equal(seen.bank.playable, true);
-  const missing = await client.callTool({ name: 'add_seen_questions', arguments: { questions: questions.slice(0, 1) } });
+  const missing = await client.callTool({ name: 'add_seen_questions', arguments: { link_id: link, questions: questions.slice(0, 1) } });
   assert.equal(missing.isError, true, 'needs bank_name or bank_id');
 
   // A تحدي الوقت bank of picture, emoji and text cards; one broken link is reported, the rest are added.
@@ -243,23 +279,25 @@ test('MCP: an AI app registers, the user allows it, and its tools fill the accou
     { type: 'emoji', face: '🦁👑', answer: 'الأسد الملك' },
     { type: 'text', face: 'عاصمة اليابان', answer: 'طوكيو' },
   ];
-  const time = json(await client.callTool({ name: 'add_time_cards', arguments: { bank_name: 'صور', cards } }));
+  const time = json(await client.callTool({ name: 'add_time_cards', arguments: { link_id: link, bank_name: 'صور', cards } }));
   assert.equal(time.added, 15);
   assert.deepEqual(time.errors.map((e) => e.index), [13]);
   assert.equal(time.bank.playable, true);
 
-  const list = json(await client.callTool({ name: 'list_my_banks', arguments: {} }));
+  const list = json(await client.callTool({ name: 'list_my_banks', arguments: { link_id: link } }));
   assert.deepEqual(list.banks.map((b) => [b.game, b.name, b.count]), [['seen', 'دوري روشن', 6], ['time', 'صور', 15]]);
-  const bank = json(await client.callTool({ name: 'get_bank', arguments: { bank_id: seen.bank.id } }));
-  const removed = json(await client.callTool({ name: 'remove_from_bank', arguments: { bank_id: seen.bank.id, item_ids: [bank.items[0].id] } }));
+  const bank = json(await client.callTool({ name: 'get_bank', arguments: { link_id: link, bank_id: seen.bank.id } }));
+  const removed = json(await client.callTool({ name: 'remove_from_bank', arguments: { link_id: link, bank_id: seen.bank.id, item_ids: [bank.items[0].id] } }));
   assert.equal(removed.bank.count, 5);
 
   // The account page sees the same banks, and the pictures are served.
+  await user.post('/api/account/login', { username: 'reem', password: 'كلمة سر ريم' });
   const page = await user.get(`/api/account/banks/${time.bank.id}`);
   const img = await fetch(base + page.json.bank.items[0].img);
   assert.equal(img.headers.get('content-type'), 'image/webp');
   assert.equal((await sharp(Buffer.from(await img.arrayBuffer())).metadata()).width, 640);
   assert.deepEqual((await user.get('/api/account/connections')).json.connections.map((c) => c.name), ['Test AI']);
+  assert.deepEqual((await user.get('/api/account/links')).json.links.map((l) => l.clientName), ['Test AI']);
 
   // Each use of a refresh token hands out a new pair; a retry soon after still works, later it doesn't.
   const refresh = (token) => fetch(`${base}/token`, {
@@ -276,7 +314,9 @@ test('MCP: an AI app registers, the user allows it, and its tools fill the accou
   await new Promise((r) => setTimeout(r, 1700));
   assert.equal((await refresh(old)).status, 400, 'after the grace period the old refresh token is spent');
 
-  // «إلغاء الربط» on the account page cuts the app off.
+  // «إلغاء ربط كل المحادثات» unlinks the conversation; «إلغاء الربط» cuts the app off.
+  await user.post('/api/account/links/revoke');
+  assert.equal((await client.callTool({ name: 'list_my_banks', arguments: { link_id: link } })).isError, true);
   const call = (token) => fetch(`${base}/mcp`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
@@ -287,6 +327,36 @@ test('MCP: an AI app registers, the user allows it, and its tools fill the accou
   assert.equal((await call(pair.access_token)).status, 401);
   assert.equal((await refresh(pair.refresh_token)).status, 400);
   assert.deepEqual((await user.get('/api/account/connections')).json.connections, []);
+});
+
+test('a shared connection: each conversation works in the account of whoever linked it', async (t) => {
+  const base = await startServer(t);
+  const hessa = browser(base);
+  const dana = browser(base);
+  await hessa.post('/api/account/signup', { username: 'hessa', password: 'كلمة سر حصة' });
+  await dana.post('/api/account/signup', { username: 'dana', password: 'كلمة سر دانة' });
+  // Hessa's connection (say, one Claude account the two of them use).
+  const { client } = await connectAI(t, base, { username: 'hessa', password: 'كلمة سر حصة' });
+
+  // Dana starts a conversation and links it to her own account.
+  const link = await linkConversation(base, client, { username: 'dana', password: 'كلمة سر دانة' });
+  assert.deepEqual(json(await client.callTool({ name: 'check_link', arguments: { link_id: link } })), { linked: true, username: 'dana' });
+  const words = ['استراحة', 'مخيم', 'ديوانية', 'كشتة'];
+  const added = json(await client.callTool({ name: 'add_outsider_words', arguments: { link_id: link, bank_name: 'أماكننا', words } }));
+  assert.equal(added.added, 4);
+  assert.deepEqual((await dana.get('/api/account/banks')).json.banks.map((b) => b.name), ['أماكننا'], 'in Dana\'s account');
+  assert.deepEqual((await hessa.get('/api/account/banks')).json.banks, [], 'not in Hessa\'s');
+
+  // A link works once, and only for the connection that made it.
+  const code = link;
+  assert.equal((await browser(base).post('/api/link/confirm', { code, username: 'hessa', password: 'كلمة سر حصة' })).status, 409);
+  assert.equal((await browser(base).get(`/api/link/info?code=${encodeURIComponent(code)}`)).json.linked, true);
+  assert.equal((await browser(base).get('/api/link/info?code=nope')).status, 404);
+  assert.equal((await fetch(`${base}/link?code=${encodeURIComponent(code)}`)).status, 200, 'the page itself');
+  const { client: other } = await connectAI(t, base, { username: 'dana', password: 'كلمة سر دانة', name: 'Other AI' });
+  const foreign = await other.callTool({ name: 'list_my_banks', arguments: { link_id: link } });
+  assert.equal(foreign.isError, true, 'a link from another connection doesn\'t carry over');
+  assert.match(foreign.content[0].text, /link_account/);
 });
 
 test('the consent page: «لا» sends the app away without a code, and each request is answered once', async (t) => {

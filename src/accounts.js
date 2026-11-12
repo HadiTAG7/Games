@@ -61,6 +61,7 @@ class FileAccounts {
     this.d.groupPlays ??= [];
     this.d.groupMembers ??= [];
     this.d.groupScores ??= [];
+    this.d.links ??= []; // MCP conversations linked to an account (from before they existed)
   }
 
   save() {
@@ -111,6 +112,7 @@ class FileAccounts {
     this.d.groups = this.d.groups.filter((g) => !groups.has(g.id));
     for (const list of ['groupPlays', 'groupMembers', 'groupScores']) this.d[list] = this.d[list].filter((x) => !groups.has(x.groupId));
     this.d.groupMembers = this.d.groupMembers.filter((m) => m.accountId !== id);
+    this.d.links = this.d.links.filter((l) => l.accountId !== id && l.grantAccountId !== id);
     const before = this.d.accounts.length;
     this.d.accounts = this.d.accounts.filter((a) => a.id !== id);
     this.save();
@@ -172,6 +174,39 @@ class FileAccounts {
     const byClient = new Map();
     for (const t of live) if (!byClient.has(t.clientId) || byClient.get(t.clientId) < t.createdAt) byClient.set(t.clientId, t.createdAt);
     return [...byClient].map(([clientId, since]) => ({ clientId, since, name: this.d.clients.find((c) => c.client_id === clientId)?.client_name ?? clientId }));
+  }
+
+  /* MCP conversation links: { hash, grantAccountId, accountId (null until confirmed), clientName, createdAt, linkedAt, expiresAt } */
+
+  async addLink(link) {
+    this.d.links = this.d.links.filter((l) => new Date(l.expiresAt) > new Date());
+    this.d.links.push({ ...link, accountId: null, linkedAt: null, createdAt: new Date().toISOString(), expiresAt: link.expiresAt.toISOString() });
+    this.save();
+  }
+
+  async getLink(hash) {
+    const l = this.d.links.find((x) => x.hash === hash);
+    return l && new Date(l.expiresAt) > new Date() ? { ...l, expiresAt: new Date(l.expiresAt) } : null;
+  }
+
+  /** Links a waiting conversation to an account; false if it was already linked (or is gone). */
+  async confirmLink(hash, accountId, expiresAt) {
+    const l = this.d.links.find((x) => x.hash === hash && !x.accountId && new Date(x.expiresAt) > new Date());
+    if (!l) return false;
+    Object.assign(l, { accountId, linkedAt: new Date().toISOString(), expiresAt: expiresAt.toISOString() });
+    this.save();
+    return true;
+  }
+
+  async listLinks(accountId) {
+    const now = new Date();
+    return this.d.links.filter((l) => l.accountId === accountId && new Date(l.expiresAt) > now)
+      .map((l) => ({ clientName: l.clientName, linkedAt: l.linkedAt }));
+  }
+
+  async deleteLinks({ accountId }) {
+    this.d.links = this.d.links.filter((l) => l.accountId !== accountId);
+    this.save();
   }
 
   async listBanks(accountId, game = null) {
@@ -454,6 +489,16 @@ CREATE TABLE IF NOT EXISTS group_scores (
 );
 CREATE INDEX IF NOT EXISTS groups_account ON play_groups(account_id);
 CREATE INDEX IF NOT EXISTS group_members_account ON group_members(account_id);
+CREATE TABLE IF NOT EXISTS mcp_links (
+  link_hash TEXT PRIMARY KEY,
+  grant_account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+  client_name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  linked_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS mcp_links_account ON mcp_links(account_id);
 `;
 
 const groupRow = (r) => ({
@@ -575,6 +620,40 @@ class PgAccounts {
       [accountId],
     );
     return rows.map((r) => ({ clientId: r.client_id, since: new Date(r.since).toISOString(), name: r.name ?? r.client_id }));
+  }
+
+  async addLink(link) {
+    await this.q('DELETE FROM mcp_links WHERE expires_at < now()');
+    await this.q(
+      'INSERT INTO mcp_links (link_hash, grant_account_id, client_name, expires_at) VALUES ($1, $2, $3, $4)',
+      [link.hash, link.grantAccountId, link.clientName ?? null, link.expiresAt],
+    );
+  }
+
+  async getLink(hash) {
+    const { rows } = await this.q('SELECT * FROM mcp_links WHERE link_hash = $1 AND expires_at > now()', [hash]);
+    const r = rows[0];
+    return r ? {
+      hash: r.link_hash, grantAccountId: r.grant_account_id, accountId: r.account_id, clientName: r.client_name,
+      createdAt: new Date(r.created_at).toISOString(), linkedAt: r.linked_at ? new Date(r.linked_at).toISOString() : null, expiresAt: new Date(r.expires_at),
+    } : null;
+  }
+
+  async confirmLink(hash, accountId, expiresAt) {
+    const { rowCount } = await this.q(
+      'UPDATE mcp_links SET account_id = $2, linked_at = now(), expires_at = $3 WHERE link_hash = $1 AND account_id IS NULL AND expires_at > now()',
+      [hash, accountId, expiresAt],
+    );
+    return rowCount > 0;
+  }
+
+  async listLinks(accountId) {
+    const { rows } = await this.q('SELECT client_name, linked_at FROM mcp_links WHERE account_id = $1 AND expires_at > now() ORDER BY linked_at', [accountId]);
+    return rows.map((r) => ({ clientName: r.client_name, linkedAt: new Date(r.linked_at).toISOString() }));
+  }
+
+  async deleteLinks({ accountId }) {
+    await this.q('DELETE FROM mcp_links WHERE account_id = $1', [accountId]);
   }
 
   async listBanks(accountId, game = null) {
